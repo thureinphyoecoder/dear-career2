@@ -1,0 +1,19 @@
+**/note.md
+
+# Local environments
+venv/
+backend/.env
+frontend/.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
+db.sqlite3
+
+# Next.js / Node
+frontend/node_modules/
+frontend/.next/
+
+# Build outputs
+backend/staticfiles/
