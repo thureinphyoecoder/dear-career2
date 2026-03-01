@@ -41,6 +41,14 @@ export function FetchSettingsForm({
             <div className="eyebrow">Cadence</div>
             <h2 className="admin-panel-title">Fetch schedule</h2>
           </div>
+          <div className="admin-settings-actions">
+            <button className="button secondary" type="button">
+              Save draft
+            </button>
+            <button className="button" type="button">
+              Run fetch now
+            </button>
+          </div>
         </div>
         <div className="admin-settings-grid">
           <label className="stack">
@@ -179,7 +187,7 @@ export function FetchSettingsForm({
         <div className="admin-panel-header">
           <div>
             <div className="eyebrow">Source registry</div>
-            <h2 className="admin-panel-title">Available fetch sources</h2>
+            <h2 className="admin-panel-title">Connected sources</h2>
           </div>
         </div>
         <div className="admin-source-grid">

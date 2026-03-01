@@ -9,11 +9,11 @@ export default async function AdminJobsPage() {
   return (
     <div className="admin-dashboard">
       <div className="admin-page-header">
-        <div>
+        <div className="stack">
           <div className="eyebrow">Job CRUD</div>
           <h1 className="admin-page-title">Jobs</h1>
           <p className="admin-page-copy">
-            Search, review, edit, and approve listings before they move to website publish or Facebook upload.
+            Review listings, update metadata, and control publish readiness.
           </p>
         </div>
         <div className="admin-header-actions">

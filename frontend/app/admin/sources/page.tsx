@@ -9,9 +9,9 @@ export default async function AdminSourcesPage() {
       <header className="admin-page-header">
         <div className="stack">
           <div className="eyebrow">Fetch settings</div>
-          <h1 className="admin-page-title">Source intake and sync rules</h1>
+          <h1 className="admin-page-title">Fetch settings</h1>
           <p className="admin-page-copy">
-            Configure cadence in minutes or hours, decide which sites are fetchable, and keep manual URL intake available when scraping is not possible.
+            Configure cadence, source availability, manual URL intake, and channel approval rules.
           </p>
         </div>
       </header>

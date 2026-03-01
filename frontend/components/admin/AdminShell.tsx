@@ -32,12 +32,11 @@ export function AdminShell({
       <aside className="admin-sidebar">
         <div className="admin-sidebar-stack">
           <div className="admin-brand-block">
-            <div className="eyebrow">Dear Career</div>
             <BrandLogo compact inline className="admin-brand-logo" />
-            <h1 className="admin-sidebar-title">{title}</h1>
-            <p className="admin-sidebar-copy">
-              Editorial workflow for listings, manual source intake, and fetch operations.
-            </p>
+            <div className="admin-brand-meta">
+              <div className="eyebrow">Dear Career</div>
+              <h1 className="admin-sidebar-title">{title}</h1>
+            </div>
           </div>
 
           <nav className="admin-nav">
@@ -52,8 +51,11 @@ export function AdminShell({
             ))}
           </nav>
 
-          <div className="admin-sidebar-section">
-            <div className="eyebrow">Utilities</div>
+          <div className="admin-sidebar-note">
+            Frontend workspace for intake, review, and publishing control.
+          </div>
+
+          <div className="admin-sidebar-section admin-sidebar-section-spread">
             <div className="admin-sidebar-actions">
               <a
                 className="button secondary admin-django-link"
