@@ -5,14 +5,14 @@
   --sage-dark: #8da693;
   --sage-light: #d5dfd5;
   --olive: #b8c7ba;
-  --earth: #2c2a29;
+  --earth: #454c49;
   --white: #f2f2f2;
   --mist: #f7f3ee;
-  --ink-soft: #66615c;
-  --line: rgba(44, 42, 41, 0.1);
+  --ink-soft: #727975;
+  --line: rgba(160, 183, 164, 0.24);
   --panel: rgba(255, 246, 232, 0.66);
   --panel-strong: rgba(255, 255, 255, 0.78);
-  --muted: rgba(44, 42, 41, 0.68);
+  --muted: rgba(69, 76, 73, 0.72);
   --radius: 24px;
   --shadow: 0 20px 42px rgba(160, 183, 164, 0.08);
 }
@@ -117,7 +117,7 @@ body {
   font-size: 0.74rem;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: rgba(91, 87, 83, 0.56);
+  color: rgba(141, 166, 147, 0.9);
 }
 
 a {
@@ -336,7 +336,7 @@ main {
 .public-footer {
   padding: 20px 0 34px;
   background: #f2f2f2;
-  border-top: 1px solid rgba(91, 87, 83, 0.06);
+  border-top: 1px solid rgba(160, 183, 164, 0.16);
 }
 
 .public-footer-inner {
@@ -394,7 +394,7 @@ main {
   border-left: 0;
   border: 1px solid rgba(160, 183, 164, 0.26);
   border-radius: 22px;
-  background: linear-gradient(180deg, rgba(255, 246, 232, 0.72), rgba(255, 255, 255, 0.5));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(242, 242, 242, 0.6));
   box-shadow: 0 14px 28px rgba(160, 183, 164, 0.08);
 }
 
@@ -436,11 +436,11 @@ main {
   justify-content: space-between;
   gap: 12px;
   padding-top: 16px;
-  border-top: 1px solid rgba(91, 87, 83, 0.08);
+  border-top: 1px solid rgba(160, 183, 164, 0.18);
   font-size: 0.76rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(91, 87, 83, 0.56);
+  color: rgba(141, 166, 147, 0.92);
 }
 
 .public-home {
@@ -545,12 +545,13 @@ main {
 
 .hero-sprout-single {
   left: 50%;
-  top: 50%;
-  width: min(48vw, 720px);
-  min-width: 360px;
+  top: 37%;
+  width: min(64vw, 920px);
+  max-width: calc(78vh * 1.16);
+  min-width: 440px;
   aspect-ratio: 210 / 180;
   transform-origin: bottom center;
-  transform: translate(-50%, -38%);
+  transform: translate(-50%, -30%);
 }
 
 .hero-sprout-part {
@@ -641,6 +642,12 @@ main {
   color: var(--earth);
 }
 
+.brand-logo-copy {
+  display: grid;
+  gap: 0;
+  align-items: end;
+}
+
 .sprout-mark {
   position: relative;
   width: 100%;
@@ -664,7 +671,57 @@ main {
   display: grid;
   font-family: "Cormorant Garamond", Georgia, serif;
   font-weight: 400;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.045em;
+  line-height: 0.8;
+  text-rendering: geometricPrecision;
+}
+
+.brand-logo-word {
+  display: block;
+}
+
+.brand-logo-word-dear {
+  font-style: italic;
+  font-size: 0.8em;
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  transform: translateX(0.08em);
+  opacity: 0.96;
+}
+
+.brand-logo-word-career {
+  font-size: 1em;
+  letter-spacing: -0.075em;
+}
+
+.brand-logo-inline .brand-logo-copy {
+  display: flex;
+  align-items: center;
+}
+
+.brand-logo-inline .brand-logo-text {
+  display: flex;
+  align-items: baseline;
+  gap: 0.08em;
+  line-height: 1;
+}
+
+.brand-logo-inline .brand-logo-word {
+  display: inline-block;
+}
+
+.brand-logo-inline .brand-logo-word-dear {
+  font-style: italic;
+  font-size: 0.72em;
+  font-weight: 500;
+  transform: translateY(-0.08em);
+  letter-spacing: -0.055em;
+  opacity: 0.92;
+}
+
+.brand-logo-inline .brand-logo-word-career {
+  font-size: 1em;
+  letter-spacing: -0.085em;
 }
 
 .brand-logo-compact {
@@ -679,8 +736,9 @@ main {
   font-size: 2rem !important;
 }
 
+
 .nav-brand-logo .brand-logo-mark {
-  width: 58px;
+  width: 64px;
 }
 
 .nav-brand-logo {
@@ -688,7 +746,10 @@ main {
 }
 
 .nav-brand-logo .brand-logo-text {
-  font-size: 1.7rem !important;
+  font-size: 2rem !important;
+  line-height: 0.84 !important;
+  letter-spacing: -0.075em;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.42);
 }
 
 .admin-brand-logo .brand-logo-mark {
@@ -736,7 +797,7 @@ main {
   font-size: 0.8rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(44, 51, 45, 0.82);
+  color: rgba(69, 76, 73, 0.82);
 }
 
 .public-nav-toggle {
@@ -785,10 +846,14 @@ main {
 }
 
 .hero-copy {
-  max-width: 900px;
+  width: 100%;
+  max-width: 1320px;
   animation: heroFadeUp 0.9s ease-out 0.2s both;
   position: relative;
   z-index: 3;
+  display: grid;
+  justify-items: center;
+  text-align: center;
 }
 
 .hero-main-logo {
@@ -801,19 +866,42 @@ main {
 }
 
 .hero-title {
-  margin: 0;
+  display: block;
+  margin: 0 auto;
   font-family: "Cormorant Garamond", Georgia, serif;
-  font-size: clamp(4rem, 6.8vw, 6.4rem);
+  font-size: clamp(3rem, 4.4vw, 4.45rem);
   font-weight: 400;
-  line-height: 0.95;
-  max-width: none;
+  line-height: 0.94;
+  max-width: 16ch;
   color: var(--earth);
-  white-space: nowrap;
+  white-space: normal;
+  text-align: center;
+  letter-spacing: 0.018em;
+  text-transform: uppercase;
+  text-wrap: balance;
 }
 
 .hero-title em {
   font-style: italic;
   color: var(--sage-dark);
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 2px;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  color: rgba(141, 166, 147, 0.94);
+}
+
+.hero-eyebrow::before,
+.hero-eyebrow::after {
+  content: "";
+  width: 34px;
+  height: 1px;
+  background: rgba(160, 183, 164, 0.42);
 }
 
 .hero-category-row {
@@ -867,7 +955,7 @@ main {
   align-items: center;
   gap: 12px;
   padding: 18px 22px;
-  color: rgba(91, 87, 83, 0.62);
+  color: rgba(114, 121, 117, 0.82);
   font-size: 0.92rem;
 }
 
@@ -885,7 +973,7 @@ main {
 }
 
 .hero-search-input::placeholder {
-  color: rgba(91, 87, 83, 0.54);
+  color: rgba(141, 166, 147, 0.92);
 }
 
 .hero-search-icon {
@@ -1095,7 +1183,7 @@ main {
 .ad-card .job-source-badge,
 .ad-card .job-card-summary,
 .ad-card .job-card-chip {
-  color: rgba(91, 87, 83, 0.72);
+  color: rgba(69, 76, 73, 0.72);
 }
 
 .ad-card .pill {
@@ -1493,11 +1581,12 @@ main {
 
   .hero-sprout-single {
     left: 50%;
-    top: 44%;
-    width: 300px;
+    top: 33%;
+    width: min(82vw, 460px);
+    max-width: calc(62vh * 1.16);
     min-width: 220px;
-    opacity: 0.14;
-    transform: translate(-50%, -46%);
+    opacity: 0.16;
+    transform: translate(-50%, -24%);
   }
 
   .public-home {

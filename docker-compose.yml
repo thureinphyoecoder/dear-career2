@@ -1,0 +1,21 @@
+services:
+  dear_career_db:
+    image: postgres:16-alpine
+    container_name: dear_career_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dear_career_db
+      POSTGRES_USER: dear_career_user
+      POSTGRES_PASSWORD: dear_career_password
+    ports:
+      - "55433:5432"
+    volumes:
+      - dear_career_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dear_career_user -d dear_career_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  dear_career_postgres_data:

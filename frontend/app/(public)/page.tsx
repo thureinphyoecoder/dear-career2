@@ -41,9 +41,11 @@ export default async function PublicHomePage() {
         <div className="hero-content">
           <main className="hero-body">
             <div className="hero-copy stack">
-              <div className="eyebrow">carefully gathered jobs in thailand</div>
+              <div className="eyebrow hero-eyebrow">
+                a considered curation of roles across thailand
+              </div>
               <h1 className="hero-title">
-                Find the career you fully <em>deserve</em>
+                FIND THE CAREER YOU FULLY <em>DESERVE</em>
               </h1>
             </div>
 

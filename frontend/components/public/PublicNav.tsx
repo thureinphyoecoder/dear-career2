@@ -31,7 +31,7 @@ export function PublicNav() {
 
   return (
     <nav className="public-nav">
-      <BrandLogo compact className="nav-brand-logo" />
+      <BrandLogo compact inline className="nav-brand-logo" />
       <button
         type="button"
         className="public-nav-toggle"
