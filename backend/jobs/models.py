@@ -1,10 +1,10 @@
+import uuid
+
 from django.db import models
 from django.utils.text import slugify
-import uuid
 
 
 class Job(models.Model):
-    # Choices for cleaner data
     class SourceChoices(models.TextChoices):
         MANUAL = "manual", "Manual"
         SCRAPER = "scraper", "Scraper"
@@ -20,7 +20,12 @@ class Job(models.Model):
         FREELANCE = "freelance", "Freelance"
         INTERNSHIP = "internship", "Internship"
 
-    # --- Basic Info ---
+    class WorkflowStatus(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        PUBLISHED = "published", "Published"
+        ARCHIVED = "archived", "Archived"
+        PENDING_REVIEW = "pending-review", "Pending Review"
+
     title = models.CharField(max_length=255)
     slug = models.SlugField(
         unique=True, max_length=255, help_text="SEO အတွက် URL friendly name"
@@ -33,11 +38,9 @@ class Job(models.Model):
         default=CategoryChoices.WHITE_COLLAR,
     )
 
-    # --- Content ---
     description_mm = models.TextField()
     description_en = models.TextField(blank=True)
 
-    # --- Aggregator Metadata (Crucial for Automation) ---
     source = models.CharField(
         max_length=50, choices=SourceChoices.choices, default=SourceChoices.MANUAL
     )
@@ -50,13 +53,18 @@ class Job(models.Model):
         help_text="Original website က job ID",
     )
 
-    # --- Job Specs ---
     employment_type = models.CharField(
-        max_length=50, choices=EmploymentType.choices, default=EmploymentType.FULL_TIME
+        max_length=50,
+        choices=EmploymentType.choices,
+        default=EmploymentType.FULL_TIME,
     )
     salary = models.CharField(max_length=100, blank=True)
 
-    # --- Automation Status ---
+    status = models.CharField(
+        max_length=32,
+        choices=WorkflowStatus.choices,
+        default=WorkflowStatus.PUBLISHED,
+    )
     is_active = models.BooleanField(default=True)
     is_fb_posted = models.BooleanField(
         default=False, help_text="Facebook မှာ တင်ပြီး/မတင်ရသေး"
@@ -64,13 +72,13 @@ class Job(models.Model):
     fb_post_id = models.CharField(
         max_length=100, blank=True, null=True, help_text="Facebook post ID"
     )
+    requires_website_approval = models.BooleanField(default=False)
+    requires_facebook_approval = models.BooleanField(default=False)
 
-    # --- Timestamps ---
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
-        # Slug တူမှာစိုးလို့ Unique ဖြစ်အောင် UUID အမြီးလေးတွဲလိုက်တာပါ
         if not self.slug:
             base_slug = slugify(self.title)
             unique_id = uuid.uuid4().hex[:6]
@@ -86,5 +94,90 @@ class Job(models.Model):
             models.Index(fields=["slug"]),
             models.Index(fields=["source"]),
             models.Index(fields=["category"]),
-            models.Index(fields=["source_job_id"]),  # Search လုပ်ရင် မြန်အောင် Index ထည့်ထားတယ်
+            models.Index(fields=["source_job_id"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["is_active"]),
         ]
+
+
+class FetchSource(models.Model):
+    class ModeChoices(models.TextChoices):
+        HTML = "html", "HTML"
+        RSS = "rss", "RSS"
+        MANUAL = "manual", "Manual"
+
+    class CadenceUnit(models.TextChoices):
+        MINUTES = "minutes", "Minutes"
+        HOURS = "hours", "Hours"
+
+    class HealthStatus(models.TextChoices):
+        HEALTHY = "healthy", "Healthy"
+        WARNING = "warning", "Warning"
+        PAUSED = "paused", "Paused"
+
+    key = models.SlugField(unique=True, max_length=100)
+    label = models.CharField(max_length=120)
+    domain = models.CharField(max_length=255)
+    feed_url = models.URLField(blank=True)
+    mode = models.CharField(
+        max_length=20, choices=ModeChoices.choices, default=ModeChoices.HTML
+    )
+    enabled = models.BooleanField(default=True)
+    requires_manual_url = models.BooleanField(default=False)
+    auto_publish_website = models.BooleanField(default=True)
+    auto_publish_facebook = models.BooleanField(default=False)
+    approval_required_for_website = models.BooleanField(default=False)
+    approval_required_for_facebook = models.BooleanField(default=True)
+    default_category = models.CharField(
+        max_length=50,
+        choices=Job.CategoryChoices.choices,
+        default=Job.CategoryChoices.WHITE_COLLAR,
+    )
+    cadence_value = models.PositiveIntegerField(default=30)
+    cadence_unit = models.CharField(
+        max_length=20, choices=CadenceUnit.choices, default=CadenceUnit.MINUTES
+    )
+    max_jobs_per_run = models.PositiveIntegerField(default=25)
+    status = models.CharField(
+        max_length=20,
+        choices=HealthStatus.choices,
+        default=HealthStatus.HEALTHY,
+    )
+    selectors = models.JSONField(default=dict, blank=True)
+    headers = models.JSONField(default=dict, blank=True)
+    last_run_at = models.DateTimeField(blank=True, null=True)
+    last_error = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["label"]
+
+    def __str__(self):
+        return self.label
+
+
+class FetchRun(models.Model):
+    class RunStatus(models.TextChoices):
+        SUCCESS = "success", "Success"
+        ERROR = "error", "Error"
+
+    source = models.ForeignKey(
+        FetchSource, on_delete=models.CASCADE, related_name="runs"
+    )
+    status = models.CharField(
+        max_length=20, choices=RunStatus.choices, default=RunStatus.SUCCESS
+    )
+    fetched_count = models.PositiveIntegerField(default=0)
+    created_count = models.PositiveIntegerField(default=0)
+    updated_count = models.PositiveIntegerField(default=0)
+    published_count = models.PositiveIntegerField(default=0)
+    error_message = models.TextField(blank=True)
+    started_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+
+    def __str__(self):
+        return f"{self.source.label} · {self.status}"

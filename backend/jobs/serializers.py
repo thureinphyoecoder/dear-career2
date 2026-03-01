@@ -13,9 +13,56 @@ def serialize_job(job):
         "salary": job.salary,
         "source": job.source,
         "source_url": job.source_url,
+        "status": job.status,
         "is_active": job.is_active,
+        "is_fb_posted": job.is_fb_posted,
+        "requires_website_approval": job.requires_website_approval,
+        "requires_facebook_approval": job.requires_facebook_approval,
         "description_mm": job.description_mm,
         "description_en": job.description_en,
         "created_at": job.created_at.isoformat() if job.created_at else None,
         "updated_at": job.updated_at.isoformat() if job.updated_at else None,
+    }
+
+
+def serialize_fetch_source(source):
+    return {
+        "id": source.id,
+        "key": source.key,
+        "label": source.label,
+        "domain": source.domain,
+        "feed_url": source.feed_url,
+        "mode": source.mode,
+        "enabled": source.enabled,
+        "requires_manual_url": source.requires_manual_url,
+        "auto_publish_website": source.auto_publish_website,
+        "auto_publish_facebook": source.auto_publish_facebook,
+        "approval_required_for_website": source.approval_required_for_website,
+        "approval_required_for_facebook": source.approval_required_for_facebook,
+        "default_category": source.default_category,
+        "cadence_value": source.cadence_value,
+        "cadence_unit": source.cadence_unit,
+        "max_jobs_per_run": source.max_jobs_per_run,
+        "status": source.status,
+        "selectors": source.selectors,
+        "headers": source.headers,
+        "last_run_at": source.last_run_at.isoformat() if source.last_run_at else None,
+        "last_error": source.last_error,
+        "updated_at": source.updated_at.isoformat() if source.updated_at else None,
+    }
+
+
+def serialize_fetch_run(run):
+    return {
+        "id": run.id,
+        "source_id": run.source_id,
+        "source_label": run.source.label,
+        "status": run.status,
+        "fetched_count": run.fetched_count,
+        "created_count": run.created_count,
+        "updated_count": run.updated_count,
+        "published_count": run.published_count,
+        "error_message": run.error_message,
+        "started_at": run.started_at.isoformat() if run.started_at else None,
+        "finished_at": run.finished_at.isoformat() if run.finished_at else None,
     }
