@@ -2,6 +2,8 @@ const encoder = new TextEncoder();
 
 export const ADMIN_SESSION_COOKIE = "dear_career_admin_session";
 const DEFAULT_DURATION_HOURS = 12;
+const DEV_FALLBACK_USERNAME = "admin";
+const DEV_FALLBACK_PASSWORD = "admin123";
 
 function toHex(buffer: ArrayBuffer): string {
   return Array.from(new Uint8Array(buffer))
@@ -15,14 +17,21 @@ function getSessionSecret(): string {
 
 export function getAdminCredentials() {
   return {
-    username: process.env.ADMIN_DASHBOARD_USERNAME ?? "",
-    password: process.env.ADMIN_DASHBOARD_PASSWORD ?? "",
+    username:
+      process.env.ADMIN_DASHBOARD_USERNAME ||
+      (process.env.NODE_ENV === "production" ? "" : DEV_FALLBACK_USERNAME),
   };
 }
 
 export function isAdminAuthConfigured(): boolean {
-  const { username, password } = getAdminCredentials();
-  return Boolean(username && password && getSessionSecret());
+  const username =
+    process.env.ADMIN_DASHBOARD_USERNAME ||
+    (process.env.NODE_ENV === "production" ? "" : DEV_FALLBACK_USERNAME);
+  const password =
+    process.env.ADMIN_DASHBOARD_PASSWORD ||
+    (process.env.NODE_ENV === "production" ? "" : DEV_FALLBACK_PASSWORD);
+  const passwordHash = process.env.ADMIN_DASHBOARD_PASSWORD_HASH ?? "";
+  return Boolean(username && (passwordHash || password) && getSessionSecret());
 }
 
 export function getSessionDurationMs(): number {
