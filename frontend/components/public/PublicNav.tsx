@@ -22,8 +22,6 @@ function MenuIcon() {
 export function PublicNav() {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const djangoAdminUrl =
-    process.env.NEXT_PUBLIC_DJANGO_ADMIN_URL ?? "http://127.0.0.1:8000/admin/";
 
   useEffect(() => {
     setIsMenuOpen(false);
@@ -69,9 +67,16 @@ export function PublicNav() {
         >
           About
         </Link>
-        <a href={djangoAdminUrl} target="_blank" rel="noreferrer">
-          Django Admin
-        </a>
+        <Link
+          href="/admin/login"
+          className={
+            pathname?.startsWith("/admin")
+              ? "public-nav-link public-nav-login is-active"
+              : "public-nav-link public-nav-login"
+          }
+        >
+          Login
+        </Link>
       </div>
     </nav>
   );
