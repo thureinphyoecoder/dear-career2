@@ -1,23 +1,9 @@
 import Link from "next/link";
 
-import { getAdminJobs } from "@/lib/api-admin";
+import { getAdminDashboardSnapshot } from "@/lib/api-admin";
 
 export default async function AdminDashboardPage() {
-  const jobs = await getAdminJobs();
-  const publishedJobs = jobs.filter((job) => job.is_active !== false).length;
-  const draftJobs = Math.max(jobs.length - publishedJobs, 0);
-  const sourceCount = new Set(jobs.map((job) => job.source).filter(Boolean)).size;
-  const manualSourceCount = jobs.filter((job) => job.source === "manual").length;
-  const ngoCount = jobs.filter((job) => job.category === "ngo").length;
-  const whiteCollarCount = jobs.filter((job) => job.category === "white-collar").length;
-  const blueCollarCount = jobs.filter((job) => job.category === "blue-collar").length;
-  const recentJobs = [...jobs]
-    .sort((left, right) => {
-      const leftTime = new Date(left.updated_at ?? left.created_at ?? 0).getTime();
-      const rightTime = new Date(right.updated_at ?? right.created_at ?? 0).getTime();
-      return rightTime - leftTime;
-    })
-    .slice(0, 5);
+  const snapshot = await getAdminDashboardSnapshot();
 
   return (
     <div className="admin-dashboard">
@@ -26,7 +12,7 @@ export default async function AdminDashboardPage() {
           <div className="eyebrow">Operations overview</div>
           <h1 className="admin-page-title">Editorial control room</h1>
           <p className="admin-page-copy">
-            Review what is live, control source intake, and keep fetch behaviour explicit.
+            Review what is live, control fetch cadence, manage approval queues, and keep website publishing disciplined.
           </p>
         </div>
         <div className="admin-header-actions">
@@ -42,18 +28,20 @@ export default async function AdminDashboardPage() {
       <section className="admin-metric-grid">
         <article className="admin-metric-card">
           <span className="admin-metric-label">Total roles</span>
-          <strong className="admin-metric-value">{jobs.length}</strong>
-          <span className="admin-metric-meta">{publishedJobs} live on site</span>
+          <strong className="admin-metric-value">{snapshot.total_jobs}</strong>
+          <span className="admin-metric-meta">{snapshot.published_jobs} live on site</span>
         </article>
         <article className="admin-metric-card">
           <span className="admin-metric-label">Sources</span>
-          <strong className="admin-metric-value">{sourceCount}</strong>
-          <span className="admin-metric-meta">{manualSourceCount} manual entries</span>
+          <strong className="admin-metric-value">{snapshot.source_count}</strong>
+          <span className="admin-metric-meta">
+            {snapshot.sources.filter((source) => source.requires_manual_url).length} manual URL sources
+          </span>
         </article>
         <article className="admin-metric-card">
-          <span className="admin-metric-label">In review</span>
-          <strong className="admin-metric-value">{draftJobs}</strong>
-          <span className="admin-metric-meta">Awaiting editorial pass</span>
+          <span className="admin-metric-label">Pending approvals</span>
+          <strong className="admin-metric-value">{snapshot.pending_approvals.length}</strong>
+          <span className="admin-metric-meta">Website and Facebook actions waiting</span>
         </article>
       </section>
 
@@ -69,74 +57,68 @@ export default async function AdminDashboardPage() {
             </Link>
           </div>
           <div className="admin-fetch-list">
-            <div className="admin-fetch-item">
-              <span className="admin-fetch-label">Primary mode</span>
-              <strong>Manual URL intake</strong>
-              <p>Paste source links from LinkedIn or direct employer pages for controlled review.</p>
-            </div>
-            <div className="admin-fetch-item">
-              <span className="admin-fetch-label">Sync cadence</span>
-              <strong>Twice daily</strong>
-              <p>Morning and evening review windows for Thailand market updates.</p>
-            </div>
-            <div className="admin-fetch-item">
-              <span className="admin-fetch-label">Publishing rule</span>
-              <strong>Manual approval</strong>
-              <p>Nothing publishes automatically without editorial confirmation.</p>
-            </div>
+            {snapshot.sources.slice(0, 3).map((source) => (
+              <div key={source.id} className="admin-fetch-item">
+                <span className="admin-fetch-label">{source.label}</span>
+                <strong>
+                  {source.requires_manual_url
+                    ? "Manual URL intake"
+                    : `Every ${source.cadence_value} ${source.cadence_unit}`}
+                </strong>
+                <p>
+                  {source.requires_manual_url
+                    ? "Paste the job URL, review the metadata, then send it for website approval."
+                    : `Fetches from ${source.domain} with ${source.status} runtime status.`}
+                </p>
+              </div>
+            ))}
           </div>
         </article>
 
         <article className="admin-panel">
           <div className="admin-panel-header">
             <div>
-              <div className="eyebrow">Category mix</div>
-              <h2 className="admin-panel-title">Current spread</h2>
+              <div className="eyebrow">Realtime notifications</div>
+              <h2 className="admin-panel-title">Signal centre</h2>
             </div>
           </div>
-          <div className="admin-category-stats">
-            <div className="admin-category-row">
-              <span>NGO</span>
-              <strong>{ngoCount}</strong>
-            </div>
-            <div className="admin-category-row">
-              <span>White collar</span>
-              <strong>{whiteCollarCount}</strong>
-            </div>
-            <div className="admin-category-row">
-              <span>Blue collar</span>
-              <strong>{blueCollarCount}</strong>
-            </div>
+          <div className="admin-notification-list">
+            {snapshot.notifications.map((item) => (
+              <div key={item.id} className={`admin-notification-item is-${item.tone}`}>
+                <strong>{item.title}</strong>
+                <p>{item.detail}</p>
+              </div>
+            ))}
           </div>
         </article>
 
         <article className="admin-panel admin-panel-wide">
           <div className="admin-panel-header">
             <div>
-              <div className="eyebrow">Recent jobs</div>
-              <h2 className="admin-panel-title">Latest activity</h2>
+              <div className="eyebrow">Approval queue</div>
+              <h2 className="admin-panel-title">Website and Facebook approvals</h2>
             </div>
             <Link href="/admin/jobs" className="admin-inline-link">
-              View all
+              Open job CRUD
             </Link>
           </div>
           <div className="admin-activity-list">
-            {recentJobs.length === 0 ? (
+            {snapshot.pending_approvals.length === 0 ? (
               <p className="muted" style={{ margin: 0 }}>
-                No jobs yet. Start by creating a listing or adding a fetch source.
+                No approvals waiting. New fetched roles will appear here before website publish or Facebook upload.
               </p>
             ) : (
-              recentJobs.map((job) => (
-                <div key={job.id} className="admin-activity-item">
+              snapshot.pending_approvals.map((item) => (
+                <div key={item.id} className="admin-activity-item">
                   <div className="admin-activity-copy">
-                    <strong>{job.title}</strong>
+                    <strong>{item.title}</strong>
                     <span>
-                      {job.company} · {job.location || "Thailand"}
+                      {item.company} · {item.source_label}
                     </span>
                   </div>
                   <div className="admin-activity-meta">
-                    <span>{job.category.replace("-", " ")}</span>
-                    <Link href={`/admin/jobs/${job.id}`}>Open</Link>
+                    <span>{item.requested_action.replace("-", " ")}</span>
+                    <Link href="/admin/jobs">Review</Link>
                   </div>
                 </div>
               ))

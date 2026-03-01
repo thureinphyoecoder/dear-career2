@@ -7,15 +7,18 @@ export default async function AdminJobsPage() {
   const jobs = await getAdminJobs();
 
   return (
-    <div className="stack">
-      <div className="toolbar">
+    <div className="admin-dashboard">
+      <div className="admin-page-header">
         <div>
-          <div className="eyebrow">List and filters</div>
-          <h1 style={{ marginBottom: 0 }}>Jobs</h1>
+          <div className="eyebrow">Job CRUD</div>
+          <h1 className="admin-page-title">Jobs</h1>
+          <p className="admin-page-copy">
+            Search, review, edit, and approve listings before they move to website publish or Facebook upload.
+          </p>
         </div>
-        <div className="toolbar">
+        <div className="admin-header-actions">
           <input className="field" placeholder="Search title or company" />
-          <select className="select" defaultValue="all">
+          <select className="select" defaultValue="all" style={{ minWidth: 180 }}>
             <option value="all">All statuses</option>
             <option value="published">Published</option>
             <option value="draft">Draft</option>
