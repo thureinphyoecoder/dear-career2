@@ -1,7 +1,7 @@
-export type JobStatus = "draft" | "published" | "archived";
+export type JobStatus = "draft" | "published" | "archived" | "pending-review";
 export type JobCategory = "ngo" | "white-collar" | "blue-collar";
 export type FetchIntervalUnit = "minutes" | "hours";
-export type FetchSiteMode = "crawler" | "manual";
+export type FetchSiteMode = "html" | "rss" | "manual";
 export type FetchRunState = "healthy" | "warning" | "paused";
 export type NotificationTone = "info" | "success" | "warning";
 export type PublishChannel = "website" | "facebook";
@@ -31,17 +31,27 @@ export type JobsResponse = {
 };
 
 export type FetchSource = {
-  id: string;
+  id: number;
+  key: string;
   label: string;
   domain: string;
+  feed_url?: string;
   mode: FetchSiteMode;
   enabled: boolean;
   requires_manual_url: boolean;
+  auto_publish_website?: boolean;
+  auto_publish_facebook?: boolean;
+  approval_required_for_website?: boolean;
+  approval_required_for_facebook?: boolean;
   default_category: JobCategory;
   cadence_value: number;
   cadence_unit: FetchIntervalUnit;
+  max_jobs_per_run?: number;
   last_run_at?: string;
+  last_error?: string;
   status: FetchRunState;
+  selectors?: Record<string, string>;
+  headers?: Record<string, string>;
 };
 
 export type ApprovalItem = {

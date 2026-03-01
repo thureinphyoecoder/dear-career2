@@ -22,53 +22,79 @@ function getAdminFetchOptions(): RequestInit {
 function createFallbackSources(): FetchSource[] {
   return [
     {
-      id: "jobthai",
+      id: 1,
+      key: "jobthai",
       label: "JobThai",
       domain: "jobthai.com",
-      mode: "crawler",
+      feed_url: "https://www.jobthai.com/en/rss/job-search",
+      mode: "rss",
       enabled: true,
       requires_manual_url: false,
+      auto_publish_website: true,
+      auto_publish_facebook: false,
+      approval_required_for_website: false,
+      approval_required_for_facebook: true,
       default_category: "white-collar",
       cadence_value: 30,
       cadence_unit: "minutes",
+      max_jobs_per_run: 40,
       last_run_at: new Date(Date.now() - 18 * 60 * 1000).toISOString(),
       status: "healthy",
     },
     {
-      id: "jobsdb-th",
+      id: 2,
+      key: "jobsdb-th",
       label: "JobsDB Thailand",
       domain: "th.jobsdb.com",
-      mode: "crawler",
+      feed_url: "https://th.jobsdb.com/th/rss",
+      mode: "rss",
       enabled: true,
       requires_manual_url: false,
+      auto_publish_website: true,
+      auto_publish_facebook: false,
+      approval_required_for_website: false,
+      approval_required_for_facebook: true,
       default_category: "white-collar",
       cadence_value: 2,
       cadence_unit: "hours",
+      max_jobs_per_run: 40,
       last_run_at: new Date(Date.now() - 62 * 60 * 1000).toISOString(),
       status: "healthy",
     },
     {
-      id: "linkedin",
+      id: 3,
+      key: "linkedin",
       label: "LinkedIn",
       domain: "linkedin.com",
       mode: "manual",
       enabled: true,
       requires_manual_url: true,
+      auto_publish_website: false,
+      auto_publish_facebook: false,
+      approval_required_for_website: true,
+      approval_required_for_facebook: true,
       default_category: "white-collar",
       cadence_value: 0,
       cadence_unit: "hours",
+      max_jobs_per_run: 25,
       status: "warning",
     },
     {
-      id: "ngo-board",
+      id: 4,
+      key: "ngo-board",
       label: "NGO Board",
       domain: "ngoboard.org",
       mode: "manual",
       enabled: true,
       requires_manual_url: true,
+      auto_publish_website: false,
+      auto_publish_facebook: false,
+      approval_required_for_website: true,
+      approval_required_for_facebook: true,
       default_category: "ngo",
       cadence_value: 12,
       cadence_unit: "hours",
+      max_jobs_per_run: 20,
       last_run_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
       status: "paused",
     },
@@ -129,7 +155,7 @@ function createFallbackNotifications(jobs: Job[]): AdminNotification[] {
 
 export async function getAdminJobs(): Promise<Job[]> {
   try {
-    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/`, {
+    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/?include_inactive=1`, {
       ...getAdminFetchOptions(),
     });
 
@@ -149,11 +175,27 @@ export async function getAdminJob(id: string): Promise<Job | null> {
   return jobs.find((job) => String(job.id) === id) ?? null;
 }
 
+async function getAdminSources(): Promise<FetchSource[]> {
+  try {
+    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/sources/`, {
+      ...getAdminFetchOptions(),
+    });
+
+    if (!response.ok) {
+      return createFallbackSources();
+    }
+
+    const data = (await response.json()) as { results: FetchSource[] };
+    return data.results;
+  } catch {
+    return createFallbackSources();
+  }
+}
+
 export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapshot> {
-  const jobs = await getAdminJobs();
+  const [jobs, sources] = await Promise.all([getAdminJobs(), getAdminSources()]);
   const publishedJobs = jobs.filter((job) => job.is_active !== false).length;
   const sourceCount = new Set(jobs.map((job) => job.source).filter(Boolean)).size;
-  const sources = createFallbackSources();
 
   return {
     total_jobs: jobs.length,
@@ -167,15 +209,18 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
 }
 
 export async function getFetchSettings(): Promise<FetchSettings> {
-  const sources = createFallbackSources();
+  const sources = await getAdminSources();
+  const firstSource = sources[0];
 
   return {
-    cadence_value: 30,
-    cadence_unit: "minutes",
-    max_jobs_per_run: 40,
-    approval_required_for_website: true,
-    approval_required_for_facebook: true,
-    facebook_auto_upload: false,
+    cadence_value: firstSource?.cadence_value ?? 30,
+    cadence_unit: firstSource?.cadence_unit ?? "minutes",
+    max_jobs_per_run: firstSource?.max_jobs_per_run ?? 40,
+    approval_required_for_website:
+      firstSource?.approval_required_for_website ?? true,
+    approval_required_for_facebook:
+      firstSource?.approval_required_for_facebook ?? true,
+    facebook_auto_upload: firstSource?.auto_publish_facebook ?? false,
     realtime_notifications: true,
     sources,
   };

@@ -9,7 +9,11 @@ function formatSourceMode(source: FetchSource) {
     return "Manual URL";
   }
 
-  return source.mode === "crawler" ? "Crawler" : "Manual";
+  if (source.mode === "rss") {
+    return "RSS";
+  }
+
+  return source.mode === "html" ? "HTML scraper" : "Manual";
 }
 
 export function FetchSettingsForm({
