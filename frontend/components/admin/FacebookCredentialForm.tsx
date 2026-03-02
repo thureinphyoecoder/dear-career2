@@ -20,6 +20,7 @@ export function FacebookCredentialForm({
   initialCredential,
   jobs,
   posts,
+  postsError,
   oauthConnected = false,
   oauthError,
   missingConfig = [],
@@ -27,6 +28,7 @@ export function FacebookCredentialForm({
   initialCredential: FacebookPageCredential;
   jobs: Job[];
   posts: FacebookPagePost[];
+  postsError?: string;
   oauthConnected?: boolean;
   oauthError?: string;
   missingConfig?: string[];
@@ -145,6 +147,12 @@ export function FacebookCredentialForm({
 
       <Card className="border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.92)] shadow-none">
         <CardContent className="grid gap-0 p-0">
+          {postsError ? (
+            <div className="mx-5 mt-5 flex items-start gap-2 rounded-md border border-[rgba(169,97,111,0.22)] bg-[rgba(169,97,111,0.08)] px-3 py-2 text-sm text-[#8e4a4a]">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{postsError}</span>
+            </div>
+          ) : null}
           {posts.length > 0 ? (
             posts.map((post, index) => (
               <article

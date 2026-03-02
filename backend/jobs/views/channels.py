@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError
+import json
 from django.http import HttpRequest, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
@@ -63,7 +64,7 @@ def facebook_page_posts(request: HttpRequest):
 
     try:
         response = requests.get(
-            f"https://graph.facebook.com/v23.0/{credential.page_id}/posts",
+            f"https://graph.facebook.com/v23.0/{credential.page_id}/feed",
             params={
                 "fields": ",".join(
                     [
@@ -84,7 +85,19 @@ def facebook_page_posts(request: HttpRequest):
         response.raise_for_status()
         payload = response.json()
     except requests.RequestException as exc:
-        return HttpResponseBadRequest(f"Unable to load Facebook posts: {exc}")
+        error_text = ""
+        if getattr(exc, "response", None) is not None:
+            try:
+                payload = exc.response.json()
+                error_text = str(payload.get("error", {}).get("message", "")).strip()
+            except (ValueError, json.JSONDecodeError, AttributeError):
+                error_text = exc.response.text.strip()
+        message = error_text or str(exc)
+        if "pages_read_engagement" in message:
+            return HttpResponseBadRequest(
+                "Facebook post history cannot be loaded yet. Reconnect the page with the pages_read_engagement permission."
+            )
+        return HttpResponseBadRequest(f"Unable to load Facebook posts: {message}")
 
     posts = [
         {

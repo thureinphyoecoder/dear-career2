@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
   oauthUrl.searchParams.set("redirect_uri", redirectUri);
   oauthUrl.searchParams.set("state", state);
   oauthUrl.searchParams.set("scope", FACEBOOK_OAUTH_SCOPES);
+  oauthUrl.searchParams.set("auth_type", "rerequest");
 
   const response = NextResponse.redirect(oauthUrl);
   response.cookies.set({

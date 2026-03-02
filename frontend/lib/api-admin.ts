@@ -344,13 +344,42 @@ export async function getFacebookPagePosts(): Promise<FacebookPagePost[]> {
     const response = await fetchAdmin(`${ADMIN_API_BASE_URL}/jobs/admin/channels/facebook/posts/`);
 
     if (!response.ok) {
-      return [];
+      const detail = await response.text();
+      throw new Error(detail || "Unable to load Facebook posts.");
     }
 
     const data = (await response.json()) as { results: FacebookPagePost[] };
     return data.results;
   } catch {
     return [];
+  }
+}
+
+export async function getFacebookPagePostsState(): Promise<{
+  posts: FacebookPagePost[];
+  error: string;
+}> {
+  try {
+    const response = await fetchAdmin(`${ADMIN_API_BASE_URL}/jobs/admin/channels/facebook/posts/`);
+
+    if (!response.ok) {
+      const detail = await response.text();
+      return {
+        posts: [],
+        error: detail || "Unable to load Facebook posts.",
+      };
+    }
+
+    const data = (await response.json()) as { results: FacebookPagePost[] };
+    return {
+      posts: data.results,
+      error: "",
+    };
+  } catch (error) {
+    return {
+      posts: [],
+      error: error instanceof Error ? error.message : "Unable to load Facebook posts.",
+    };
   }
 }
 

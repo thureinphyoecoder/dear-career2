@@ -1,14 +1,14 @@
 import { FacebookCredentialForm } from "@/components/admin/FacebookCredentialForm";
-import { getAdminJobs, getFacebookCredential, getFacebookPagePosts } from "@/lib/api-admin";
+import { getAdminJobs, getFacebookCredential, getFacebookPagePostsState } from "@/lib/api-admin";
 
 export default async function AdminFacebookPage({
   searchParams,
 }: {
   searchParams: Promise<{ connected?: string; error?: string }>;
 }) {
-  const [credential, posts, jobs] = await Promise.all([
+  const [credential, postsState, jobs] = await Promise.all([
     getFacebookCredential(),
-    getFacebookPagePosts(),
+    getFacebookPagePostsState(),
     getAdminJobs(),
   ]);
   const params = await searchParams;
@@ -29,7 +29,8 @@ export default async function AdminFacebookPage({
       <FacebookCredentialForm
         initialCredential={credential}
         jobs={jobs.filter((job) => (job.status ?? "published") === "published")}
-        posts={posts}
+        posts={postsState.posts}
+        postsError={postsState.error}
         oauthConnected={params.connected === "1"}
         oauthError={params.error}
         missingConfig={missingConfig}

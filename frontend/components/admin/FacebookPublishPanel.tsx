@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AlertCircle, CheckCircle2, Send } from "lucide-react";
 import { toast } from "sonner";
@@ -12,6 +13,8 @@ import {
 } from "@/lib/admin-form-validation";
 import type { Job } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+const ADMIN_DATA_CHANGED_EVENT = "admin-data-changed";
 
 function buildDefaultMessage(job: Job) {
   const lines = [job.title, `${job.company} · ${job.location}`];
@@ -26,6 +29,7 @@ function buildDefaultMessage(job: Job) {
 }
 
 export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
+  const router = useRouter();
   const [selectedJobId, setSelectedJobId] = useState<string>(jobs[0] ? String(jobs[0].id) : "");
   const [message, setMessage] = useState<string>(jobs[0] ? buildDefaultMessage(jobs[0]) : "");
   const [error, setError] = useState("");
@@ -89,6 +93,8 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
 
       const nextSuccess = "Post published to the connected Facebook page.";
       setSuccess(nextSuccess);
+      window.dispatchEvent(new CustomEvent(ADMIN_DATA_CHANGED_EVENT));
+      router.refresh();
       toast.success(nextSuccess);
     } catch {
       const nextError = "Facebook publish failed. Try again.";
