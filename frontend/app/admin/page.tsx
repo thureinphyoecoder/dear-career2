@@ -19,7 +19,7 @@ export default async function AdminDashboardPage() {
   ] as const;
 
   return (
-    <div className="grid max-w-[1120px] gap-6">
+    <div className="grid max-w-none gap-6 xl:pr-6">
       <header className="flex justify-end">
         <div className="flex flex-wrap gap-2">
           <Link href="/admin/jobs/new" className={cn(buttonVariants(), "rounded-md")}>
