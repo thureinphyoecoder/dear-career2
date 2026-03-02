@@ -10,6 +10,33 @@ import { adminQueryKeys } from "@/lib/admin-query-keys";
 import type { AdminNotification } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+function playNotificationSound() {
+  if (typeof window === "undefined") return;
+  const AudioContextClass = window.AudioContext || (window as typeof window & {
+    webkitAudioContext?: typeof AudioContext;
+  }).webkitAudioContext;
+  if (!AudioContextClass) return;
+
+  const audioContext = new AudioContextClass();
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+
+  oscillator.type = "sine";
+  oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+  oscillator.frequency.exponentialRampToValueAtTime(660, audioContext.currentTime + 0.18);
+  gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.06, audioContext.currentTime + 0.02);
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.22);
+
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.22);
+  oscillator.onended = () => {
+    void audioContext.close();
+  };
+}
+
 function formatRelativeTime(value?: string) {
   if (!value) return "";
 
@@ -65,6 +92,7 @@ export function AdminNotificationBell({
           (current: AdminNotification[] | undefined) =>
             [parsed, ...(current ?? []).filter((item) => item.id !== parsed.id)].slice(0, 12),
         );
+        playNotificationSound();
         setHasFreshItem(true);
         setStreamError("");
       } catch {

@@ -83,6 +83,8 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
   const approveMutation = useMutation({
     mutationFn: async (job: Job) => {
       const publishToFacebook = Boolean(job.requires_facebook_approval);
+      let facebookPostId = "";
+      let facebookPermalinkUrl = "";
       const response = await fetch(`/api/admin/proxy/jobs/admin/jobs/${job.id}`, {
         method: "PATCH",
         headers: {
@@ -116,22 +118,37 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
           const detail = await publishResponse.text();
           throw new Error(normalizeServerError(detail, "Approved website publish, but Facebook posting failed."));
         }
+
+        const publishPayload = (await publishResponse.json()) as {
+          post_id?: string;
+          permalink_url?: string;
+        };
+        facebookPostId = String(publishPayload.post_id ?? "").trim();
+        facebookPermalinkUrl = String(publishPayload.permalink_url ?? "").trim();
+        if (!facebookPostId) {
+          throw new Error("Facebook publish response did not include a post id.");
+        }
       }
 
       return {
         job,
         publishToFacebook,
+        facebookPostId,
+        facebookPermalinkUrl,
       };
     },
-    onSuccess: ({ job, publishToFacebook }) => {
+    onSuccess: ({ job, publishToFacebook, facebookPostId, facebookPermalinkUrl }) => {
       queryClient.setQueryData<Job[]>(
         adminQueryKeys.jobs,
         (current) => current?.filter((item) => item.id !== job.id) ?? [],
       );
       removeViewed(job.id);
-      toast.success(
-        publishToFacebook ? `Approved and posted ${job.title} to Facebook.` : `Approved ${job.title}.`,
-      );
+      const successMessage = publishToFacebook
+        ? facebookPermalinkUrl
+          ? `Approved and posted ${job.title} to Facebook.`
+          : `Approved and posted ${job.title} to Facebook. Post ID: ${facebookPostId}`
+        : `Approved ${job.title}.`;
+      toast.success(successMessage);
     },
     onError: (error) => {
       const nextError = error instanceof Error ? error.message : "Unable to approve job.";

@@ -142,7 +142,7 @@ def facebook_publish_job(request: HttpRequest):
 
     create_admin_notification(
         f"{job.title} posted to Facebook",
-        f"{job.company} is now live on the connected Facebook page.",
+        f"{job.company} is now live on the connected Facebook page. Post ID: {result.get('post_id', 'n/a')}",
         tone=AdminNotification.ToneChoices.SUCCESS,
         target_url="/admin/facebook",
     )

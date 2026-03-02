@@ -80,6 +80,31 @@ def publish_job(job: Job, *, channel: str = "website", message: str = "") -> dic
             }
 
         post_id = str(payload.get("id", "")).strip()
+        if not post_id:
+            return {
+                "job_id": job.id,
+                "published": False,
+                "channel": channel,
+                "reason": "facebook publish response did not include a post id",
+            }
+
+        permalink_url = ""
+        try:
+            permalink_response = requests.get(
+                f"https://graph.facebook.com/v23.0/{post_id}",
+                params={
+                    "fields": "permalink_url",
+                    "access_token": access_token,
+                },
+                timeout=10,
+            )
+            if permalink_response.ok:
+                permalink_url = str(
+                    permalink_response.json().get("permalink_url", "")
+                ).strip()
+        except requests.RequestException:
+            permalink_url = ""
+
         job.is_fb_posted = True
         job.fb_post_id = post_id or None
         job.requires_facebook_approval = False
@@ -87,6 +112,7 @@ def publish_job(job: Job, *, channel: str = "website", message: str = "") -> dic
 
         return {
             "post_id": post_id,
+            "permalink_url": permalink_url,
             "job_id": job.id,
             "published": True,
             "channel": channel,
