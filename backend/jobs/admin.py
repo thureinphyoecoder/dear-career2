@@ -1,6 +1,14 @@
 from django.contrib import admin
 
-from .models import ChannelCredential, FeedbackMessage, FetchRun, FetchSource, Job
+from .models import (
+    ChannelCredential,
+    FeedbackMessage,
+    FetchRun,
+    FetchSource,
+    Job,
+    ManagedAd,
+    VisitorEvent,
+)
 
 
 @admin.register(Job)
@@ -76,3 +84,17 @@ class FeedbackMessageAdmin(admin.ModelAdmin):
 class ChannelCredentialAdmin(admin.ModelAdmin):
     list_display = ("platform", "account_name", "page_id", "updated_at")
     search_fields = ("platform", "account_name", "page_id")
+
+
+@admin.register(VisitorEvent)
+class VisitorEventAdmin(admin.ModelAdmin):
+    list_display = ("path", "page_title", "session_key", "visit_date", "last_seen_at")
+    list_filter = ("visit_date", "path")
+    search_fields = ("path", "page_title", "session_key")
+
+
+@admin.register(ManagedAd)
+class ManagedAdAdmin(admin.ModelAdmin):
+    list_display = ("title", "placement", "status", "sort_order", "updated_at")
+    list_filter = ("placement", "status")
+    search_fields = ("title", "description", "href")

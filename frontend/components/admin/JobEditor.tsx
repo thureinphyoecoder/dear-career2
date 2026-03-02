@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AlertCircle, CheckCircle2, Link2, LoaderCircle, Sparkles } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,26 @@ const statusOptions: Array<{ value: JobStatus; label: string }> = [
   { value: "pending-review", label: "Pending review" },
 ];
 
+const employmentTypeOptions = [
+  { value: "full-time", label: "Full-time" },
+  { value: "part-time", label: "Part-time" },
+  { value: "freelance", label: "Freelance" },
+  { value: "internship", label: "Internship" },
+];
+
+const FETCH_TIMEOUT_MS = 20000;
+
+function normalizeErrorDetail(detail: string) {
+  const trimmed = detail.trim();
+
+  try {
+    const parsed = JSON.parse(detail) as { detail?: string; error?: string; message?: string };
+    return (parsed.detail || parsed.error || parsed.message || trimmed).trim();
+  } catch {
+    return trimmed.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  }
+}
+
 export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
   const router = useRouter();
   const [title, setTitle] = useState(initialJob?.title ?? "");
@@ -30,6 +51,8 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
   const [location, setLocation] = useState(initialJob?.location ?? "");
   const [employmentType, setEmploymentType] = useState(initialJob?.employment_type ?? "full-time");
   const [salary, setSalary] = useState(initialJob?.salary ?? "");
+  const [contactEmail, setContactEmail] = useState(initialJob?.contact_email ?? "");
+  const [contactPhone, setContactPhone] = useState(initialJob?.contact_phone ?? "");
   const [status, setStatus] = useState<JobStatus>(initialJob?.status ?? "draft");
   const [category, setCategory] = useState<JobCategory>(initialJob?.category ?? "white-collar");
   const [source, setSource] = useState(initialJob?.source ?? "manual");
@@ -46,7 +69,9 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
   );
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [isFetchingFromUrl, setIsFetchingFromUrl] = useState(false);
+  const [fetchedFields, setFetchedFields] = useState<string[]>([]);
   const [fetchMessage, setFetchMessage] = useState("");
   const [fetchError, setFetchError] = useState("");
   const [message, setMessage] = useState("");
@@ -61,52 +86,150 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
   const panelClass =
     "grid gap-4 rounded-md border border-[rgba(160,183,164,0.14)] bg-[rgba(255,255,255,0.62)] px-4 py-4";
 
+  const fetchStatusTone = useMemo(() => {
+    if (isFetchingFromUrl) {
+      return "border-[rgba(116,141,122,0.18)] bg-[rgba(144,168,147,0.1)] text-[#4f6354]";
+    }
+
+    if (fetchError) {
+      return "border-[rgba(169,97,111,0.22)] bg-[rgba(169,97,111,0.08)] text-[#8e4a4a]";
+    }
+
+    if (fetchMessage) {
+      return "border-[rgba(116,141,122,0.2)] bg-[rgba(144,168,147,0.1)] text-[#4f6354]";
+    }
+
+    return "border-[rgba(160,183,164,0.14)] bg-[rgba(255,255,255,0.74)] text-[#5c645f]";
+  }, [fetchError, fetchMessage, isFetchingFromUrl]);
+
   async function fetchFromUrl() {
     const url = intakeUrl.trim();
     if (!url) {
-      setFetchError("Paste a job URL first.");
+      setFetchError("Fetch failed. Paste a job URL first.");
       setFetchMessage("");
+      setFetchedFields([]);
       return;
     }
 
     setIsFetchingFromUrl(true);
     setFetchError("");
     setFetchMessage("");
+    setFetchedFields([]);
+
+    let timeoutId: number | undefined;
 
     try {
+      const controller = new AbortController();
+      timeoutId = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
       const response = await fetch("/api/admin/proxy/jobs/admin/jobs/scrape/", {
         method: "POST",
         headers: {
           "content-type": "application/json",
         },
         body: JSON.stringify({ url }),
+        signal: controller.signal,
       });
-
       if (!response.ok) {
         const detail = await response.text();
-        throw new Error(detail || "Could not fetch job details from that URL.");
+        const normalizedDetail = normalizeErrorDetail(detail);
+
+        throw new Error(normalizedDetail || "Could not fetch job details from that URL.");
       }
 
       const scraped = (await response.json()) as Partial<Job>;
-      setSourceUrl(scraped.source_url?.trim() || url);
-      setIntakeUrl(scraped.source_url?.trim() || url);
-      setTitle(scraped.title?.trim() || "");
-      setCompany(scraped.company?.trim() || "");
-      setLocation(scraped.location?.trim() || "");
-      setEmploymentType(scraped.employment_type?.trim() || "full-time");
-      setCategory((scraped.category as JobCategory | undefined) ?? "white-collar");
-      setSource(scraped.source?.trim() || "manual");
-      setSalary(scraped.salary?.trim() || "");
-      setDescriptionEn(scraped.description_en?.trim() || "");
-      setDescriptionMm(scraped.description_mm?.trim() || scraped.description_en?.trim() || "");
-      setFetchMessage("Fetched page details and filled the form below.");
+      const nextFetchedFields: string[] = [];
+
+      const nextSourceUrl = scraped.source_url?.trim() || url;
+      if (nextSourceUrl) {
+        nextFetchedFields.push("source URL");
+        setSourceUrl(nextSourceUrl);
+        setIntakeUrl(nextSourceUrl);
+      }
+
+      const nextTitle = scraped.title?.trim();
+      if (nextTitle) {
+        nextFetchedFields.push("title");
+        setTitle(nextTitle);
+      }
+
+      const nextCompany = scraped.company?.trim();
+      if (nextCompany) {
+        nextFetchedFields.push("company");
+        setCompany(nextCompany);
+      }
+
+      const nextLocation = scraped.location?.trim();
+      if (nextLocation) {
+        nextFetchedFields.push("location");
+        setLocation(nextLocation);
+      }
+
+      const nextEmploymentType = scraped.employment_type?.trim();
+      if (nextEmploymentType) {
+        nextFetchedFields.push("employment type");
+        setEmploymentType(nextEmploymentType);
+      }
+
+      if (scraped.category) {
+        nextFetchedFields.push("category");
+        setCategory(scraped.category as JobCategory);
+      }
+
+      const nextSource = scraped.source?.trim();
+      if (nextSource) {
+        nextFetchedFields.push("source");
+        setSource(nextSource);
+      }
+
+      const nextSalary = scraped.salary?.trim();
+      if (nextSalary) {
+        nextFetchedFields.push("salary");
+        setSalary(nextSalary);
+      }
+
+      const nextContactEmail = scraped.contact_email?.trim();
+      if (nextContactEmail) {
+        nextFetchedFields.push("contact email");
+        setContactEmail(nextContactEmail);
+      }
+
+      const nextContactPhone = scraped.contact_phone?.trim();
+      if (nextContactPhone) {
+        nextFetchedFields.push("contact phone");
+        setContactPhone(nextContactPhone);
+      }
+
+      const nextDescriptionEn = scraped.description_en?.trim();
+      if (nextDescriptionEn) {
+        nextFetchedFields.push("English description");
+        setDescriptionEn(nextDescriptionEn);
+      }
+
+      const nextDescriptionMm = scraped.description_mm?.trim() || nextDescriptionEn;
+      if (nextDescriptionMm) {
+        nextFetchedFields.push("Myanmar description");
+        setDescriptionMm(nextDescriptionMm);
+      }
+
+      setFetchedFields(nextFetchedFields);
+      setFetchMessage(
+        nextFetchedFields.length > 0
+          ? "Fetch complete. Review the autofilled fields below before saving."
+          : "Fetch completed, but the source did not expose usable job fields. Fill the form manually or try a different URL.",
+      );
     } catch (fetchError) {
+      setFetchedFields([]);
       setFetchError(
-        fetchError instanceof Error
-          ? fetchError.message
-          : "Could not fetch job details from that URL.",
+        fetchError instanceof DOMException && fetchError.name === "AbortError"
+          ? "Fetch failed. The source took too long to respond. Try again or use a different URL."
+          : fetchError instanceof Error
+            ? `Fetch failed. ${fetchError.message}`
+            : "Fetch failed. Could not fetch job details from that URL.",
       );
     } finally {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
       setIsFetchingFromUrl(false);
     }
   }
@@ -122,6 +245,8 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
       location: location.trim(),
       employment_type: employmentType.trim(),
       salary: salary.trim(),
+      contact_email: contactEmail.trim(),
+      contact_phone: contactPhone.trim(),
       status,
       category,
       source: source.trim() || "manual",
@@ -166,7 +291,6 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
 
   async function deleteJob() {
     if (!initialJob?.id) return;
-    if (!window.confirm("Delete this job?")) return;
 
     setIsDeleting(true);
     setError("");
@@ -188,6 +312,7 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
       setError(deleteError instanceof Error ? deleteError.message : "Unable to delete job.");
     } finally {
       setIsDeleting(false);
+      setConfirmDeleteOpen(false);
     }
   }
 
@@ -226,8 +351,13 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
           </label>
           <div className="flex items-end">
             <button
-              className={cn(buttonVariants(), "min-w-[140px] rounded-md")}
+              className={cn(
+                buttonVariants(),
+                "min-w-[140px] rounded-md",
+                isFetchingFromUrl && "cursor-wait",
+              )}
               type="button"
+              aria-busy={isFetchingFromUrl}
               disabled={isFetchingFromUrl}
               onClick={() => void fetchFromUrl()}
             >
@@ -236,28 +366,57 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
             </button>
           </div>
         </div>
-        <p className="text-sm leading-6 text-[#727975]">
-          Use this for manual scraping. Fetch fills the form below with title, company,
-          location, source URL, and page description.
-        </p>
-        {isFetchingFromUrl ? (
-          <div className="flex items-center gap-2 rounded-md border border-[rgba(116,141,122,0.18)] bg-[rgba(144,168,147,0.1)] px-3 py-2 text-sm text-[#4f6354]">
-            <LoaderCircle className="h-4 w-4 animate-spin" />
-            <span>Fetching job details from the pasted URL...</span>
+        <div
+          aria-live="polite"
+          className={cn("grid gap-3 rounded-md border px-3 py-3 text-sm", fetchStatusTone)}
+        >
+          <div className="flex items-start gap-2">
+            {isFetchingFromUrl ? (
+              <LoaderCircle className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
+            ) : fetchError ? (
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            ) : fetchMessage ? (
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+            ) : (
+              <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
+            )}
+            <div className="grid gap-1">
+              <strong className="font-medium">
+                {isFetchingFromUrl
+                  ? "Fetching job details..."
+                  : fetchError
+                    ? "Fetch did not complete"
+                    : fetchMessage
+                      ? "Fetch completed"
+                      : "Ready to fetch"}
+              </strong>
+              <span>
+                {isFetchingFromUrl
+                  ? "Checking the pasted source and extracting usable job fields."
+                  : fetchError
+                    ? fetchError
+                    : fetchMessage || "Paste a source URL, then fetch to autofill the form."}
+              </span>
+            </div>
           </div>
-        ) : null}
-        {!isFetchingFromUrl && fetchError ? (
-          <div className="flex items-start gap-2 rounded-md border border-[rgba(169,97,111,0.22)] bg-[rgba(169,97,111,0.08)] px-3 py-2 text-sm text-[#8e4a4a]">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{fetchError}</span>
-          </div>
-        ) : null}
-        {!isFetchingFromUrl && fetchMessage && !fetchError ? (
-          <div className="flex items-start gap-2 rounded-md border border-[rgba(116,141,122,0.2)] bg-[rgba(144,168,147,0.1)] px-3 py-2 text-sm text-[#4f6354]">
-            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{fetchMessage}</span>
-          </div>
-        ) : null}
+          {isFetchingFromUrl ? (
+            <div className="h-1.5 overflow-hidden rounded-full bg-[rgba(116,141,122,0.12)]">
+              <div className="admin-fetch-progress h-full w-1/3 rounded-full bg-[#7f9785]" />
+            </div>
+          ) : null}
+          {!isFetchingFromUrl && fetchedFields.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {fetchedFields.map((field) => (
+                <span
+                  key={field}
+                  className="inline-flex items-center rounded-full border border-[rgba(116,141,122,0.18)] bg-[rgba(255,255,255,0.86)] px-2.5 py-1 text-xs tracking-[0.08em] text-[#58705e]"
+                >
+                  {field}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
       </section>
 
       <section className={panelClass}>
@@ -297,12 +456,17 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
           </label>
           <label className={fieldLabelClass}>
             <span className={eyebrowClass}>Employment type</span>
-            <Input
-              className={inputClassName}
+            <select
+              className={selectClass}
               value={employmentType}
               onChange={(event) => setEmploymentType(event.target.value)}
-              placeholder="full-time"
-            />
+            >
+              {employmentTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </label>
           <label className={fieldLabelClass}>
             <span className={eyebrowClass}>Category</span>
@@ -340,6 +504,24 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
               value={source}
               onChange={(event) => setSource(event.target.value)}
               placeholder="manual"
+            />
+          </label>
+          <label className={fieldLabelClass}>
+            <span className={eyebrowClass}>Contact email</span>
+            <Input
+              className={inputClassName}
+              value={contactEmail}
+              onChange={(event) => setContactEmail(event.target.value)}
+              placeholder="jobs@example.org"
+            />
+          </label>
+          <label className={fieldLabelClass}>
+            <span className={eyebrowClass}>Contact phone</span>
+            <Input
+              className={inputClassName}
+              value={contactPhone}
+              onChange={(event) => setContactPhone(event.target.value)}
+              placeholder="+66 ..."
             />
           </label>
           <label className={`${fieldLabelClass} md:col-span-2`}>
@@ -458,7 +640,7 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
                 className={cn(buttonVariants({ variant: "secondary" }), "rounded-md")}
                 type="button"
                 disabled={isDeleting}
-                onClick={() => void deleteJob()}
+                onClick={() => setConfirmDeleteOpen(true)}
               >
                 {isDeleting ? "Deleting..." : "Delete"}
               </button>
@@ -466,6 +648,18 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
           </div>
         </aside>
       </section>
+      <ConfirmModal
+        open={confirmDeleteOpen}
+        title="Delete job"
+        description="This will permanently remove this job from the admin panel."
+        confirmLabel="Delete"
+        isLoading={isDeleting}
+        onConfirm={() => void deleteJob()}
+        onCancel={() => {
+          if (isDeleting) return;
+          setConfirmDeleteOpen(false);
+        }}
+      />
     </form>
   );
 }

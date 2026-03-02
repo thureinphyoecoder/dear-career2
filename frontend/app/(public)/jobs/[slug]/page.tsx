@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { AdCard } from "@/components/public/AdCard";
 import { Badge } from "@/components/ui/badge";
-import { getJobBySlug } from "@/lib/api-public";
+import { getJobBySlug, getPublicAds } from "@/lib/api-public";
 
 const categoryLabelMap = {
   ngo: "NGO",
@@ -36,7 +36,8 @@ export default async function PublicJobDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const job = await getJobBySlug(slug);
+  const [job, ads] = await Promise.all([getJobBySlug(slug), getPublicAds(["jobs-detail"])]);
+  const detailAd = ads.find((ad) => ad.placement === "jobs-detail");
 
   if (!job) {
     notFound();
@@ -151,11 +152,14 @@ export default async function PublicJobDetailPage({
 
           <AdCard
             compact
-            eyebrow="Sponsored"
-            title="Promote a vacancy here"
-            description="A quiet sponsored slot can appear on job detail pages without overwhelming the listing."
-            ctaLabel="Advertise"
-            href="/feedback"
+            eyebrow={detailAd?.eyebrow || "Sponsored"}
+            title={detailAd?.title || "Promote a vacancy here"}
+            description={
+              detailAd?.description ||
+              "A quiet sponsored slot can appear on job detail pages without overwhelming the listing."
+            }
+            ctaLabel={detailAd?.cta_label || "Advertise"}
+            href={detailAd?.href || "/feedback"}
             showFooterBadges={false}
             className="rounded-[1.75rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(247,243,236,0.74)] shadow-none"
             contentClassName="gap-3 p-5"

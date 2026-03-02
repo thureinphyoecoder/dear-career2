@@ -7,6 +7,8 @@ import type {
   FetchSource,
   Job,
   JobsResponse,
+  ManagedAd,
+  VisitorSummary,
 } from "@/lib/types";
 
 const ADMIN_API_BASE_URL =
@@ -199,6 +201,58 @@ function createFallbackNotifications(jobs: Job[]): AdminNotification[] {
   ];
 }
 
+function createFallbackAds(): ManagedAd[] {
+  return [
+    {
+      id: 1,
+      title: "Promote an opportunity",
+      eyebrow: "Sponsored",
+      description: "Highlight a role inside the jobs directory without interrupting browsing.",
+      cta_label: "Book slot",
+      href: "/feedback",
+      placement: "jobs-inline",
+      status: "active",
+      sort_order: 10,
+    },
+    {
+      id: 2,
+      title: "Promote a vacancy here",
+      eyebrow: "Sponsored",
+      description: "Quiet sponsored placement on the job detail page.",
+      cta_label: "Advertise",
+      href: "/feedback",
+      placement: "jobs-detail",
+      status: "active",
+      sort_order: 20,
+    },
+  ];
+}
+
+function createFallbackVisitorSummary(jobs: Job[]): VisitorSummary {
+  return {
+    total_visitors: Math.max(24, jobs.length * 8),
+    today_visitors: Math.max(6, jobs.length * 2),
+    last_7_days_visitors: Math.max(18, jobs.length * 5),
+    top_paths: [
+      {
+        path: "/jobs",
+        visitors: Math.max(12, jobs.length * 3),
+        visits: Math.max(18, jobs.length * 4),
+      },
+      {
+        path: "/",
+        visitors: Math.max(10, jobs.length * 2),
+        visits: Math.max(16, jobs.length * 3),
+      },
+      {
+        path: "/about",
+        visitors: Math.max(4, jobs.length),
+        visits: Math.max(7, jobs.length + 2),
+      },
+    ],
+  };
+}
+
 
 export async function getAdminJobs(): Promise<Job[]> {
   try {
@@ -265,8 +319,48 @@ async function getFacebookCredential(): Promise<FacebookPageCredential> {
   }
 }
 
+export async function getVisitorSummary(): Promise<VisitorSummary> {
+  try {
+    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/analytics/visitors/`, {
+      ...getAdminFetchOptions(),
+    });
+
+    if (!response.ok) {
+      const jobs = await getAdminJobs();
+      return createFallbackVisitorSummary(jobs);
+    }
+
+    return (await response.json()) as VisitorSummary;
+  } catch {
+    const jobs = await getAdminJobs();
+    return createFallbackVisitorSummary(jobs);
+  }
+}
+
+export async function getManagedAds(): Promise<ManagedAd[]> {
+  try {
+    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/ads/`, {
+      ...getAdminFetchOptions(),
+    });
+
+    if (!response.ok) {
+      return createFallbackAds();
+    }
+
+    const data = (await response.json()) as { results: ManagedAd[] };
+    return data.results;
+  } catch {
+    return createFallbackAds();
+  }
+}
+
 export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapshot> {
-  const [jobs, sources] = await Promise.all([getAdminJobs(), getAdminSources()]);
+  const [jobs, sources, visitors, ads] = await Promise.all([
+    getAdminJobs(),
+    getAdminSources(),
+    getVisitorSummary(),
+    getManagedAds(),
+  ]);
   const publishedJobs = jobs.filter((job) => job.is_active !== false).length;
   const sourceCount = new Set(jobs.map((job) => job.source).filter(Boolean)).size;
 
@@ -275,6 +369,8 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     published_jobs: publishedJobs,
     draft_jobs: Math.max(jobs.length - publishedJobs, 0),
     source_count: sourceCount || sources.length,
+    total_visitors: visitors.total_visitors,
+    active_ads: ads.filter((ad) => ad.status === "active").length,
     pending_approvals: createFallbackApprovals(jobs),
     notifications: createFallbackNotifications(jobs),
     sources,

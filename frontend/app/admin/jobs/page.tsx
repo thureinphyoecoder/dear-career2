@@ -7,41 +7,94 @@ import { Input } from "@/components/ui/input";
 import { getAdminJobs } from "@/lib/api-admin";
 import { cn } from "@/lib/utils";
 
-export default async function AdminJobsPage() {
+type AdminJobsPageProps = {
+  searchParams?: Promise<{
+    query?: string;
+    status?: string;
+    page?: string;
+  }>;
+};
+
+const PAGE_SIZE = 10;
+
+export default async function AdminJobsPage({ searchParams }: AdminJobsPageProps) {
+  const params = searchParams ? await searchParams : undefined;
+  const query = params?.query?.trim() ?? "";
+  const status = params?.status?.trim() ?? "all";
+  const currentPage = Math.max(1, Number(params?.page ?? "1") || 1);
   const jobs = await getAdminJobs();
+  const filteredJobs = jobs.filter((job) => {
+    const matchesQuery = query
+      ? [job.title, job.company, job.location, job.source]
+          .filter(Boolean)
+          .some((value) => value?.toLowerCase().includes(query.toLowerCase()))
+      : true;
+    const matchesStatus = status === "all" ? true : (job.status ?? "published") === status;
+    return matchesQuery && matchesStatus;
+  });
+  const totalPages = Math.max(1, Math.ceil(filteredJobs.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedJobs = filteredJobs.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const backendOffline = jobs.length === 0;
 
+  function buildPageHref(page: number) {
+    const next = new URLSearchParams();
+    if (query) next.set("query", query);
+    if (status !== "all") next.set("status", status);
+    if (page > 1) next.set("page", String(page));
+    const search = next.toString();
+    return search ? `/admin/jobs?${search}` : "/admin/jobs";
+  }
+
   return (
-    <div className="grid max-w-[1120px] gap-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="grid gap-2">
-          <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Job CRUD</div>
-          <h1 className="text-[clamp(1.7rem,2.4vw,2.2rem)] font-semibold leading-none text-foreground">
-            Jobs
-          </h1>
-          <p className="max-w-[48ch] text-[0.92rem] leading-6 text-[#727975]">
-            Review listings, update metadata, and control publish readiness.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Input
-            className="h-11 w-full rounded-xl border-border/70 bg-white shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 sm:w-[240px]"
-            placeholder="Search title or company"
-          />
-          <select
-            className="h-11 min-w-[180px] rounded-xl border border-border/70 bg-white px-4 text-sm text-foreground shadow-none outline-none focus:border-[#8da693]"
-            defaultValue="all"
-          >
-            <option value="all">All statuses</option>
-            <option value="published">Published</option>
-            <option value="draft">Draft</option>
-            <option value="archived">Archived</option>
-          </select>
-          <Link href="/admin/jobs/new" className={cn(buttonVariants(), "rounded-xl")}>
-            Create job
-          </Link>
-        </div>
+    <div className="grid max-w-none gap-5 xl:pr-6">
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-[clamp(1.7rem,2.4vw,2.2rem)] font-semibold leading-none text-foreground">
+          Jobs
+        </h1>
+        <Link href="/admin/jobs/new" className={cn(buttonVariants(), "rounded-xl")}>
+          Create job
+        </Link>
       </div>
+      <Card className="rounded-2xl border-border/70 bg-white shadow-none">
+        <CardContent className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <form className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-center" method="get">
+            <Input
+              className="h-11 rounded-xl border-border/70 bg-white shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              name="query"
+              defaultValue={query}
+              placeholder="Search title, company, location, or source"
+            />
+            <select
+              className="h-11 min-w-[180px] rounded-xl border border-border/70 bg-white px-4 text-sm text-foreground shadow-none outline-none focus:border-[#8da693]"
+              name="status"
+              defaultValue={status}
+            >
+              <option value="all">All statuses</option>
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+              <option value="archived">Archived</option>
+              <option value="pending-review">Pending review</option>
+            </select>
+            <div className="flex flex-wrap gap-2">
+              <button className={cn(buttonVariants(), "rounded-xl")} type="submit">
+                Search
+              </button>
+              {(query || status !== "all") ? (
+                <Link
+                  href="/admin/jobs"
+                  className={cn(buttonVariants({ variant: "secondary" }), "rounded-xl")}
+                >
+                  Clear
+                </Link>
+              ) : null}
+            </div>
+          </form>
+          <div className="text-[0.82rem] uppercase tracking-[0.08em] text-[#727975] lg:text-right">
+            {paginatedJobs.length} shown
+          </div>
+        </CardContent>
+      </Card>
       {backendOffline ? (
         <Card className="rounded-2xl border-[rgba(204,165,92,0.22)] bg-[rgba(255,251,240,0.96)] shadow-none">
           <CardContent className="grid gap-1 p-4 text-sm text-[#7a6a45]">
@@ -53,7 +106,52 @@ export default async function AdminJobsPage() {
           </CardContent>
         </Card>
       ) : null}
-      <JobTable jobs={jobs} />
+      <JobTable jobs={paginatedJobs} />
+      {filteredJobs.length > 0 ? (
+        <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-white px-4 py-3 shadow-none sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-sm text-[#727975]">
+            Page {safePage} of {totalPages}
+          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={buildPageHref(Math.max(1, safePage - 1))}
+              aria-disabled={safePage === 1}
+              className={cn(
+                buttonVariants({ variant: "secondary" }),
+                "rounded-xl",
+                safePage === 1 && "pointer-events-none opacity-50",
+              )}
+            >
+              Previous
+            </Link>
+            {Array.from({ length: totalPages }, (_, index) => index + 1)
+              .slice(Math.max(0, safePage - 3), Math.min(totalPages, safePage + 2))
+              .map((pageNumber) => (
+                <Link
+                  key={pageNumber}
+                  href={buildPageHref(pageNumber)}
+                  className={cn(
+                    buttonVariants(pageNumber === safePage ? {} : { variant: "secondary" }),
+                    "min-w-10 rounded-xl px-0",
+                  )}
+                >
+                  {pageNumber}
+                </Link>
+              ))}
+            <Link
+              href={buildPageHref(Math.min(totalPages, safePage + 1))}
+              aria-disabled={safePage === totalPages}
+              className={cn(
+                buttonVariants({ variant: "secondary" }),
+                "rounded-xl",
+                safePage === totalPages && "pointer-events-none opacity-50",
+              )}
+            >
+              Next
+            </Link>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

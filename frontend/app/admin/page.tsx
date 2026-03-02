@@ -11,23 +11,16 @@ export default async function AdminDashboardPage() {
   const healthySources = snapshot.sources.filter((source) => source.status === "healthy").length;
   const latestNotification = snapshot.notifications[0];
   const statItems = [
-    ["Live jobs", snapshot.published_jobs, `${snapshot.total_jobs} total listings`],
-    ["Pending review", snapshot.pending_approvals.length, "Website and Facebook queue"],
-    ["Healthy sources", healthySources, `${snapshot.sources.length} configured sources`],
+    ["Live jobs", snapshot.published_jobs],
+    ["Pending review", snapshot.pending_approvals.length],
+    ["Healthy sources", healthySources],
+    ["Visitors", snapshot.total_visitors],
+    ["Active ads", snapshot.active_ads],
   ] as const;
 
   return (
     <div className="grid max-w-[1120px] gap-6">
-      <header className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="grid gap-2">
-          <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Admin dashboard</div>
-          <h1 className="text-[clamp(1.75rem,2.5vw,2.3rem)] font-semibold leading-none text-foreground">
-            Operations
-          </h1>
-          <p className="max-w-[48ch] text-[0.92rem] leading-6 text-[#727975]">
-            Review intake, approve listings, and manage source cadence.
-          </p>
-        </div>
+      <header className="flex justify-end">
         <div className="flex flex-wrap gap-2">
           <Link href="/admin/jobs/new" className={cn(buttonVariants(), "rounded-md")}>
             New job
@@ -41,16 +34,15 @@ export default async function AdminDashboardPage() {
         </div>
       </header>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        {statItems.map(([label, value, meta]) => (
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        {statItems.map(([label, value]) => (
           <Card
             key={label}
             className="rounded-2xl border-border/70 bg-white shadow-none"
           >
-            <CardContent className="grid gap-2 p-5">
-              <span className="text-[0.7rem] uppercase tracking-[0.16em] text-[#7f9582]">{label}</span>
+            <CardContent className="grid gap-1 p-5">
               <strong className="text-[1.9rem] font-semibold leading-none text-[#334039]">{value}</strong>
-              <span className="text-[0.88rem] leading-6 text-[#727975]">{meta}</span>
+              <span className="text-[0.88rem] text-[#727975]">{label}</span>
             </CardContent>
           </Card>
         ))}
@@ -59,14 +51,11 @@ export default async function AdminDashboardPage() {
       <section className="grid gap-8 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.9fr)]">
         <Card className="rounded-2xl border-border/70 bg-white shadow-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-            <div className="grid gap-1">
-              <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Review queue</div>
-              <CardTitle className="text-[1.02rem] font-semibold tracking-[-0.02em] text-foreground">
-                Pending approvals
-              </CardTitle>
-            </div>
+            <CardTitle className="text-[1.02rem] font-semibold tracking-[-0.02em] text-foreground">
+              Pending approvals
+            </CardTitle>
             <Link href="/admin/jobs" className="text-[0.88rem] text-[#7f9582]">
-              Open jobs
+              Jobs
             </Link>
           </CardHeader>
           <CardContent className="grid gap-0 p-0">
@@ -101,14 +90,11 @@ export default async function AdminDashboardPage() {
         <div className="grid gap-6">
           <Card className="rounded-2xl border-border/70 bg-white shadow-none">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <div>
-                <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Fetch</div>
-                <CardTitle className="mt-1 text-[1.02rem] font-semibold tracking-[-0.02em] text-foreground">
-                  Source status
-                </CardTitle>
-              </div>
+              <CardTitle className="text-[1.02rem] font-semibold tracking-[-0.02em] text-foreground">
+                Sources
+              </CardTitle>
               <Link href="/admin/sources" className="text-[0.88rem] text-[#7f9582]">
-                Open sources
+                Open
               </Link>
             </CardHeader>
             <CardContent className="grid gap-0">
@@ -150,31 +136,21 @@ export default async function AdminDashboardPage() {
           <div className="grid gap-4">
             <Card className="rounded-2xl border-border/70 bg-white shadow-none">
               <CardContent className="grid gap-1 p-5">
-              <span className="text-[0.68rem] uppercase tracking-[0.16em] text-[#8da693]">
-                Manual intake
-              </span>
-              <strong className="font-medium text-[#334039]">
-                {nextManualSource ? nextManualSource.label : "No manual source"}
-              </strong>
-              <p className="m-0 text-[0.9rem] leading-6 text-[#727975]">
-                {nextManualSource
-                  ? "Use the fetch settings page when a site needs a pasted job URL."
-                  : "All current sources are crawler-based."}
-              </p>
+                <strong className="font-medium text-[#334039]">
+                  {nextManualSource ? nextManualSource.label : "No manual source"}
+                </strong>
+                <span className="text-[0.9rem] text-[#727975]">Manual intake</span>
               </CardContent>
             </Card>
 
             <Card className="rounded-2xl border-border/70 bg-white shadow-none">
               <CardContent className="grid gap-1 p-5">
-              <span className="text-[0.68rem] uppercase tracking-[0.16em] text-[#8da693]">
-                Latest signal
-              </span>
-              <strong className="font-medium text-[#334039]">
-                {latestNotification?.title ?? "No signal"}
-              </strong>
-              <p className="m-0 text-[0.9rem] leading-6 text-[#727975]">
-                {latestNotification?.detail ?? "No recent activity."}
-              </p>
+                <strong className="font-medium text-[#334039]">
+                  {latestNotification?.title ?? "No signal"}
+                </strong>
+                <span className="text-[0.9rem] text-[#727975]">
+                  {latestNotification?.detail ?? "No recent activity."}
+                </span>
               </CardContent>
             </Card>
           </div>

@@ -1,5 +1,12 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { CheckCircle2, LoaderCircle, Settings2, Zap } from "lucide-react";
+
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { FetchSource } from "@/lib/types";
 
@@ -16,55 +23,317 @@ function formatSourceMode(source: FetchSource) {
 }
 
 export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
+  const router = useRouter();
+  const [sourceState, setSourceState] = useState<Record<number, FetchSource>>(
+    Object.fromEntries(sources.map((source) => [source.id, source])),
+  );
+  const [openSourceId, setOpenSourceId] = useState<number | null>(null);
+  const [savingId, setSavingId] = useState<number | null>(null);
+  const [runningId, setRunningId] = useState<number | null>(null);
+  const [statusMessage, setStatusMessage] = useState<Record<number, string>>({});
+  const [statusError, setStatusError] = useState<Record<number, string>>({});
+
+  function updateSource(sourceId: number, patch: Partial<FetchSource>) {
+    setSourceState((current) => ({
+      ...current,
+      [sourceId]: {
+        ...current[sourceId],
+        ...patch,
+      },
+    }));
+  }
+
+  async function saveSource(sourceId: number) {
+    const source = sourceState[sourceId];
+    if (!source) return;
+
+    setSavingId(sourceId);
+    setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
+    setStatusError((current) => ({ ...current, [sourceId]: "" }));
+
+    try {
+      const response = await fetch(`/api/admin/proxy/jobs/admin/sources/${sourceId}/`, {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          label: source.label,
+          domain: source.domain,
+          feed_url: source.feed_url ?? "",
+          mode: source.mode,
+          enabled: source.enabled,
+          requires_manual_url: source.requires_manual_url,
+          auto_publish_website: source.auto_publish_website ?? false,
+          auto_publish_facebook: source.auto_publish_facebook ?? false,
+          approval_required_for_website: source.approval_required_for_website ?? false,
+          approval_required_for_facebook: source.approval_required_for_facebook ?? false,
+          default_category: source.default_category,
+          cadence_value: source.cadence_value,
+          cadence_unit: source.cadence_unit,
+          max_jobs_per_run: source.max_jobs_per_run ?? 25,
+          status: source.status,
+        }),
+      });
+
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(detail || "Unable to save source.");
+      }
+
+      const updated = (await response.json()) as FetchSource;
+      setSourceState((current) => ({ ...current, [sourceId]: updated }));
+      setStatusMessage((current) => ({ ...current, [sourceId]: "Source updated." }));
+      router.refresh();
+    } catch (error) {
+      setStatusError((current) => ({
+        ...current,
+        [sourceId]: error instanceof Error ? error.message : "Unable to save source.",
+      }));
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  async function runSource(sourceId: number) {
+    setRunningId(sourceId);
+    setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
+    setStatusError((current) => ({ ...current, [sourceId]: "" }));
+
+    try {
+      const response = await fetch(`/api/admin/proxy/jobs/admin/sources/${sourceId}/run/`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(detail || "Unable to run source.");
+      }
+
+      const result = (await response.json()) as {
+        fetched_count?: number;
+        created_count?: number;
+        updated_count?: number;
+      };
+      setStatusMessage((current) => ({
+        ...current,
+        [sourceId]: `Run complete. ${result.fetched_count ?? 0} fetched, ${result.created_count ?? 0} created, ${result.updated_count ?? 0} updated.`,
+      }));
+      router.refresh();
+    } catch (error) {
+      setStatusError((current) => ({
+        ...current,
+        [sourceId]: error instanceof Error ? error.message : "Unable to run source.",
+      }));
+    } finally {
+      setRunningId(null);
+    }
+  }
+
   return (
     <Card className="border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.92)] shadow-none">
       <CardContent className="grid gap-4 p-5">
-        <div>
-          <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Source registry</div>
-          <h2 className="mt-1 text-[1.02rem] font-semibold tracking-[-0.02em] text-foreground">
-            Connected sources
-          </h2>
-        </div>
         <div className="grid gap-4 md:grid-cols-2">
-          {sources.map((source) => (
-            <article
-              key={source.id}
-              className="grid gap-4 rounded-[20px] border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.74)] p-4"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <strong>{source.label}</strong>
-                  <span className="block text-[0.92rem] text-[#727975]">{source.domain}</span>
+          {sources.map((source) => {
+            const current = sourceState[source.id] ?? source;
+            const isOpen = openSourceId === source.id;
+            const isSaving = savingId === source.id;
+            const isRunning = runningId === source.id;
+
+            return (
+              <article
+                key={source.id}
+                className="grid gap-4 rounded-[20px] border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.74)] p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <strong>{current.label}</strong>
+                    <span className="block text-[0.92rem] text-[#727975]">{current.domain}</span>
+                  </div>
+                  <span
+                    className={cn(
+                      "inline-flex min-w-[84px] items-center justify-center rounded-full px-3 py-1 text-[0.72rem] uppercase tracking-[0.1em]",
+                      current.status === "healthy" && "bg-[rgba(76,145,118,0.14)] text-[#246245]",
+                      current.status === "warning" && "bg-[rgba(204,165,92,0.16)] text-[#8a6120]",
+                      current.status === "paused" && "bg-[rgba(114,121,117,0.16)] text-[#59605d]",
+                    )}
+                  >
+                    {current.status}
+                  </span>
                 </div>
-                <span
-                  className={cn(
-                    "inline-flex min-w-[84px] items-center justify-center rounded-full px-3 py-1 text-[0.72rem] uppercase tracking-[0.1em]",
-                    source.status === "healthy" && "bg-[rgba(76,145,118,0.14)] text-[#246245]",
-                    source.status === "warning" && "bg-[rgba(204,165,92,0.16)] text-[#8a6120]",
-                    source.status === "paused" && "bg-[rgba(114,121,117,0.16)] text-[#59605d]",
-                  )}
-                >
-                  {source.status}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-3 text-[0.92rem] text-[#727975]">
-                <span>{formatSourceMode(source)}</span>
-                <span>
-                  {source.requires_manual_url
-                    ? "Manual URL required"
-                    : `Every ${source.cadence_value} ${source.cadence_unit}`}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button className={buttonVariants({ variant: "secondary" })} type="button">
-                  Configure
-                </button>
-                <button className={buttonVariants({ variant: "secondary" })} type="button">
-                  Run now
-                </button>
-              </div>
-            </article>
-          ))}
+                <div className="flex flex-wrap gap-3 text-[0.92rem] text-[#727975]">
+                  <span>{formatSourceMode(current)}</span>
+                  <span>
+                    {current.requires_manual_url
+                      ? "Manual URL required"
+                      : `Every ${current.cadence_value} ${current.cadence_unit}`}
+                  </span>
+                </div>
+
+                {statusError[source.id] ? (
+                  <div className="rounded-md border border-[rgba(169,97,111,0.22)] bg-[rgba(169,97,111,0.08)] px-3 py-2 text-sm text-[#8e4a4a]">
+                    {statusError[source.id]}
+                  </div>
+                ) : null}
+                {statusMessage[source.id] ? (
+                  <div className="flex items-start gap-2 rounded-md border border-[rgba(116,141,122,0.2)] bg-[rgba(144,168,147,0.1)] px-3 py-2 text-sm text-[#4f6354]">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{statusMessage[source.id]}</span>
+                  </div>
+                ) : null}
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    className={buttonVariants({ variant: "secondary" })}
+                    type="button"
+                    onClick={() => setOpenSourceId(isOpen ? null : source.id)}
+                  >
+                    <Settings2 className="h-4 w-4" />
+                    {isOpen ? "Close" : "Configure"}
+                  </button>
+                  <button
+                    className={buttonVariants({ variant: "secondary" })}
+                    type="button"
+                    disabled={isRunning}
+                    onClick={() => void runSource(source.id)}
+                  >
+                    {isRunning ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                    {isRunning ? "Running..." : "Run now"}
+                  </button>
+                </div>
+
+                {isOpen ? (
+                  <div className="grid gap-4 border-t border-[rgba(160,183,164,0.16)] pt-4">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <label className="grid gap-2">
+                        <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Label</span>
+                        <Input
+                          className="bg-[rgba(255,255,255,0.88)]"
+                          value={current.label}
+                          onChange={(event) => updateSource(source.id, { label: event.target.value })}
+                        />
+                      </label>
+                      <label className="grid gap-2">
+                        <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Domain</span>
+                        <Input
+                          className="bg-[rgba(255,255,255,0.88)]"
+                          value={current.domain}
+                          onChange={(event) => updateSource(source.id, { domain: event.target.value })}
+                        />
+                      </label>
+                      <label className="grid gap-2 md:col-span-2">
+                        <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Feed URL</span>
+                        <Input
+                          className="bg-[rgba(255,255,255,0.88)]"
+                          value={current.feed_url ?? ""}
+                          onChange={(event) => updateSource(source.id, { feed_url: event.target.value })}
+                        />
+                      </label>
+                      <label className="grid gap-2">
+                        <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Mode</span>
+                        <select
+                          className="h-11 rounded-xl border border-border/70 bg-white px-4 text-sm text-foreground shadow-none outline-none focus:border-[#8da693]"
+                          value={current.mode}
+                          onChange={(event) =>
+                            updateSource(source.id, { mode: event.target.value as FetchSource["mode"] })
+                          }
+                        >
+                          <option value="html">HTML</option>
+                          <option value="rss">RSS</option>
+                          <option value="manual">Manual</option>
+                        </select>
+                      </label>
+                      <label className="grid gap-2">
+                        <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Category</span>
+                        <select
+                          className="h-11 rounded-xl border border-border/70 bg-white px-4 text-sm text-foreground shadow-none outline-none focus:border-[#8da693]"
+                          value={current.default_category}
+                          onChange={(event) =>
+                            updateSource(source.id, {
+                              default_category: event.target.value as FetchSource["default_category"],
+                            })
+                          }
+                        >
+                          <option value="ngo">NGO</option>
+                          <option value="white-collar">White collar</option>
+                          <option value="blue-collar">Blue collar</option>
+                        </select>
+                      </label>
+                      <label className="grid gap-2">
+                        <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Cadence</span>
+                        <Input
+                          className="bg-[rgba(255,255,255,0.88)]"
+                          type="number"
+                          min={0}
+                          value={current.cadence_value}
+                          onChange={(event) =>
+                            updateSource(source.id, { cadence_value: Number(event.target.value) })
+                          }
+                        />
+                      </label>
+                      <label className="grid gap-2">
+                        <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Unit</span>
+                        <select
+                          className="h-11 rounded-xl border border-border/70 bg-white px-4 text-sm text-foreground shadow-none outline-none focus:border-[#8da693]"
+                          value={current.cadence_unit}
+                          onChange={(event) =>
+                            updateSource(source.id, {
+                              cadence_unit: event.target.value as FetchSource["cadence_unit"],
+                            })
+                          }
+                        >
+                          <option value="minutes">Minutes</option>
+                          <option value="hours">Hours</option>
+                        </select>
+                      </label>
+                    </div>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <label className="flex items-center justify-between rounded-xl border border-border/70 bg-white px-3 py-3 text-sm text-[#465049]">
+                        <span>Enabled</span>
+                        <input
+                          type="checkbox"
+                          className="h-[18px] w-[18px] accent-[#8da693]"
+                          checked={current.enabled}
+                          onChange={(event) => updateSource(source.id, { enabled: event.target.checked })}
+                        />
+                      </label>
+                      <label className="flex items-center justify-between rounded-xl border border-border/70 bg-white px-3 py-3 text-sm text-[#465049]">
+                        <span>Manual URL required</span>
+                        <input
+                          type="checkbox"
+                          className="h-[18px] w-[18px] accent-[#8da693]"
+                          checked={current.requires_manual_url}
+                          onChange={(event) =>
+                            updateSource(source.id, { requires_manual_url: event.target.checked })
+                          }
+                        />
+                      </label>
+                    </div>
+
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <button
+                        className={buttonVariants({ variant: "secondary" })}
+                        type="button"
+                        onClick={() => setOpenSourceId(null)}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className={buttonVariants()}
+                        type="button"
+                        disabled={isSaving}
+                        onClick={() => void saveSource(source.id)}
+                      >
+                        {isSaving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+                        {isSaving ? "Saving..." : "Save"}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </article>
+            );
+          })}
         </div>
       </CardContent>
     </Card>

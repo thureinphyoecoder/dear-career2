@@ -11,6 +11,8 @@ def serialize_job(job):
         "category": job.category,
         "employment_type": job.employment_type,
         "salary": job.salary,
+        "contact_email": job.contact_email,
+        "contact_phone": job.contact_phone,
         "source": job.source,
         "source_url": job.source_url,
         "status": job.status,
@@ -75,4 +77,29 @@ def serialize_channel_credential(credential):
         "page_id": credential.page_id,
         "access_token": credential.access_token,
         "updated_at": credential.updated_at.isoformat() if credential.updated_at else None,
+    }
+
+
+def serialize_visitor_summary(payload):
+    return {
+        "total_visitors": payload["total_visitors"],
+        "today_visitors": payload["today_visitors"],
+        "last_7_days_visitors": payload["last_7_days_visitors"],
+        "top_paths": payload["top_paths"],
+    }
+
+
+def serialize_managed_ad(ad):
+    return {
+        "id": ad.id,
+        "title": ad.title,
+        "eyebrow": ad.eyebrow,
+        "description": ad.description,
+        "cta_label": ad.cta_label,
+        "href": ad.href,
+        "placement": ad.placement,
+        "status": ad.status,
+        "sort_order": ad.sort_order,
+        "created_at": ad.created_at.isoformat() if ad.created_at else None,
+        "updated_at": ad.updated_at.isoformat() if ad.updated_at else None,
     }

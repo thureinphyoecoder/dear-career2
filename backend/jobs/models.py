@@ -1,6 +1,7 @@
 import uuid
 
 from django.db import models
+from django.utils import timezone
 from django.utils.text import slugify
 
 
@@ -59,6 +60,8 @@ class Job(models.Model):
         default=EmploymentType.FULL_TIME,
     )
     salary = models.CharField(max_length=100, blank=True)
+    contact_email = models.EmailField(blank=True)
+    contact_phone = models.CharField(max_length=60, blank=True)
 
     status = models.CharField(
         max_length=32,
@@ -216,3 +219,70 @@ class ChannelCredential(models.Model):
 
     def __str__(self):
         return self.platform
+
+
+class VisitorEvent(models.Model):
+    session_key = models.CharField(max_length=64)
+    path = models.CharField(max_length=255)
+    page_title = models.CharField(max_length=160, blank=True)
+    visit_date = models.DateField(default=timezone.localdate)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_seen_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-last_seen_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["session_key", "path", "visit_date"],
+                name="jobs_visitor_event_unique_session_path_date",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["visit_date"]),
+            models.Index(fields=["path"]),
+            models.Index(fields=["session_key"]),
+        ]
+
+    def __str__(self):
+        return f"{self.path} · {self.session_key}"
+
+
+class ManagedAd(models.Model):
+    class PlacementChoices(models.TextChoices):
+        JOBS_INLINE = "jobs-inline", "Jobs inline"
+        JOBS_DETAIL = "jobs-detail", "Job detail"
+        JOBS_SEARCH = "jobs-search", "Jobs search"
+
+    class StatusChoices(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        ACTIVE = "active", "Active"
+        PAUSED = "paused", "Paused"
+
+    title = models.CharField(max_length=160)
+    eyebrow = models.CharField(max_length=60, blank=True, default="Sponsored")
+    description = models.TextField()
+    cta_label = models.CharField(max_length=60, default="Learn more")
+    href = models.URLField()
+    placement = models.CharField(
+        max_length=40,
+        choices=PlacementChoices.choices,
+        default=PlacementChoices.JOBS_INLINE,
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=StatusChoices.choices,
+        default=StatusChoices.DRAFT,
+    )
+    sort_order = models.PositiveIntegerField(default=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["placement", "sort_order", "title"]
+        indexes = [
+            models.Index(fields=["placement"]),
+            models.Index(fields=["status"]),
+        ]
+
+    def __str__(self):
+        return f"{self.title} · {self.placement}"

@@ -1,4 +1,4 @@
-import type { Job, JobsResponse } from "@/lib/types";
+import type { Job, JobsResponse, ManagedAd, ManagedAdPlacement } from "@/lib/types";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000/api";
@@ -71,6 +71,42 @@ const fallbackJobs: Job[] = [
   },
 ];
 
+const fallbackAds: ManagedAd[] = [
+  {
+    id: 1,
+    title: "Promote an opportunity",
+    eyebrow: "Sponsored",
+    description: "A single sponsored slot appears inside the listings without interrupting browsing.",
+    cta_label: "Book slot",
+    href: "/feedback",
+    placement: "jobs-inline",
+    status: "active",
+    sort_order: 10,
+  },
+  {
+    id: 2,
+    title: "Promote a vacancy here",
+    eyebrow: "Sponsored",
+    description: "A quiet sponsored slot can appear on job detail pages without overwhelming the listing.",
+    cta_label: "Advertise",
+    href: "/feedback",
+    placement: "jobs-detail",
+    status: "active",
+    sort_order: 20,
+  },
+  {
+    id: 3,
+    title: "Advertise with us",
+    eyebrow: "Sponsored",
+    description: "Feature urgent roles, announcements, or employer campaigns near the jobs search flow.",
+    cta_label: "Open feedback",
+    href: "/feedback",
+    placement: "jobs-search",
+    status: "active",
+    sort_order: 5,
+  },
+];
+
 export async function getPublicJobs(): Promise<Job[]> {
   try {
     const response = await fetch(`${API_BASE_URL}/jobs/`, {
@@ -91,4 +127,31 @@ export async function getPublicJobs(): Promise<Job[]> {
 export async function getJobBySlug(slug: string): Promise<Job | null> {
   const jobs = await getPublicJobs();
   return jobs.find((job) => job.slug === slug) ?? null;
+}
+
+export async function getPublicAds(
+  placements?: ManagedAdPlacement[],
+): Promise<ManagedAd[]> {
+  try {
+    const placementQuery =
+      placements && placements.length > 0
+        ? `?placements=${placements.join(",")}`
+        : "";
+    const response = await fetch(`${API_BASE_URL}/jobs/ads/${placementQuery}`, {
+      next: { revalidate: 120 },
+    });
+
+    if (!response.ok) {
+      return fallbackAds.filter((ad) =>
+        placements && placements.length > 0 ? placements.includes(ad.placement) : true,
+      );
+    }
+
+    const data = (await response.json()) as { results: ManagedAd[] };
+    return data.results;
+  } catch {
+    return fallbackAds.filter((ad) =>
+      placements && placements.length > 0 ? placements.includes(ad.placement) : true,
+    );
+  }
 }

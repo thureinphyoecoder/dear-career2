@@ -5,16 +5,7 @@ export default async function AdminSourcesPage() {
   const settings = await getFetchSettings();
 
   return (
-    <div className="grid max-w-[1120px] gap-6">
-      <header className="grid gap-2">
-        <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Sources</div>
-        <h1 className="text-[clamp(1.7rem,2.4vw,2.2rem)] font-semibold leading-none text-foreground">
-          Sources
-        </h1>
-        <p className="max-w-[48ch] text-[0.92rem] leading-6 text-[#727975]">
-          Review connected sources only. Fetch controls and Facebook upload stay in separate pages.
-        </p>
-      </header>
+    <div className="grid max-w-none gap-6 xl:pr-6">
       <SourceRegistry sources={settings.sources} />
     </div>
   );

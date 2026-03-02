@@ -5,7 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { JobCard } from "@/components/public/JobCard";
 import { cn } from "@/lib/utils";
-import { getPublicJobs } from "@/lib/api-public";
+import { getPublicAds, getPublicJobs } from "@/lib/api-public";
 import type { JobCategory } from "@/lib/types";
 
 const categorySections: Array<{
@@ -43,7 +43,12 @@ type PublicJobsPageProps = {
 export default async function PublicJobsPage({
   searchParams,
 }: PublicJobsPageProps) {
-  const jobs = await getPublicJobs();
+  const [jobs, ads] = await Promise.all([
+    getPublicJobs(),
+    getPublicAds(["jobs-search", "jobs-inline"]),
+  ]);
+  const searchAd = ads.find((ad) => ad.placement === "jobs-search");
+  const inlineAd = ads.find((ad) => ad.placement === "jobs-inline");
   const params = (await searchParams) ?? {};
   const query = params.q?.trim().toLowerCase() ?? "";
   const requestedPage = Number(params.page ?? "1");
@@ -109,12 +114,12 @@ export default async function PublicJobsPage({
   return (
     <main className="mx-auto max-w-6xl px-4 pb-20 pt-32">
       <div className="mb-4 flex justify-center">
-        <Link
-          href="/feedback"
+        <a
+          href={searchAd?.href ?? "/feedback"}
           className="jobs-advertise-pill inline-flex items-center rounded-full border border-[rgba(160,183,164,0.18)] bg-[rgba(247,243,236,0.82)] px-4 py-2 text-[0.76rem] uppercase tracking-[0.16em] text-[#6f8574] transition-colors hover:border-[rgba(160,183,164,0.3)] hover:text-foreground"
         >
-          Advertise with us
-        </Link>
+          {searchAd?.title ?? "Advertise with us"}
+        </a>
       </div>
 
       <form action="/jobs" method="get">
@@ -200,11 +205,14 @@ export default async function PublicJobsPage({
                     <div key={`inline-ad-${section.key}`}>
                       <AdCard
                         compact
-                        eyebrow="Sponsored"
-                        title="Promote an opportunity"
-                        description="A single sponsored slot appears inside the listings without interrupting browsing."
-                        ctaLabel="Book slot"
-                        href="/feedback"
+                        eyebrow={inlineAd?.eyebrow || "Sponsored"}
+                        title={inlineAd?.title || "Promote an opportunity"}
+                        description={
+                          inlineAd?.description ||
+                          "A single sponsored slot appears inside the listings without interrupting browsing."
+                        }
+                        ctaLabel={inlineAd?.cta_label || "Book slot"}
+                        href={inlineAd?.href || "/feedback"}
                         showHeaderBadges={false}
                         showFooterBadges={false}
                         className="h-full rounded-[1.5rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(247,243,236,0.72)] shadow-none"

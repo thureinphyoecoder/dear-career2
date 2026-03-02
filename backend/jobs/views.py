@@ -1,19 +1,32 @@
 import json
 import re
+from datetime import timedelta
 from itertools import islice
 from urllib.parse import urlparse
 
+from django.db.models import Count, Max
 from django.shortcuts import get_object_or_404
 from django.http import HttpRequest, HttpResponseBadRequest, JsonResponse
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from .models import ChannelCredential, FeedbackMessage, FetchRun, FetchSource, Job
+from .models import (
+    ChannelCredential,
+    FeedbackMessage,
+    FetchRun,
+    FetchSource,
+    Job,
+    ManagedAd,
+    VisitorEvent,
+)
 from .serializers import (
     serialize_channel_credential,
     serialize_fetch_run,
     serialize_fetch_source,
     serialize_job,
+    serialize_managed_ad,
+    serialize_visitor_summary,
 )
 from .services.ingest import ingest_source
 
@@ -91,6 +104,16 @@ def _derive_location(text: str) -> str:
         if match:
             return _clean_text(match.group(0))
     return ""
+
+
+def _extract_contact_email(text: str) -> str:
+    match = re.search(r"([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})", text, flags=re.IGNORECASE)
+    return _clean_text(match.group(1)) if match else ""
+
+
+def _extract_contact_phone(text: str) -> str:
+    match = re.search(r"(\+?\d[\d\s().-]{7,}\d)", text)
+    return _clean_text(match.group(1)) if match else ""
 
 
 def _derive_category(hostname: str, text: str) -> str:
@@ -318,6 +341,8 @@ def job_create(request: HttpRequest):
         source_url=str(payload.get("source_url", "")).strip() or None,
         employment_type=payload.get("employment_type", Job.EmploymentType.FULL_TIME),
         salary=str(payload.get("salary", "")).strip(),
+        contact_email=str(payload.get("contact_email", "")).strip(),
+        contact_phone=str(payload.get("contact_phone", "")).strip(),
         status=payload.get("status", Job.WorkflowStatus.DRAFT),
         is_active=bool(payload.get("is_active", True)),
         requires_website_approval=bool(
@@ -358,6 +383,8 @@ def job_detail(request: HttpRequest, job_id: int):
         "source",
         "employment_type",
         "salary",
+        "contact_email",
+        "contact_phone",
         "status",
     ]:
         if field in payload:
@@ -485,6 +512,8 @@ def job_scrape_preview(request: HttpRequest):
         or ""
     )
     salary = _clean_text(domain_fields.get("salary") or json_ld_fields.get("salary") or "")
+    contact_email = _extract_contact_email(combined_text)
+    contact_phone = _extract_contact_phone(combined_text)
     if not description:
         description = f"{title} at {company or 'Manual source'}. Open the source URL for the full posting."
 
@@ -500,8 +529,175 @@ def job_scrape_preview(request: HttpRequest):
             "description_en": description,
             "description_mm": description,
             "salary": salary,
+            "contact_email": contact_email,
+            "contact_phone": contact_phone,
         }
     )
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def visitor_track(request: HttpRequest):
+    try:
+        payload = _load_json_body(request)
+    except ValueError as exc:
+        return HttpResponseBadRequest(str(exc))
+
+    session_key = str(payload.get("session_key", "")).strip()
+    path = str(payload.get("path", "")).strip()
+    page_title = str(payload.get("page_title", "")).strip()
+    if not session_key or not path:
+        return HttpResponseBadRequest("Missing required fields: session_key, path")
+
+    today = timezone.localdate()
+    event, created = VisitorEvent.objects.get_or_create(
+        session_key=session_key,
+        path=path,
+        visit_date=today,
+        defaults={"page_title": page_title[:160]},
+    )
+
+    if not created:
+        updates = []
+        if page_title and event.page_title != page_title[:160]:
+            event.page_title = page_title[:160]
+            updates.append("page_title")
+        event.save(update_fields=updates + ["last_seen_at"])
+
+    return JsonResponse({"recorded": True, "created": created})
+
+
+@require_GET
+def visitor_summary(request: HttpRequest):
+    today = timezone.localdate()
+    last_7_days = today - timedelta(days=6)
+    events = VisitorEvent.objects.all()
+
+    payload = {
+        "total_visitors": events.values("session_key").distinct().count(),
+        "today_visitors": events.filter(visit_date=today)
+        .values("session_key")
+        .distinct()
+        .count(),
+        "last_7_days_visitors": events.filter(visit_date__gte=last_7_days)
+        .values("session_key")
+        .distinct()
+        .count(),
+        "top_paths": list(
+            events.values("path")
+            .annotate(
+                visitors=Count("session_key", distinct=True),
+                visits=Count("id"),
+                last_seen_at=Max("last_seen_at"),
+            )
+            .order_by("-visitors", "path")[:8]
+        ),
+    }
+    return JsonResponse(serialize_visitor_summary(payload))
+
+
+@require_GET
+def managed_ad_list(request: HttpRequest):
+    placement = str(request.GET.get("placement", "")).strip()
+    status = str(request.GET.get("status", "")).strip()
+    ads = ManagedAd.objects.all()
+
+    if placement:
+        ads = ads.filter(placement=placement)
+    if status:
+        ads = ads.filter(status=status)
+
+    return JsonResponse({"results": [serialize_managed_ad(ad) for ad in ads]})
+
+
+@require_GET
+def public_active_ad_list(request: HttpRequest):
+    placements = [
+        value.strip()
+        for value in str(request.GET.get("placements", "")).split(",")
+        if value.strip()
+    ]
+    ads = ManagedAd.objects.filter(status=ManagedAd.StatusChoices.ACTIVE)
+    if placements:
+        ads = ads.filter(placement__in=placements)
+    return JsonResponse({"results": [serialize_managed_ad(ad) for ad in ads]})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def managed_ad_create(request: HttpRequest):
+    try:
+        payload = _load_json_body(request)
+    except ValueError as exc:
+        return HttpResponseBadRequest(str(exc))
+
+    required = ["title", "description", "cta_label", "href", "placement"]
+    missing = [field for field in required if not str(payload.get(field, "")).strip()]
+    if missing:
+        return HttpResponseBadRequest(
+            f"Missing required fields: {', '.join(missing)}"
+        )
+
+    ad = ManagedAd.objects.create(
+        title=str(payload["title"]).strip(),
+        eyebrow=str(payload.get("eyebrow", "Sponsored")).strip() or "Sponsored",
+        description=str(payload["description"]).strip(),
+        cta_label=str(payload["cta_label"]).strip(),
+        href=str(payload["href"]).strip(),
+        placement=str(payload["placement"]).strip(),
+        status=str(payload.get("status", ManagedAd.StatusChoices.DRAFT)).strip(),
+        sort_order=int(payload.get("sort_order", 100) or 100),
+    )
+    return JsonResponse(serialize_managed_ad(ad), status=201)
+
+
+@csrf_exempt
+@require_http_methods(["GET", "PATCH", "DELETE"])
+def managed_ad_detail(request: HttpRequest, ad_id: int):
+    ad = get_object_or_404(ManagedAd, pk=ad_id)
+
+    if request.method == "GET":
+        return JsonResponse(serialize_managed_ad(ad))
+
+    if request.method == "DELETE":
+        ad.delete()
+        return JsonResponse({"detail": "Ad deleted."})
+
+    try:
+        payload = _load_json_body(request)
+    except ValueError as exc:
+        return HttpResponseBadRequest(str(exc))
+
+    for field in [
+        "title",
+        "eyebrow",
+        "description",
+        "cta_label",
+        "href",
+        "placement",
+        "status",
+    ]:
+        if field in payload:
+            setattr(ad, field, str(payload[field]).strip())
+
+    if "sort_order" in payload:
+        ad.sort_order = int(payload.get("sort_order") or 100)
+
+    required = {
+        "title": str(ad.title).strip(),
+        "description": str(ad.description).strip(),
+        "cta_label": str(ad.cta_label).strip(),
+        "href": str(ad.href).strip(),
+        "placement": str(ad.placement).strip(),
+    }
+    missing = [field for field, value in required.items() if not value]
+    if missing:
+        return HttpResponseBadRequest(
+            f"Missing required fields: {', '.join(missing)}"
+        )
+
+    ad.save()
+    return JsonResponse(serialize_managed_ad(ad))
 
 
 @require_GET

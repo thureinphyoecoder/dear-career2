@@ -5,6 +5,8 @@ export type FetchSiteMode = "html" | "rss" | "manual";
 export type FetchRunState = "healthy" | "warning" | "paused";
 export type NotificationTone = "info" | "success" | "warning";
 export type PublishChannel = "website" | "facebook";
+export type ManagedAdPlacement = "jobs-inline" | "jobs-detail" | "jobs-search";
+export type ManagedAdStatus = "draft" | "active" | "paused";
 
 export type Job = {
   id: number;
@@ -15,6 +17,8 @@ export type Job = {
   category: JobCategory;
   employment_type: string;
   salary?: string;
+  contact_email?: string;
+  contact_phone?: string;
   source?: string;
   source_url?: string;
   is_active?: boolean;
@@ -78,9 +82,39 @@ export type AdminDashboardSnapshot = {
   published_jobs: number;
   draft_jobs: number;
   source_count: number;
+  total_visitors: number;
+  active_ads: number;
   pending_approvals: ApprovalItem[];
   notifications: AdminNotification[];
   sources: FetchSource[];
+};
+
+export type VisitorPathStat = {
+  path: string;
+  visitors: number;
+  visits: number;
+  last_seen_at?: string;
+};
+
+export type VisitorSummary = {
+  total_visitors: number;
+  today_visitors: number;
+  last_7_days_visitors: number;
+  top_paths: VisitorPathStat[];
+};
+
+export type ManagedAd = {
+  id: number;
+  title: string;
+  eyebrow?: string;
+  description: string;
+  cta_label: string;
+  href: string;
+  placement: ManagedAdPlacement;
+  status: ManagedAdStatus;
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type FacebookPageCredential = {
