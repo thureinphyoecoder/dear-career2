@@ -28,7 +28,7 @@ function applySecurityHeaders(response: NextResponse) {
   return response;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const isLoginPage = pathname === "/admin/login";
   const isSessionLogin = pathname === "/api/admin/session/login";

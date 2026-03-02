@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import FetchRun, FetchSource, Job
+from .models import FeedbackMessage, FetchRun, FetchSource, Job
 
 
 @admin.register(Job)
@@ -64,3 +64,9 @@ class FetchRunAdmin(admin.ModelAdmin):
     )
     list_filter = ("status", "source")
     search_fields = ("source__label", "source__key", "error_message")
+
+
+@admin.register(FeedbackMessage)
+class FeedbackMessageAdmin(admin.ModelAdmin):
+    list_display = ("subject", "name", "email", "created_at")
+    search_fields = ("subject", "name", "email", "message")

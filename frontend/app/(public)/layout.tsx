@@ -5,9 +5,9 @@ import { PublicNav } from "@/components/public/PublicNav";
 
 export default function PublicLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="public-layout">
+    <div className="flex min-h-screen flex-col">
       <PublicNav />
-      {children}
+      <div className="flex-1">{children}</div>
       <PublicFooter />
     </div>
   );

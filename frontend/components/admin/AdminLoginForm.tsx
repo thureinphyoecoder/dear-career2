@@ -3,6 +3,8 @@
 import { startTransition, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   ADMIN_LOGIN_MESSAGES,
   AdminLoginFieldErrors,
@@ -133,17 +135,21 @@ export function AdminLoginForm({
 
   return (
     <form
-      className="admin-auth-form"
+      className="grid gap-4"
       action="/api/admin/session/login"
       method="post"
       onSubmit={handleSubmit}
       noValidate
     >
       <input type="hidden" name="redirect" value={redirectTo} />
-      <label className="stack">
-        <span className="eyebrow">Username</span>
-        <input
-          className={fieldErrors.username ? "field field-error" : "field"}
+      <label className="grid gap-2">
+        <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Username</span>
+        <Input
+          className={
+            fieldErrors.username
+              ? "border-[rgba(205,111,111,0.5)] shadow-[0_0_0_4px_rgba(205,111,111,0.08)]"
+              : "bg-[rgba(255,255,255,0.88)]"
+          }
           type="text"
           name="username"
           autoComplete="username"
@@ -161,16 +167,20 @@ export function AdminLoginForm({
           onBlur={(event) => setSingleFieldError("username", event.target.value)}
         />
         {fieldErrors.username ? (
-          <span id="admin-login-username-error" className="field-error-text">
+          <span id="admin-login-username-error" className="text-[0.82rem] leading-6 text-[#8e4a4a]">
             {fieldErrors.username}
           </span>
         ) : null}
       </label>
-      <label className="stack">
-        <span className="eyebrow">Password</span>
-        <span className="password-field">
-          <input
-            className={fieldErrors.password ? "field password-input field-error" : "field password-input"}
+      <label className="grid gap-2">
+        <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Password</span>
+        <span className="relative block">
+          <Input
+            className={
+              fieldErrors.password
+                ? "bg-[rgba(255,255,255,0.88)] pr-14 border-[rgba(205,111,111,0.5)] shadow-[0_0_0_4px_rgba(205,111,111,0.08)]"
+                : "bg-[rgba(255,255,255,0.88)] pr-14"
+            }
             type={showPassword ? "text" : "password"}
             name="password"
             autoComplete="current-password"
@@ -188,7 +198,7 @@ export function AdminLoginForm({
           />
           <button
             type="button"
-            className="password-toggle"
+            className="absolute right-2 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[10px] text-[#727975]/82 transition-colors hover:bg-[rgba(160,183,164,0.12)] hover:text-foreground"
             aria-label={showPassword ? "Hide password" : "Show password"}
             aria-pressed={showPassword}
             onClick={() => setShowPassword((value) => !value)}
@@ -197,15 +207,19 @@ export function AdminLoginForm({
           </button>
         </span>
         {fieldErrors.password ? (
-          <span id="admin-login-password-error" className="field-error-text">
+          <span id="admin-login-password-error" className="text-[0.82rem] leading-6 text-[#8e4a4a]">
             {fieldErrors.password}
           </span>
         ) : null}
       </label>
-      {formError ? <p className="admin-auth-error">{formError}</p> : null}
-      <button type="submit" className="button admin-auth-submit" disabled={isSubmitting}>
+      {formError ? (
+        <p className="rounded-[14px] border border-[rgba(205,111,111,0.18)] bg-[rgba(205,111,111,0.1)] px-4 py-3 text-sm text-[#8e4a4a]">
+          {formError}
+        </p>
+      ) : null}
+      <Button type="submit" className="h-[52px] w-full" disabled={isSubmitting}>
         {isSubmitting ? "Signing in..." : "Login"}
-      </button>
+      </Button>
     </form>
   );
 }

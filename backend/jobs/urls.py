@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    feedback_create,
     fetch_run_list,
     fetch_source_create,
     fetch_source_list,
@@ -11,6 +12,7 @@ from .views import (
 
 urlpatterns = [
     path("", job_list, name="job-list"),
+    path("feedback/", feedback_create, name="feedback-create"),
     path("admin/sources/", fetch_source_list, name="fetch-source-list"),
     path("admin/sources/create/", fetch_source_create, name="fetch-source-create"),
     path("admin/sources/<int:source_id>/", fetch_source_update, name="fetch-source-update"),

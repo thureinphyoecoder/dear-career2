@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { BrandLogo } from "@/components/public/BrandLogo";
 
 function FacebookIcon() {
@@ -43,61 +45,160 @@ function ShieldIcon() {
   );
 }
 
+function MailIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M4 7.5H20V16.5C20 17.33 19.33 18 18.5 18H5.5C4.67 18 4 17.33 4 16.5V7.5Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5 8L12 13L19 8"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function PublicFooter() {
   const facebookPageUrl =
     process.env.NEXT_PUBLIC_FACEBOOK_PAGE_URL ?? "https://facebook.com/dearcareer";
 
   return (
-    <footer className="public-footer">
-      <div className="public-footer-inner">
-        <div className="public-footer-bar">
-          <div className="public-footer-brand">
-            <BrandLogo compact />
-            <p className="public-footer-copy">
-              Thailand jobs ကို တစ်နေရာထဲမှာ cleaner way နဲ့ကြည့်နိုင်ဖို့
-              curated links နဲ့စုထားတဲ့ website ပါ။
-            </p>
-          </div>
-
-          <div className="public-footer-columns">
-            <section className="public-footer-note">
-              <div className="eyebrow">Connect</div>
-              <a
-                className="public-footer-link"
-                href={facebookPageUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <FacebookIcon />
-                <span>Facebook Page</span>
-              </a>
-              <div className="public-footer-link public-footer-link-static">
-                <PinIcon />
-                <span>Thailand</span>
+    <footer className="mt-auto px-4 pb-5 pt-12">
+      <div className="w-full">
+        <div className="grid w-full gap-4 rounded-[2.2rem] border border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.76)] p-5 shadow-soft backdrop-blur-xl">
+          <div className="grid grid-cols-[minmax(0,1.05fr)_minmax(0,0.88fr)_minmax(0,0.95fr)_minmax(0,0.92fr)] gap-4">
+            <section className="grid min-h-[260px] content-between rounded-[1.8rem] border border-[rgba(160,183,164,0.16)] bg-[linear-gradient(145deg,rgba(255,255,255,0.86),rgba(247,243,238,0.82))] p-6">
+              <BrandLogo compact />
+              <div className="grid gap-4">
+                <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">
+                  Curated Thailand Jobs
+                </div>
+                <p className="mb-0 max-w-[34rem] text-[0.98rem] leading-7 text-[#727975]">
+                  <span className="font-semibold text-foreground">Thailand jobs</span> ကို
+                  တစ်နေရာထဲမှာ <span className="font-serif italic text-foreground">cleaner way</span> နဲ့ကြည့်နိုင်ဖို့
+                  <span className="font-semibold text-foreground"> curated links</span> နဲ့စုထားတဲ့ website ပါ။
+                </p>
               </div>
-            </section>
-
-            <section className="public-footer-note public-footer-warning">
-              <div className="public-footer-warning-head">
-                <span className="public-footer-warning-icon">
-                  <ShieldIcon />
-                </span>
-                <div>
-                  <div className="eyebrow">Safety</div>
-                  <strong className="public-footer-warning-title">Apply carefully</strong>
+              <div className="grid gap-2 rounded-[1.4rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(255,247,240,0.74)] px-4 py-3">
+                <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Focus</div>
+                <div className="text-sm leading-6 text-[#727975]">
+                  <span className="font-semibold text-foreground">Cleaner listings</span>,
+                  <span className="font-semibold text-foreground"> direct source links</span>, and
+                  lower-noise browsing for Myanmar job seekers in Thailand.
                 </div>
               </div>
-              <p className="public-footer-copy">
-                CV ကလွဲလို့ အရေးကြီးစာရွက်စာတမ်းတွေမပေးပါနဲ့။ Contact
-                channels ကနေလျှောက်ရင် scammer နဲ့ fake jobs ကိုသတိထားပါ။
-              </p>
+            </section>
+
+            <section className="grid min-h-[260px] gap-4 rounded-[1.8rem] border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.78)] p-6">
+              <div>
+                <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Connect</div>
+                <div className="mt-4 grid gap-3">
+                  <a
+                    className="inline-flex items-center gap-3 rounded-[1rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(255,255,255,0.82)] px-4 py-3 text-sm text-foreground transition-colors hover:text-[#8da693]"
+                    href={facebookPageUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(160,183,164,0.16)] bg-[rgba(255,247,240,0.9)]">
+                      <FacebookIcon />
+                    </span>
+                    <span className="grid gap-0.5">
+                      <strong className="font-semibold">Facebook Page</strong>
+                      <span className="text-[#727975]">Updates and new job drops</span>
+                    </span>
+                  </a>
+                  <div className="inline-flex items-center gap-3 rounded-[1rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(255,255,255,0.82)] px-4 py-3 text-sm text-[#727975]">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(160,183,164,0.16)] bg-[rgba(255,247,240,0.9)] text-foreground">
+                      <PinIcon />
+                    </span>
+                    <span className="grid gap-0.5">
+                      <strong className="font-semibold text-foreground">Coverage</strong>
+                      <span>Thailand</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-auto grid gap-2 rounded-[1.4rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(247,243,238,0.82)] px-4 py-3">
+                <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Note</div>
+                <p className="mb-0 text-sm leading-6 text-[#727975]">
+                  Listings are curated from <span className="font-semibold text-foreground">external sources</span>.
+                  Always verify details from the <span className="font-semibold text-foreground">original post</span> before applying.
+                </p>
+              </div>
+            </section>
+
+            <section className="grid min-h-[260px] content-between rounded-[1.8rem] border border-[rgba(160,183,164,0.16)] bg-[linear-gradient(135deg,rgba(221,232,223,0.42),rgba(255,247,240,0.94))] p-6">
+              <div className="flex items-start gap-4">
+                <span className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.82)] text-foreground">
+                  <ShieldIcon />
+                </span>
+                <div className="grid gap-2">
+                  <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Safety</div>
+                  <strong className="text-[1.02rem] text-foreground">Apply carefully</strong>
+                  <p className="mb-0 text-sm leading-6 text-[#727975]">
+                    <span className="font-semibold text-foreground">CV ကလွဲလို့</span> အရေးကြီးစာရွက်စာတမ်းတွေမပေးပါနဲ့။
+                    <span className="font-semibold text-foreground"> Contact channels</span> ကနေလျှောက်ရင်
+                    <span className="font-semibold text-foreground"> scammer</span> နဲ့
+                    <span className="font-semibold text-foreground"> fake jobs</span> ကိုသတိထားပါ။
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-2 rounded-[1.4rem] border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.66)] px-4 py-3">
+                <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Reminder</div>
+                <p className="mb-0 text-sm leading-6 text-[#727975]">
+                  No platform can guarantee every listing. Cross-check
+                  <span className="font-semibold text-foreground"> salary</span>,
+                  <span className="font-semibold text-foreground"> visa requirements</span>, and
+                  <span className="font-semibold text-foreground"> employer identity</span>.
+                </p>
+              </div>
+            </section>
+
+            <section className="grid min-h-[260px] content-between rounded-[1.8rem] border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.78)] p-6">
+              <div className="grid gap-3">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(160,183,164,0.16)] bg-[rgba(255,247,240,0.9)] text-foreground">
+                  <MailIcon />
+                </div>
+                <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Feedback</div>
+                <strong className="text-[1.02rem] text-foreground">
+                  Critique and suggestions
+                </strong>
+                <p className="mb-0 text-sm leading-6 text-[#727975]">
+                  <span className="font-semibold text-foreground">Layout</span>,
+                  <span className="font-semibold text-foreground"> job quality</span>,
+                  <span className="font-semibold text-foreground"> broken links</span>, or
+                  <span className="font-semibold text-foreground"> feature requests</span> ရှိရင်
+                  site ထဲကနေတိုက်ရိုက်ပို့လို့ရပါတယ်။
+                </p>
+              </div>
+              <div className="grid gap-3">
+                <Link
+                  href="/feedback"
+                  className="inline-flex items-center justify-center rounded-full border border-[rgba(160,183,164,0.18)] bg-[rgba(255,247,240,0.88)] px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-[rgba(255,250,245,0.98)]"
+                >
+                  Open feedback form
+                </Link>
+                <div className="rounded-[1.4rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(247,243,238,0.82)] px-4 py-3 text-sm leading-6 text-[#727975]">
+                  <span className="font-semibold text-foreground">External mail app</span> မဖွင့်ဘဲ
+                  <span className="font-semibold text-foreground"> internal flow</span> နဲ့ feedback လက်ခံပါတယ်။
+                </div>
+              </div>
             </section>
           </div>
-        </div>
-
-        <div className="public-footer-bottom">
-          <span>Dear Career</span>
-          <span>Curated jobs for Thailand</span>
+          <div className="flex justify-center border-t border-[rgba(160,183,164,0.14)] px-2 pt-4 text-sm text-[#727975]">
+            <span>
+              Copyright {new Date().getFullYear()} Dear Career. Developed by Thurein Phyoe.
+            </span>
+          </div>
         </div>
       </div>
     </footer>

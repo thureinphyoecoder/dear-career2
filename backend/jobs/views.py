@@ -5,7 +5,7 @@ from django.http import HttpRequest, HttpResponseBadRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from .models import FetchRun, FetchSource, Job
+from .models import FeedbackMessage, FetchRun, FetchSource, Job
 from .serializers import serialize_fetch_run, serialize_fetch_source, serialize_job
 from .services.ingest import ingest_source
 
@@ -129,4 +129,35 @@ def fetch_run_list(request):
     runs = FetchRun.objects.select_related("source")[:20]
     return JsonResponse(
         {"count": len(runs), "results": [serialize_fetch_run(run) for run in runs]}
+    )
+
+
+@csrf_exempt
+@require_POST
+def feedback_create(request: HttpRequest):
+    try:
+        payload = _load_json_body(request)
+    except ValueError as exc:
+        return HttpResponseBadRequest(str(exc))
+
+    required = ["name", "email", "subject", "message"]
+    missing = [field for field in required if not str(payload.get(field, "")).strip()]
+    if missing:
+        return HttpResponseBadRequest(
+            f"Missing required fields: {', '.join(missing)}"
+        )
+
+    feedback = FeedbackMessage.objects.create(
+        name=str(payload["name"]).strip(),
+        email=str(payload["email"]).strip(),
+        subject=str(payload["subject"]).strip(),
+        message=str(payload["message"]).strip(),
+    )
+
+    return JsonResponse(
+        {
+            "id": feedback.id,
+            "detail": "Feedback received.",
+        },
+        status=201,
     )

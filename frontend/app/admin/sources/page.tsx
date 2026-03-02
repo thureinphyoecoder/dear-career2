@@ -5,15 +5,15 @@ export default async function AdminSourcesPage() {
   const settings = await getFetchSettings();
 
   return (
-    <div className="admin-dashboard">
-      <header className="admin-page-header">
-        <div className="stack">
-          <div className="eyebrow">Fetch settings</div>
-          <h1 className="admin-page-title">Fetch settings</h1>
-          <p className="admin-page-copy">
+    <div className="grid max-w-[980px] gap-5">
+      <header className="grid gap-2">
+        <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Fetch settings</div>
+        <h1 className="text-[clamp(1.7rem,2.4vw,2.2rem)] font-semibold leading-none text-foreground">
+          Fetch settings
+        </h1>
+        <p className="max-w-[48ch] text-[0.92rem] leading-6 text-[#727975]">
             Configure cadence, source availability, manual URL intake, and channel approval rules.
           </p>
-        </div>
       </header>
       <FetchSettingsForm initialSettings={settings} />
     </div>

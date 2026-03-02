@@ -2,6 +2,9 @@
 
 import { useEffect, useRef } from "react";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
 function SearchIcon() {
   return (
     <svg
@@ -25,24 +28,35 @@ export function HeroSearchForm() {
   }, []);
 
   return (
-    <form className="hero-search" action="/jobs" method="get">
-      <label className="hero-search-field hero-search-field-single" htmlFor="hero-search-input">
-        <span className="hero-search-icon" aria-hidden="true">
+    <form
+      className="hero-search flex flex-col items-stretch gap-3 lg:flex-row"
+      action="/jobs"
+      method="get"
+    >
+      <label className="relative block flex-1" htmlFor="hero-search-input">
+        <span
+          className="pointer-events-none absolute left-5 top-1/2 z-10 -translate-y-1/2 text-[#727975]/82"
+          aria-hidden="true"
+        >
           <SearchIcon />
         </span>
-        <input
+        <Input
           ref={inputRef}
           id="hero-search-input"
           name="q"
           type="search"
-          className="hero-search-input"
+          className="h-[68px] border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.68)] pl-14 pr-5 text-base shadow-soft backdrop-blur-xl placeholder:text-[#727975]/70"
           placeholder="Search jobs in Thailand"
           autoComplete="off"
         />
       </label>
-      <button type="submit" className="button hero-search-button">
+      <Button
+        type="submit"
+        size="lg"
+        className="h-[68px] px-6"
+      >
         Search jobs
-      </button>
+      </Button>
     </form>
   );
 }

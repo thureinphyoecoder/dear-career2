@@ -2,78 +2,57 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 
 import { BrandLogo } from "@/components/public/BrandLogo";
-
-function MenuIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M4 7H20M4 12H20M4 17H20"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export function PublicNav() {
   const pathname = usePathname();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-
-  useEffect(() => {
-    setIsMenuOpen(false);
-  }, [pathname]);
 
   return (
-    <nav className="public-nav">
-      <BrandLogo compact inline className="nav-brand-logo" />
-      <button
-        type="button"
-        className="public-nav-toggle"
-        aria-expanded={isMenuOpen}
-        aria-controls="public-nav-links"
-        aria-label="Toggle navigation menu"
-        onClick={() => setIsMenuOpen((open) => !open)}
-      >
-        <MenuIcon />
-      </button>
-      <div
-        id="public-nav-links"
-        className={[
-          "public-nav-links",
-          isMenuOpen ? "is-open" : "",
-        ]
-          .filter(Boolean)
-          .join(" ")}
-      >
-        <Link
-          href="/"
-          className={pathname === "/" ? "public-nav-link is-active" : "public-nav-link"}
-        >
-          Home
-        </Link>
-        <Link
-          href="/jobs"
-          className={pathname?.startsWith("/jobs") ? "public-nav-link is-active" : "public-nav-link"}
-        >
-          Jobs
-        </Link>
-        <Link
-          href="/about"
-          className={pathname === "/about" ? "public-nav-link is-active" : "public-nav-link"}
-        >
-          About
-        </Link>
+    <nav className="fixed left-0 right-0 top-0 z-20 px-4 py-4">
+      <div className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-8 rounded-[1.8rem] border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.78)] px-8 py-4 shadow-soft backdrop-blur-xl">
+        <BrandLogo compact inline className="nav-brand-logo" />
+        <div className="flex items-center justify-center gap-1">
+          <Link
+            href="/"
+            className={cn(
+              "inline-flex items-center rounded-full px-4 py-2 text-[0.92rem] font-medium text-[#454c49] transition-colors",
+              pathname === "/" ? "bg-[rgba(160,183,164,0.14)]" : "hover:bg-[rgba(160,183,164,0.08)]",
+            )}
+          >
+            Home
+          </Link>
+          <Link
+            href="/jobs"
+            className={cn(
+              "inline-flex items-center rounded-full px-4 py-2 text-[0.92rem] font-medium text-[#454c49] transition-colors",
+              pathname?.startsWith("/jobs")
+                ? "bg-[rgba(160,183,164,0.14)]"
+                : "hover:bg-[rgba(160,183,164,0.08)]",
+            )}
+          >
+            Jobs
+          </Link>
+          <Link
+            href="/about"
+            className={cn(
+              "inline-flex items-center rounded-full px-4 py-2 text-[0.92rem] font-medium text-[#454c49] transition-colors",
+              pathname === "/about"
+                ? "bg-[rgba(160,183,164,0.14)]"
+                : "hover:bg-[rgba(160,183,164,0.08)]",
+            )}
+          >
+            About
+          </Link>
+        </div>
         <Link
           href="/admin/login"
-          className={
-            pathname?.startsWith("/admin")
-              ? "public-nav-link public-nav-login is-active"
-              : "public-nav-link public-nav-login"
-          }
+          className={cn(
+            buttonVariants({ variant: "secondary", size: "sm" }),
+            pathname?.startsWith("/admin") && "bg-[rgba(160,183,164,0.2)]",
+          )}
         >
           Login
         </Link>
