@@ -104,7 +104,7 @@ def serialize_channel_credential(credential):
         "platform": credential.platform,
         "account_name": credential.account_name,
         "page_id": credential.page_id,
-        "access_token": credential.access_token,
+        "connected": bool(credential.page_id and credential.access_token),
         "profile_name": credential.profile_name,
         "profile_image_url": credential.profile_image_url,
         "updated_at": credential.updated_at.isoformat() if credential.updated_at else None,

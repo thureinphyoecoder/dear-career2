@@ -1,15 +1,19 @@
+from django.core.exceptions import ValidationError
 from django.http import HttpRequest, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
+from ..admin_api import require_admin_api_auth
 from ..models import AdminNotification, ChannelCredential, Job
 from ..serializers import serialize_channel_credential
 from ..services.publish import publish_job
+from ..validation import clean_text_input, clean_url_input, format_validation_error, validate_instance
 from .shared import create_admin_notification, load_json_body
 
 
 @csrf_exempt
+@require_admin_api_auth
 @require_http_methods(["GET", "PATCH"])
 def facebook_channel_credential(request: HttpRequest):
     credential, _ = ChannelCredential.objects.get_or_create(
@@ -25,21 +29,26 @@ def facebook_channel_credential(request: HttpRequest):
         return HttpResponseBadRequest(str(exc))
 
     if "account_name" in payload:
-        credential.account_name = str(payload.get("account_name", "")).strip()
+        credential.account_name = clean_text_input(payload.get("account_name", ""))
     if "page_id" in payload:
-        credential.page_id = str(payload.get("page_id", "")).strip()
+        credential.page_id = clean_text_input(payload.get("page_id", ""))
     if "access_token" in payload:
-        credential.access_token = str(payload.get("access_token", "")).strip()
+        credential.access_token = clean_text_input(payload.get("access_token", ""))
     if "profile_name" in payload:
-        credential.profile_name = str(payload.get("profile_name", "")).strip()
+        credential.profile_name = clean_text_input(payload.get("profile_name", ""))
     if "profile_image_url" in payload:
-        credential.profile_image_url = str(payload.get("profile_image_url", "")).strip()
+        credential.profile_image_url = clean_url_input(payload.get("profile_image_url", ""))
 
+    try:
+        validate_instance(credential)
+    except ValidationError as exc:
+        return HttpResponseBadRequest(format_validation_error(exc, "Invalid Facebook credential payload."))
     credential.save()
     return JsonResponse(serialize_channel_credential(credential))
 
 
 @require_GET
+@require_admin_api_auth
 def facebook_page_posts(request: HttpRequest):
     credential = ChannelCredential.objects.filter(
         platform=ChannelCredential.PlatformChoices.FACEBOOK
@@ -94,6 +103,7 @@ def facebook_page_posts(request: HttpRequest):
 
 
 @csrf_exempt
+@require_admin_api_auth
 @require_POST
 def facebook_publish_job(request: HttpRequest):
     try:
@@ -106,7 +116,7 @@ def facebook_publish_job(request: HttpRequest):
         return HttpResponseBadRequest("Job is required.")
 
     job = get_object_or_404(Job, pk=raw_job_id)
-    result = publish_job(job, channel="facebook", message=str(payload.get("message", "")).strip())
+    result = publish_job(job, channel="facebook", message=clean_text_input(payload.get("message", "")))
     if not result.get("published"):
         reason = str(result.get("reason", "Facebook publish failed."))
         create_admin_notification(

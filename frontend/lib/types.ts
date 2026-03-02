@@ -121,7 +121,7 @@ export type FacebookPageCredential = {
   platform: "facebook";
   account_name: string;
   page_id: string;
-  access_token: string;
+  connected?: boolean;
   profile_name?: string;
   profile_image_url?: string;
   updated_at?: string;

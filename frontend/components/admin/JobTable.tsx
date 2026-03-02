@@ -38,7 +38,7 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
     setDeletingId(pendingDeleteJob.id);
     setActionError("");
     try {
-      const response = await fetch(`/api/admin/proxy/jobs/admin/jobs/${pendingDeleteJob.id}/`, {
+      const response = await fetch(`/api/admin/proxy/jobs/admin/jobs/${pendingDeleteJob.id}`, {
         method: "DELETE",
       });
 

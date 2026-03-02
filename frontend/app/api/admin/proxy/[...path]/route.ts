@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { getAdminApiHeaders } from "@/lib/admin-api-auth";
+
 const ADMIN_API_BASE_URL =
   process.env.DJANGO_ADMIN_API_BASE_URL ?? "http://127.0.0.1:8000/api";
 
@@ -8,11 +10,13 @@ async function proxyRequest(
   context: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await context.params;
-  const hasTrailingSlash = request.nextUrl.pathname.endsWith("/");
-  const target = `${ADMIN_API_BASE_URL}/${path.join("/")}${hasTrailingSlash ? "/" : ""}`;
+  const normalizedPath = path.join("/").replace(/^\/+|\/+$/g, "");
+  const target = `${ADMIN_API_BASE_URL}/${normalizedPath}/${
+    request.nextUrl.search ?? ""
+  }`.replace(/\/\?/, "?");
 
   try {
-    const headers = new Headers();
+    const headers = getAdminApiHeaders();
     headers.set("content-type", request.headers.get("content-type") ?? "application/json");
 
     const accept = request.headers.get("accept");

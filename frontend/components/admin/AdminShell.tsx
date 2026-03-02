@@ -140,7 +140,7 @@ export function AdminShell({
 
     async function loadFacebookProfile() {
       try {
-        const response = await fetch("/api/admin/proxy/jobs/admin/channels/facebook/", {
+        const response = await fetch("/api/admin/proxy/jobs/admin/channels/facebook", {
           cache: "no-store",
         });
         if (!response.ok) {

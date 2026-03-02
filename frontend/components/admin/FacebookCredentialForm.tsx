@@ -31,7 +31,7 @@ export function FacebookCredentialForm({
   oauthError?: string;
   missingConfig?: string[];
 }) {
-  const hasConnectedPage = Boolean(initialCredential.page_id && initialCredential.access_token);
+  const hasConnectedPage = Boolean(initialCredential.connected || initialCredential.page_id);
   const oauthReady = missingConfig.length === 0;
   const buttonLabel = hasConnectedPage ? "Reconnect page" : "Connect page";
 

@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from urllib.parse import urlparse
 
 from django.http import HttpRequest, HttpResponseBadRequest, JsonResponse
@@ -5,9 +6,18 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
+from ..admin_api import require_admin_api_auth
+from ..fetch_security import UnsafeFetchTargetError, validate_public_fetch_url
 from ..models import AdminNotification, FetchRun, FetchSource, Job
 from ..serializers import serialize_fetch_run, serialize_fetch_source
 from ..services.ingest import ingest_source
+from ..validation import (
+    clean_json_object,
+    clean_text_input,
+    clean_url_input,
+    format_validation_error,
+    validate_instance,
+)
 from .shared import (
     create_admin_notification,
     derive_source_key_from_url,
@@ -17,12 +27,14 @@ from .shared import (
 
 
 @require_GET
+@require_admin_api_auth
 def fetch_source_list(request: HttpRequest):
     sources = FetchSource.objects.all()
     return JsonResponse({"count": sources.count(), "results": [serialize_fetch_source(source) for source in sources]})
 
 
 @csrf_exempt
+@require_admin_api_auth
 @require_http_methods(["POST"])
 def fetch_source_create(request: HttpRequest):
     try:
@@ -30,18 +42,22 @@ def fetch_source_create(request: HttpRequest):
     except ValueError as exc:
         return HttpResponseBadRequest(str(exc))
 
-    raw_feed_url = str(payload.get("feed_url", "")).strip()
+    raw_feed_url = clean_url_input(payload.get("feed_url", ""))
     if not raw_feed_url:
         return HttpResponseBadRequest("Source URL is required.")
+    try:
+        validate_public_fetch_url(raw_feed_url)
+    except UnsafeFetchTargetError as exc:
+        return HttpResponseBadRequest(str(exc))
 
     derived_domain = urlparse(raw_feed_url).netloc.replace("www.", "")
-    derived_label = str(payload.get("label", "")).strip() or derive_source_label_from_url(
+    derived_label = clean_text_input(payload.get("label", "")) or derive_source_label_from_url(
         raw_feed_url, derived_domain
     )
-    derived_key = str(payload.get("key", "")).strip() or derive_source_key_from_url(
+    derived_key = clean_text_input(payload.get("key", "")) or derive_source_key_from_url(
         raw_feed_url, derived_domain
     )
-    source_domain = str(payload.get("domain", "")).strip() or derived_domain
+    source_domain = clean_text_input(payload.get("domain", "")) or derived_domain
 
     if not derived_key:
         return HttpResponseBadRequest("Unable to derive a source key from that URL.")
@@ -52,7 +68,7 @@ def fetch_source_create(request: HttpRequest):
     if FetchSource.objects.filter(key=derived_key).exists():
         return HttpResponseBadRequest("Source key already exists.")
 
-    source = FetchSource.objects.create(
+    source = FetchSource(
         key=derived_key,
         label=derived_label,
         domain=source_domain,
@@ -68,13 +84,19 @@ def fetch_source_create(request: HttpRequest):
         cadence_value=payload.get("cadence_value", 30),
         cadence_unit=payload.get("cadence_unit", FetchSource.CadenceUnit.MINUTES),
         max_jobs_per_run=payload.get("max_jobs_per_run", 25),
-        selectors=payload.get("selectors", {}),
-        headers=payload.get("headers", {}),
+        selectors=clean_json_object(payload.get("selectors", {})),
+        headers=clean_json_object(payload.get("headers", {})),
     )
+    try:
+        validate_instance(source)
+    except ValidationError as exc:
+        return HttpResponseBadRequest(format_validation_error(exc, "Invalid source payload."))
+    source.save()
     return JsonResponse(serialize_fetch_source(source), status=201)
 
 
 @csrf_exempt
+@require_admin_api_auth
 @require_http_methods(["PATCH", "DELETE"])
 def fetch_source_update(request: HttpRequest, source_id: int):
     source = get_object_or_404(FetchSource, pk=source_id)
@@ -108,22 +130,39 @@ def fetch_source_update(request: HttpRequest, source_id: int):
         "status",
     ]:
         if field in payload:
-            setattr(source, field, payload[field])
+            if field == "feed_url":
+                setattr(source, field, clean_url_input(payload[field]))
+            elif field in {"label", "domain", "mode", "default_category", "cadence_unit", "status"}:
+                setattr(source, field, clean_text_input(payload[field]))
+            elif field in {"selectors", "headers"}:
+                setattr(source, field, clean_json_object(payload[field]))
+            else:
+                setattr(source, field, payload[field])
 
     required = {
-        "label": str(source.label).strip(),
-        "domain": str(source.domain).strip(),
-        "mode": str(source.mode).strip(),
+        "label": clean_text_input(source.label),
+        "domain": clean_text_input(source.domain),
+        "mode": clean_text_input(source.mode),
     }
     missing = [field for field, value in required.items() if not value]
     if missing:
         return HttpResponseBadRequest(f"Missing required fields: {', '.join(missing)}")
+    if source.feed_url:
+        try:
+            validate_public_fetch_url(source.feed_url)
+        except UnsafeFetchTargetError as exc:
+            return HttpResponseBadRequest(str(exc))
 
+    try:
+        validate_instance(source)
+    except ValidationError as exc:
+        return HttpResponseBadRequest(format_validation_error(exc, "Invalid source payload."))
     source.save()
     return JsonResponse(serialize_fetch_source(source))
 
 
 @csrf_exempt
+@require_admin_api_auth
 @require_POST
 def fetch_source_run(request: HttpRequest, source_id: int):
     source = get_object_or_404(FetchSource, pk=source_id)
@@ -152,6 +191,7 @@ def fetch_source_run(request: HttpRequest, source_id: int):
 
 
 @require_GET
+@require_admin_api_auth
 def fetch_run_list(request: HttpRequest):
     runs = list(FetchRun.objects.select_related("source")[:20])
     return JsonResponse({"count": len(runs), "results": [serialize_fetch_run(run) for run in runs]})

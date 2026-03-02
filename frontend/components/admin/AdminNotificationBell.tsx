@@ -48,7 +48,7 @@ export function AdminNotificationBell() {
 
     async function loadInitial() {
       try {
-        const response = await fetch("/api/admin/proxy/jobs/admin/notifications/", {
+        const response = await fetch("/api/admin/proxy/jobs/admin/notifications", {
           cache: "no-store",
         });
         if (!response.ok) {
@@ -72,7 +72,7 @@ export function AdminNotificationBell() {
 
     loadInitial();
 
-    const eventSource = new EventSource("/api/admin/proxy/jobs/admin/notifications/stream/");
+    const eventSource = new EventSource("/api/admin/proxy/jobs/admin/notifications/stream");
     eventSource.addEventListener("notification", (event) => {
       const message = event as MessageEvent<string>;
       try {

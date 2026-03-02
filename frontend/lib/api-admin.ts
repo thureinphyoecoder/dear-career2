@@ -11,6 +11,7 @@ import type {
   ManagedAd,
   VisitorSummary,
 } from "@/lib/types";
+import { getAdminApiHeaders } from "@/lib/admin-api-auth";
 
 const ADMIN_API_BASE_URL =
   process.env.DJANGO_ADMIN_API_BASE_URL ?? "http://127.0.0.1:8000/api";
@@ -20,6 +21,7 @@ function getAdminFetchOptions(): RequestInit {
   return {
     cache: "no-store",
     signal: AbortSignal.timeout(ADMIN_FETCH_TIMEOUT_MS),
+    headers: getAdminApiHeaders(),
   };
 }
 
@@ -324,7 +326,7 @@ export async function getFacebookCredential(): Promise<FacebookPageCredential> {
         platform: "facebook",
         account_name: "",
         page_id: "",
-        access_token: "",
+        connected: false,
       };
     }
 
@@ -334,7 +336,7 @@ export async function getFacebookCredential(): Promise<FacebookPageCredential> {
       platform: "facebook",
       account_name: "",
       page_id: "",
-      access_token: "",
+      connected: false,
     };
   }
 }

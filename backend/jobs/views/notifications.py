@@ -4,11 +4,13 @@ import time
 from django.http import HttpRequest, JsonResponse, StreamingHttpResponse
 from django.views.decorators.http import require_GET
 
+from ..admin_api import require_admin_api_auth
 from ..models import AdminNotification
 from ..serializers import serialize_admin_notification
 
 
 @require_GET
+@require_admin_api_auth
 def admin_notification_list(request: HttpRequest):
     notifications = list(AdminNotification.objects.select_related("source", "fetch_run")[:15])
     return JsonResponse(
@@ -20,6 +22,7 @@ def admin_notification_list(request: HttpRequest):
 
 
 @require_GET
+@require_admin_api_auth
 def admin_notification_stream(request: HttpRequest):
     last_id = 0
     raw_last_id = request.META.get("HTTP_LAST_EVENT_ID") or request.GET.get("last_id")

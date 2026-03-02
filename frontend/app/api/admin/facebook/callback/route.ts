@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
+import { getAdminApiHeaders } from "@/lib/admin-api-auth";
+
 const FACEBOOK_STATE_COOKIE = "dear_career_fb_oauth_state";
 const GRAPH_API_BASE = "https://graph.facebook.com/v23.0";
 const ADMIN_API_BASE_URL =
@@ -105,9 +107,7 @@ export async function GET(request: NextRequest) {
 
     const currentCredentialResponse = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/channels/facebook/`, {
       cache: "no-store",
-      headers: {
-        accept: "application/json",
-      },
+      headers: getAdminApiHeaders(new Headers({ accept: "application/json" })),
     });
     const currentCredential = currentCredentialResponse.ok
       ? ((await currentCredentialResponse.json()) as { page_id?: string })
@@ -118,9 +118,9 @@ export async function GET(request: NextRequest) {
 
     const saveResponse = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/channels/facebook/`, {
       method: "PATCH",
-      headers: {
+      headers: getAdminApiHeaders(new Headers({
         "content-type": "application/json",
-      },
+      })),
       body: JSON.stringify({
         account_name: selectedPage.name,
         page_id: selectedPage.id,

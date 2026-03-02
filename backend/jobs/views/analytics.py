@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods
 
+from ..admin_api import require_admin_api_auth
 from ..models import AdminNotification, FetchSource, Job, ManagedAd, VisitorEvent
 from ..serializers import (
     serialize_admin_notification,
@@ -48,6 +49,7 @@ def visitor_track(request: HttpRequest):
 
 
 @require_GET
+@require_admin_api_auth
 def visitor_summary(request: HttpRequest):
     today = timezone.localdate()
     last_7_days = today - timedelta(days=6)
@@ -73,6 +75,7 @@ def visitor_summary(request: HttpRequest):
 
 
 @require_GET
+@require_admin_api_auth
 def admin_dashboard_snapshot(request: HttpRequest):
     today = timezone.localdate()
     last_7_days = today - timedelta(days=6)
