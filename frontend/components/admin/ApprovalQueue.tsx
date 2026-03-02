@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Check } from "lucide-react";
@@ -78,6 +79,11 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
   function removeViewed(jobId: number) {
     if (!viewedJobIds.includes(jobId)) return;
     persistViewed(viewedJobIds.filter((id) => id !== jobId));
+  }
+
+  function markViewed(jobId: number) {
+    if (viewedJobIds.includes(jobId)) return;
+    persistViewed([...viewedJobIds, jobId]);
   }
 
   const approveMutation = useMutation({
@@ -197,7 +203,11 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
                       : "border-l-[3px] border-l-[#8da693] bg-[rgba(144,168,147,0.08)]",
                   )}
                 >
-                  <div className="min-w-0 max-w-[680px] grid gap-1.5">
+                  <Link
+                    href={`/admin/jobs/${job.id}`}
+                    onClick={() => markViewed(job.id)}
+                    className="min-w-0 max-w-[680px] grid gap-1.5 rounded-xl outline-none transition-colors hover:bg-[rgba(144,168,147,0.06)] focus-visible:ring-2 focus-visible:ring-[rgba(116,141,122,0.22)] focus-visible:ring-offset-2"
+                  >
                     <div className="flex flex-wrap items-center gap-2">
                       <strong className="break-words text-[1.02rem] font-medium leading-7 text-[#334039]">
                         {job.title}
@@ -219,8 +229,9 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
                     <div className="flex flex-wrap items-center gap-3 text-[0.82rem] text-[#7a847e]">
                       <span>{formatRequestedAction(job)}</span>
                       <span>{formatDate(job.updated_at ?? job.created_at)}</span>
+                      <span className="font-medium text-[#6f876f]">Review job</span>
                     </div>
-                  </div>
+                  </Link>
                   <div className="relative z-10 flex items-center justify-start pointer-events-auto xl:justify-end">
                     <button
                       type="button"
