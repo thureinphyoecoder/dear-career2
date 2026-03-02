@@ -8,6 +8,16 @@ import { cn } from "@/lib/utils";
 import { getPublicAds, getPublicJobs } from "@/lib/api-public";
 import type { JobCategory } from "@/lib/types";
 
+function normalizeSearchQuery(value?: string) {
+  if (!value) return "";
+  return value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/[\u0000-\u001F\u007F]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 100);
+}
+
 const categorySections: Array<{
   key: JobCategory;
   title: string;
@@ -50,7 +60,8 @@ export default async function PublicJobsPage({
   const searchAd = ads.find((ad) => ad.placement === "jobs-search");
   const inlineAd = ads.find((ad) => ad.placement === "jobs-inline");
   const params = (await searchParams) ?? {};
-  const query = params.q?.trim().toLowerCase() ?? "";
+  const displayQuery = normalizeSearchQuery(params.q);
+  const query = displayQuery.toLowerCase();
   const requestedPage = Number(params.page ?? "1");
   const activeCategory = categorySections.some(
     (section) => section.key === params.category,
@@ -104,7 +115,7 @@ export default async function PublicJobsPage({
     return {
       pathname: "/jobs",
       query: {
-        ...(params.q ? { q: params.q } : {}),
+        ...(displayQuery ? { q: displayQuery } : {}),
         ...(resolvedCategory ? { category: resolvedCategory } : {}),
         ...(resolvedPage > 1 ? { page: String(resolvedPage) } : {}),
       },
@@ -128,7 +139,7 @@ export default async function PublicJobsPage({
           <Input
             name="q"
             type="search"
-            defaultValue={params.q ?? ""}
+            defaultValue={displayQuery}
             placeholder="Search jobs, companies, locations"
             className="h-[52px] border-0 bg-transparent px-5 text-sm shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
           />
@@ -140,7 +151,7 @@ export default async function PublicJobsPage({
 
       {query ? (
         <div className="mt-4 text-sm leading-7 text-[#727975]">
-          Showing results for "<span className="font-medium text-foreground">{params.q}</span>"
+          Showing results for "<span className="font-medium text-foreground">{displayQuery}</span>"
         </div>
       ) : null}
 
@@ -235,7 +246,7 @@ export default async function PublicJobsPage({
         <div className="mt-6 border-t border-[rgba(160,183,164,0.16)] pt-6">
           <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">No results</div>
           <p className="mb-0 mt-2 text-sm leading-7 text-[#727975]">
-            No jobs matched "{params.q}". Try another keyword, company, or
+            No jobs matched "{displayQuery}". Try another keyword, company, or
             location.
           </p>
         </div>

@@ -41,11 +41,11 @@ export async function proxy(request: NextRequest) {
     return applySecurityHeaders(NextResponse.next());
   }
 
-  if (!isAdminAuthConfigured()) {
-    if (isLoginPage || isSessionLogin || isSessionLogout || isFacebookOauthRoute) {
-      return applySecurityHeaders(NextResponse.next());
-    }
+  if (isLoginPage || isSessionLogin || isSessionLogout || isFacebookOauthRoute) {
+    return applySecurityHeaders(NextResponse.next());
+  }
 
+  if (!isAdminAuthConfigured()) {
     const loginUrl = new URL("/admin/login", request.url);
     loginUrl.searchParams.set("error", "config");
     return applySecurityHeaders(NextResponse.redirect(loginUrl));
@@ -55,10 +55,6 @@ export async function proxy(request: NextRequest) {
   const session = await verifyAdminSessionToken(token);
 
   if (session.valid) {
-    return applySecurityHeaders(NextResponse.next());
-  }
-
-  if (isLoginPage || isSessionLogin || isSessionLogout || isFacebookOauthRoute) {
     return applySecurityHeaders(NextResponse.next());
   }
 
