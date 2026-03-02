@@ -1,10 +1,13 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { AlertCircle, CheckCircle2, LoaderCircle } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { normalizeServerError } from "@/lib/form-validation";
 import { cn } from "@/lib/utils";
 import type { FetchSettings } from "@/lib/types";
 
@@ -13,6 +16,7 @@ export function FetchSettingsForm({
 }: {
   initialSettings: FetchSettings;
 }) {
+  const router = useRouter();
   const [cadenceValue, setCadenceValue] = useState(initialSettings.cadence_value);
   const [cadenceUnit, setCadenceUnit] = useState(initialSettings.cadence_unit);
   const [maxJobsPerRun, setMaxJobsPerRun] = useState(initialSettings.max_jobs_per_run);
@@ -28,10 +32,124 @@ export function FetchSettingsForm({
   const [realtimeNotifications, setRealtimeNotifications] = useState(
     initialSettings.realtime_notifications,
   );
+  const [isSaving, setIsSaving] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{
+    cadenceValue?: string;
+    maxJobsPerRun?: string;
+  }>({});
   const fieldLabelClass = "grid gap-2";
   const eyebrowClass = "text-xs uppercase tracking-[0.16em] text-[#8da693]";
   const selectClass =
     "h-14 w-full rounded-[1.5rem] border border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.88)] px-4 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-[#8da693]";
+
+  function validateSettings() {
+    const nextErrors: {
+      cadenceValue?: string;
+      maxJobsPerRun?: string;
+    } = {};
+
+    if (!Number.isFinite(cadenceValue) || cadenceValue < 1) {
+      nextErrors.cadenceValue = "Run interval must be at least 1.";
+    }
+    if (!Number.isFinite(maxJobsPerRun) || maxJobsPerRun < 1) {
+      nextErrors.maxJobsPerRun = "Max jobs per run must be at least 1.";
+    }
+
+    return nextErrors;
+  }
+
+  async function saveSettings() {
+    const nextErrors = validateSettings();
+    setFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      setError("Please fix the highlighted settings.");
+      setMessage("");
+      return;
+    }
+
+    setIsSaving(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const enabledSources = initialSettings.sources.filter((source) => source.enabled);
+      if (enabledSources.length === 0) {
+        throw new Error("No enabled sources are available to update.");
+      }
+
+      const responses = await Promise.all(
+        enabledSources.map((source) =>
+          fetch(`/api/admin/proxy/jobs/admin/sources/${source.id}/`, {
+            method: "PATCH",
+            headers: {
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({
+              cadence_value: cadenceValue,
+              cadence_unit: cadenceUnit,
+              max_jobs_per_run: maxJobsPerRun,
+              approval_required_for_website: approveWebsite,
+              approval_required_for_facebook: approveFacebook,
+              auto_publish_facebook: facebookAutoUpload,
+            }),
+          }),
+        ),
+      );
+
+      const failed = responses.find((response) => !response.ok);
+      if (failed) {
+        throw new Error(
+          normalizeServerError(await failed.text(), "Unable to save fetch settings."),
+        );
+      }
+
+      setMessage("Fetch settings updated across enabled sources.");
+      router.refresh();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Unable to save fetch settings.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function runFetchNow() {
+    setIsRunning(true);
+    setMessage("");
+    setError("");
+
+    try {
+      const firstEnabledSource = initialSettings.sources.find((source) => source.enabled);
+      if (!firstEnabledSource) {
+        throw new Error("No enabled source is available to run right now.");
+      }
+
+      const response = await fetch(
+        `/api/admin/proxy/jobs/admin/sources/${firstEnabledSource.id}/run/`,
+        {
+          method: "POST",
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          normalizeServerError(await response.text(), "Unable to run fetch right now."),
+        );
+      }
+
+      const result = (await response.json()) as { fetched_count?: number; created_count?: number };
+      setMessage(
+        `Fetch complete. ${result.fetched_count ?? 0} fetched, ${result.created_count ?? 0} created.`,
+      );
+      router.refresh();
+    } catch (runError) {
+      setError(runError instanceof Error ? runError.message : "Unable to run fetch right now.");
+    } finally {
+      setIsRunning(false);
+    }
+  }
 
   return (
     <div className="grid gap-4 lg:max-w-[880px]">
@@ -43,11 +161,13 @@ export function FetchSettingsForm({
               <h2 className="mt-1 text-[1.02rem] font-semibold tracking-[-0.02em] text-foreground">Fetch schedule</h2>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button className={buttonVariants({ variant: "secondary" })} type="button">
-                Save draft
+              <button className={buttonVariants({ variant: "secondary" })} type="button" disabled={isSaving} onClick={() => void saveSettings()}>
+                {isSaving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+                {isSaving ? "Saving..." : "Save settings"}
               </button>
-              <button className={buttonVariants()} type="button">
-                Run fetch now
+              <button className={buttonVariants()} type="button" disabled={isRunning} onClick={() => void runFetchNow()}>
+                {isRunning ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+                {isRunning ? "Running..." : "Run fetch now"}
               </button>
             </div>
           </div>
@@ -61,6 +181,7 @@ export function FetchSettingsForm({
                 value={cadenceValue}
                 onChange={(event) => setCadenceValue(Number(event.target.value))}
               />
+              {fieldErrors.cadenceValue ? <span className="text-sm text-[#8e4a4a]">{fieldErrors.cadenceValue}</span> : null}
             </label>
             <label className={fieldLabelClass}>
               <span className={eyebrowClass}>Unit</span>
@@ -82,6 +203,7 @@ export function FetchSettingsForm({
                 value={maxJobsPerRun}
                 onChange={(event) => setMaxJobsPerRun(Number(event.target.value))}
               />
+              {fieldErrors.maxJobsPerRun ? <span className="text-sm text-[#8e4a4a]">{fieldErrors.maxJobsPerRun}</span> : null}
             </label>
             <label className={fieldLabelClass}>
               <span className={eyebrowClass}>Realtime notifications</span>
@@ -156,6 +278,18 @@ export function FetchSettingsForm({
           </div>
         </CardContent>
       </Card>
+      {error ? (
+        <div className="flex items-start gap-2 rounded-md border border-[rgba(169,97,111,0.22)] bg-[rgba(169,97,111,0.08)] px-3 py-2 text-sm text-[#8e4a4a]">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      ) : null}
+      {message ? (
+        <div className="flex items-start gap-2 rounded-md border border-[rgba(116,141,122,0.2)] bg-[rgba(144,168,147,0.1)] px-3 py-2 text-sm text-[#4f6354]">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{message}</span>
+        </div>
+      ) : null}
     </div>
   );
 }

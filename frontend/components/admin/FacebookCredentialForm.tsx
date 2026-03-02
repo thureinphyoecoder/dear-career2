@@ -6,6 +6,7 @@ import { CheckCircle2, LoaderCircle } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { normalizeServerError } from "@/lib/form-validation";
 import type { FacebookPageCredential } from "@/lib/types";
 
 export function FacebookCredentialForm({
@@ -19,11 +20,39 @@ export function FacebookCredentialForm({
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{
+    accountName?: string;
+    pageId?: string;
+    accessToken?: string;
+  }>({});
 
   const fieldLabelClass = "grid gap-2";
   const eyebrowClass = "text-xs uppercase tracking-[0.16em] text-[#8da693]";
 
+  function validateCredential() {
+    const nextErrors: {
+      accountName?: string;
+      pageId?: string;
+      accessToken?: string;
+    } = {};
+
+    if (!accountName.trim()) nextErrors.accountName = "Enter the Facebook page name.";
+    if (!pageId.trim()) nextErrors.pageId = "Enter the Facebook page ID.";
+    else if (!/^\d+$/.test(pageId.trim())) nextErrors.pageId = "Page ID should contain digits only.";
+    if (!accessToken.trim()) nextErrors.accessToken = "Enter the page access token.";
+
+    return nextErrors;
+  }
+
   async function saveFacebookCredential() {
+    const nextErrors = validateCredential();
+    setFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      setError("Please fix the highlighted Facebook fields.");
+      setMessage("");
+      return;
+    }
+
     setIsSaving(true);
     setMessage("");
     setError("");
@@ -43,7 +72,9 @@ export function FacebookCredentialForm({
 
       if (!response.ok) {
         const detail = await response.text();
-        throw new Error(detail || "Unable to save Facebook page credential.");
+        throw new Error(
+          normalizeServerError(detail, "Unable to save Facebook page credential."),
+        );
       }
 
       setMessage("Facebook page credential saved.");
@@ -78,18 +109,48 @@ export function FacebookCredentialForm({
             <Input
               className="bg-[rgba(255,255,255,0.88)]"
               value={accountName}
-              onChange={(event) => setAccountName(event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value;
+                setAccountName(value);
+                if (fieldErrors.accountName) {
+                  setFieldErrors((current) => ({
+                    ...current,
+                    accountName: value.trim() ? "" : "Enter the Facebook page name.",
+                  }));
+                }
+              }}
               placeholder="Dear Career Page"
+              aria-invalid={Boolean(fieldErrors.accountName)}
             />
+            {fieldErrors.accountName ? (
+              <span className="text-sm text-[#8e4a4a]">{fieldErrors.accountName}</span>
+            ) : null}
           </label>
           <label className={fieldLabelClass}>
             <span className={eyebrowClass}>Page ID</span>
             <Input
               className="bg-[rgba(255,255,255,0.88)]"
               value={pageId}
-              onChange={(event) => setPageId(event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value;
+                setPageId(value);
+                if (fieldErrors.pageId) {
+                  setFieldErrors((current) => ({
+                    ...current,
+                    pageId: !value.trim()
+                      ? "Enter the Facebook page ID."
+                      : /^\d+$/.test(value.trim())
+                        ? ""
+                        : "Page ID should contain digits only.",
+                  }));
+                }
+              }}
               placeholder="123456789012345"
+              aria-invalid={Boolean(fieldErrors.pageId)}
             />
+            {fieldErrors.pageId ? (
+              <span className="text-sm text-[#8e4a4a]">{fieldErrors.pageId}</span>
+            ) : null}
           </label>
           <label className={`${fieldLabelClass} md:col-span-2`}>
             <span className={eyebrowClass}>Page access token</span>
@@ -97,9 +158,22 @@ export function FacebookCredentialForm({
               className="bg-[rgba(255,255,255,0.88)]"
               type="password"
               value={accessToken}
-              onChange={(event) => setAccessToken(event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value;
+                setAccessToken(value);
+                if (fieldErrors.accessToken) {
+                  setFieldErrors((current) => ({
+                    ...current,
+                    accessToken: value.trim() ? "" : "Enter the page access token.",
+                  }));
+                }
+              }}
               placeholder="EAAB..."
+              aria-invalid={Boolean(fieldErrors.accessToken)}
             />
+            {fieldErrors.accessToken ? (
+              <span className="text-sm text-[#8e4a4a]">{fieldErrors.accessToken}</span>
+            ) : null}
           </label>
         </div>
 

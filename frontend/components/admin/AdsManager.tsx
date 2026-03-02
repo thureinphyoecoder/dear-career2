@@ -8,6 +8,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { isValidHttpUrl, normalizeServerError } from "@/lib/form-validation";
 import { cn } from "@/lib/utils";
 import type { ManagedAd, ManagedAdPlacement, ManagedAdStatus } from "@/lib/types";
 
@@ -48,11 +49,28 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
   const [targetDeleteId, setTargetDeleteId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
+  const [editErrors, setEditErrors] = useState<Record<number, Record<string, string>>>({});
 
   const orderedAds = useMemo(
     () => Object.values(ads).sort((left, right) => left.sort_order - right.sort_order || left.id - right.id),
     [ads],
   );
+
+  function validateAd(ad: Omit<ManagedAd, "id"> | ManagedAd) {
+    const nextErrors: Record<string, string> = {};
+    if (!ad.title.trim()) nextErrors.title = "Enter an ad title.";
+    if (!ad.cta_label.trim()) nextErrors.cta_label = "Enter a CTA label.";
+    if (!ad.description.trim()) nextErrors.description = "Enter a short ad description.";
+    if (!ad.href.trim()) nextErrors.href = "Enter the target URL.";
+    else if (!ad.href.startsWith("/") && !isValidHttpUrl(ad.href)) {
+      nextErrors.href = "Enter a valid URL or internal path.";
+    }
+    if (!Number.isFinite(ad.sort_order) || ad.sort_order < 0) {
+      nextErrors.sort_order = "Sort order must be zero or higher.";
+    }
+    return nextErrors;
+  }
 
   function updateAd(adId: number, patch: Partial<ManagedAd>) {
     setAds((current) => ({
@@ -65,6 +83,14 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
   }
 
   async function createAd() {
+    const nextErrors = validateAd(newAd);
+    setCreateErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      setError("Please fix the new ad fields.");
+      setMessage("");
+      return;
+    }
+
     setCreating(true);
     setError("");
     setMessage("");
@@ -78,12 +104,13 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
 
       if (!response.ok) {
         const detail = await response.text();
-        throw new Error(detail || "Unable to create ad.");
+        throw new Error(normalizeServerError(detail, "Unable to create ad."));
       }
 
       const created = (await response.json()) as ManagedAd;
       setAds((current) => ({ ...current, [created.id]: created }));
       setNewAd(emptyAd);
+      setCreateErrors({});
       setMessage("Ad created.");
       setOpenAdId(created.id);
       router.refresh();
@@ -97,6 +124,13 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
   async function saveAd(adId: number) {
     const ad = ads[adId];
     if (!ad) return;
+    const nextErrors = validateAd(ad);
+    setEditErrors((current) => ({ ...current, [adId]: nextErrors }));
+    if (Object.keys(nextErrors).length > 0) {
+      setError("Please fix the highlighted ad fields.");
+      setMessage("");
+      return;
+    }
 
     setSavingId(adId);
     setError("");
@@ -111,11 +145,12 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
 
       if (!response.ok) {
         const detail = await response.text();
-        throw new Error(detail || "Unable to update ad.");
+        throw new Error(normalizeServerError(detail, "Unable to update ad."));
       }
 
       const updated = (await response.json()) as ManagedAd;
       setAds((current) => ({ ...current, [adId]: updated }));
+      setEditErrors((current) => ({ ...current, [adId]: {} }));
       setMessage("Ad updated.");
       router.refresh();
     } catch (saveError) {
@@ -139,7 +174,7 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
 
       if (!response.ok) {
         const detail = await response.text();
-        throw new Error(detail || "Unable to delete ad.");
+        throw new Error(normalizeServerError(detail, "Unable to delete ad."));
       }
 
       setAds((current) => {
@@ -170,18 +205,22 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
           <label className="grid gap-2">
             <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Title</span>
             <Input value={newAd.title} onChange={(event) => setNewAd((current) => ({ ...current, title: event.target.value }))} />
+            {createErrors.title ? <span className="text-sm text-[#8e4a4a]">{createErrors.title}</span> : null}
           </label>
           <label className="grid gap-2">
             <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">CTA label</span>
             <Input value={newAd.cta_label} onChange={(event) => setNewAd((current) => ({ ...current, cta_label: event.target.value }))} />
+            {createErrors.cta_label ? <span className="text-sm text-[#8e4a4a]">{createErrors.cta_label}</span> : null}
           </label>
           <label className="grid gap-2 xl:col-span-2">
             <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Description</span>
             <Textarea value={newAd.description} onChange={(event) => setNewAd((current) => ({ ...current, description: event.target.value }))} className="min-h-[110px]" />
+            {createErrors.description ? <span className="text-sm text-[#8e4a4a]">{createErrors.description}</span> : null}
           </label>
           <label className="grid gap-2">
             <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Target URL</span>
             <Input value={newAd.href} onChange={(event) => setNewAd((current) => ({ ...current, href: event.target.value }))} placeholder="https://..." />
+            {createErrors.href ? <span className="text-sm text-[#8e4a4a]">{createErrors.href}</span> : null}
           </label>
           <label className="grid gap-2">
             <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Eyebrow</span>
@@ -228,6 +267,7 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
                 setNewAd((current) => ({ ...current, sort_order: Number(event.target.value || 0) }))
               }
             />
+            {createErrors.sort_order ? <span className="text-sm text-[#8e4a4a]">{createErrors.sort_order}</span> : null}
           </label>
         </div>
         <div className="flex justify-end">
@@ -256,6 +296,7 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
         {orderedAds.map((ad) => {
           const isOpen = openAdId === ad.id;
           const isSaving = savingId === ad.id;
+          const fieldErrors = editErrors[ad.id] ?? {};
 
           return (
             <article key={ad.id} className="grid gap-4 rounded-2xl border border-border/70 bg-white p-5">
@@ -288,18 +329,22 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
                   <label className="grid gap-2">
                     <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Title</span>
                     <Input value={ad.title} onChange={(event) => updateAd(ad.id, { title: event.target.value })} />
+                    {fieldErrors.title ? <span className="text-sm text-[#8e4a4a]">{fieldErrors.title}</span> : null}
                   </label>
                   <label className="grid gap-2">
                     <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">CTA label</span>
                     <Input value={ad.cta_label} onChange={(event) => updateAd(ad.id, { cta_label: event.target.value })} />
+                    {fieldErrors.cta_label ? <span className="text-sm text-[#8e4a4a]">{fieldErrors.cta_label}</span> : null}
                   </label>
                   <label className="grid gap-2 xl:col-span-2">
                     <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Description</span>
                     <Textarea className="min-h-[110px]" value={ad.description} onChange={(event) => updateAd(ad.id, { description: event.target.value })} />
+                    {fieldErrors.description ? <span className="text-sm text-[#8e4a4a]">{fieldErrors.description}</span> : null}
                   </label>
                   <label className="grid gap-2">
                     <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Target URL</span>
                     <Input value={ad.href} onChange={(event) => updateAd(ad.id, { href: event.target.value })} />
+                    {fieldErrors.href ? <span className="text-sm text-[#8e4a4a]">{fieldErrors.href}</span> : null}
                   </label>
                   <label className="grid gap-2">
                     <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Eyebrow</span>
@@ -328,6 +373,7 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
                   <label className="grid gap-2">
                     <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Sort order</span>
                     <Input type="number" value={String(ad.sort_order)} onChange={(event) => updateAd(ad.id, { sort_order: Number(event.target.value || 0) })} />
+                    {fieldErrors.sort_order ? <span className="text-sm text-[#8e4a4a]">{fieldErrors.sort_order}</span> : null}
                   </label>
                   <div className="xl:col-span-2 flex justify-end">
                     <button className={cn(buttonVariants(), "rounded-md")} type="button" onClick={() => void saveAd(ad.id)} disabled={isSaving}>

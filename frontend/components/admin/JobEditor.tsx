@@ -8,6 +8,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { isValidEmail, isValidHttpUrl, normalizeServerError } from "@/lib/form-validation";
 import { cn } from "@/lib/utils";
 import type { Job, JobCategory, JobStatus } from "@/lib/types";
 
@@ -76,6 +77,7 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
   const [fetchError, setFetchError] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const fieldLabelClass = "grid gap-2";
   const eyebrowClass = "text-xs uppercase tracking-[0.16em] text-[#8da693]";
@@ -234,7 +236,26 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
     }
   }
 
+  function validateJobForm() {
+    const nextErrors: Record<string, string> = {};
+    if (!title.trim()) nextErrors.title = "Enter a job title.";
+    if (!company.trim()) nextErrors.company = "Enter a company name.";
+    if (!location.trim()) nextErrors.location = "Enter a location.";
+    if (!descriptionMm.trim()) nextErrors.descriptionMm = "Enter a Myanmar description.";
+    if (sourceUrl.trim() && !isValidHttpUrl(sourceUrl)) nextErrors.sourceUrl = "Enter a valid source URL.";
+    if (contactEmail.trim() && !isValidEmail(contactEmail)) nextErrors.contactEmail = "Enter a valid contact email.";
+    return nextErrors;
+  }
+
   async function saveJob() {
+    const nextErrors = validateJobForm();
+    setFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      setError("Please fix the highlighted job fields.");
+      setMessage("");
+      return;
+    }
+
     setIsSaving(true);
     setError("");
     setMessage("");
@@ -275,7 +296,7 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
 
       if (!response.ok) {
         const detail = await response.text();
-        throw new Error(detail || "Unable to save job.");
+        throw new Error(normalizeServerError(detail, "Unable to save job."));
       }
 
       const result = (await response.json()) as Job;
@@ -303,7 +324,7 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
 
       if (!response.ok) {
         const detail = await response.text();
-        throw new Error(detail || "Unable to delete job.");
+        throw new Error(normalizeServerError(detail, "Unable to delete job."));
       }
 
       router.push("/admin/jobs");
@@ -434,7 +455,9 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               placeholder="Senior Operations Manager"
+              aria-invalid={Boolean(fieldErrors.title)}
             />
+            {fieldErrors.title ? <span className="text-sm text-[#8e4a4a]">{fieldErrors.title}</span> : null}
           </label>
           <label className={fieldLabelClass}>
             <span className={eyebrowClass}>Company</span>
@@ -443,7 +466,9 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
               value={company}
               onChange={(event) => setCompany(event.target.value)}
               placeholder="Dear Career"
+              aria-invalid={Boolean(fieldErrors.company)}
             />
+            {fieldErrors.company ? <span className="text-sm text-[#8e4a4a]">{fieldErrors.company}</span> : null}
           </label>
           <label className={fieldLabelClass}>
             <span className={eyebrowClass}>Location</span>
@@ -452,7 +477,9 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
               value={location}
               onChange={(event) => setLocation(event.target.value)}
               placeholder="Bangkok"
+              aria-invalid={Boolean(fieldErrors.location)}
             />
+            {fieldErrors.location ? <span className="text-sm text-[#8e4a4a]">{fieldErrors.location}</span> : null}
           </label>
           <label className={fieldLabelClass}>
             <span className={eyebrowClass}>Employment type</span>
@@ -513,7 +540,9 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
               value={contactEmail}
               onChange={(event) => setContactEmail(event.target.value)}
               placeholder="jobs@example.org"
+              aria-invalid={Boolean(fieldErrors.contactEmail)}
             />
+            {fieldErrors.contactEmail ? <span className="text-sm text-[#8e4a4a]">{fieldErrors.contactEmail}</span> : null}
           </label>
           <label className={fieldLabelClass}>
             <span className={eyebrowClass}>Contact phone</span>
@@ -531,7 +560,9 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
               value={sourceUrl}
               onChange={(event) => setSourceUrl(event.target.value)}
               placeholder="https://www.linkedin.com/jobs/view/..."
+              aria-invalid={Boolean(fieldErrors.sourceUrl)}
             />
+            {fieldErrors.sourceUrl ? <span className="text-sm text-[#8e4a4a]">{fieldErrors.sourceUrl}</span> : null}
           </label>
         </div>
       </section>
@@ -552,7 +583,9 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
                 value={descriptionMm}
                 onChange={(event) => setDescriptionMm(event.target.value)}
                 placeholder="Myanmar copy..."
+                aria-invalid={Boolean(fieldErrors.descriptionMm)}
               />
+              {fieldErrors.descriptionMm ? <span className="text-sm text-[#8e4a4a]">{fieldErrors.descriptionMm}</span> : null}
             </label>
             <label className={fieldLabelClass}>
               <span className={eyebrowClass}>English description</span>

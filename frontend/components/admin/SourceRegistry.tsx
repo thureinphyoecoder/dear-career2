@@ -7,6 +7,7 @@ import { CheckCircle2, LoaderCircle, Settings2, Zap } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { isValidHttpUrl, normalizeServerError } from "@/lib/form-validation";
 import { cn } from "@/lib/utils";
 import type { FetchSource } from "@/lib/types";
 
@@ -32,6 +33,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
   const [runningId, setRunningId] = useState<number | null>(null);
   const [statusMessage, setStatusMessage] = useState<Record<number, string>>({});
   const [statusError, setStatusError] = useState<Record<number, string>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<number, Record<string, string>>>({});
 
   function updateSource(sourceId: number, patch: Partial<FetchSource>) {
     setSourceState((current) => ({
@@ -43,9 +45,32 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     }));
   }
 
+  function validateSource(source: FetchSource) {
+    const nextErrors: Record<string, string> = {};
+    if (!source.label.trim()) nextErrors.label = "Enter a source label.";
+    if (!source.domain.trim()) nextErrors.domain = "Enter a source domain.";
+    if (source.feed_url && source.feed_url.trim() && !isValidHttpUrl(source.feed_url)) {
+      nextErrors.feed_url = "Enter a valid feed URL.";
+    }
+    if (!Number.isFinite(source.cadence_value) || source.cadence_value < 0) {
+      nextErrors.cadence_value = "Cadence must be zero or higher.";
+    }
+    if (!Number.isFinite(source.max_jobs_per_run ?? 0) || (source.max_jobs_per_run ?? 0) < 1) {
+      nextErrors.max_jobs_per_run = "Max jobs per run must be at least 1.";
+    }
+    return nextErrors;
+  }
+
   async function saveSource(sourceId: number) {
     const source = sourceState[sourceId];
     if (!source) return;
+    const nextErrors = validateSource(source);
+    setFieldErrors((current) => ({ ...current, [sourceId]: nextErrors }));
+    if (Object.keys(nextErrors).length > 0) {
+      setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
+      setStatusError((current) => ({ ...current, [sourceId]: "Please fix the highlighted source fields." }));
+      return;
+    }
 
     setSavingId(sourceId);
     setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
@@ -78,11 +103,12 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
 
       if (!response.ok) {
         const detail = await response.text();
-        throw new Error(detail || "Unable to save source.");
+        throw new Error(normalizeServerError(detail, "Unable to save source."));
       }
 
       const updated = (await response.json()) as FetchSource;
       setSourceState((current) => ({ ...current, [sourceId]: updated }));
+      setFieldErrors((current) => ({ ...current, [sourceId]: {} }));
       setStatusMessage((current) => ({ ...current, [sourceId]: "Source updated." }));
       router.refresh();
     } catch (error) {
@@ -107,7 +133,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
 
       if (!response.ok) {
         const detail = await response.text();
-        throw new Error(detail || "Unable to run source.");
+        throw new Error(normalizeServerError(detail, "Unable to run source."));
       }
 
       const result = (await response.json()) as {
@@ -139,6 +165,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
             const isOpen = openSourceId === source.id;
             const isSaving = savingId === source.id;
             const isRunning = runningId === source.id;
+            const currentFieldErrors = fieldErrors[source.id] ?? {};
 
             return (
               <article
@@ -212,6 +239,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
                           value={current.label}
                           onChange={(event) => updateSource(source.id, { label: event.target.value })}
                         />
+                        {currentFieldErrors.label ? <span className="text-sm text-[#8e4a4a]">{currentFieldErrors.label}</span> : null}
                       </label>
                       <label className="grid gap-2">
                         <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Domain</span>
@@ -220,6 +248,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
                           value={current.domain}
                           onChange={(event) => updateSource(source.id, { domain: event.target.value })}
                         />
+                        {currentFieldErrors.domain ? <span className="text-sm text-[#8e4a4a]">{currentFieldErrors.domain}</span> : null}
                       </label>
                       <label className="grid gap-2 md:col-span-2">
                         <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Feed URL</span>
@@ -228,6 +257,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
                           value={current.feed_url ?? ""}
                           onChange={(event) => updateSource(source.id, { feed_url: event.target.value })}
                         />
+                        {currentFieldErrors.feed_url ? <span className="text-sm text-[#8e4a4a]">{currentFieldErrors.feed_url}</span> : null}
                       </label>
                       <label className="grid gap-2">
                         <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Mode</span>
@@ -270,6 +300,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
                             updateSource(source.id, { cadence_value: Number(event.target.value) })
                           }
                         />
+                        {currentFieldErrors.cadence_value ? <span className="text-sm text-[#8e4a4a]">{currentFieldErrors.cadence_value}</span> : null}
                       </label>
                       <label className="grid gap-2">
                         <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Unit</span>
@@ -285,6 +316,19 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
                           <option value="minutes">Minutes</option>
                           <option value="hours">Hours</option>
                         </select>
+                      </label>
+                      <label className="grid gap-2">
+                        <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Max jobs per run</span>
+                        <Input
+                          className="bg-[rgba(255,255,255,0.88)]"
+                          type="number"
+                          min={1}
+                          value={current.max_jobs_per_run ?? 25}
+                          onChange={(event) =>
+                            updateSource(source.id, { max_jobs_per_run: Number(event.target.value) })
+                          }
+                        />
+                        {currentFieldErrors.max_jobs_per_run ? <span className="text-sm text-[#8e4a4a]">{currentFieldErrors.max_jobs_per_run}</span> : null}
                       </label>
                     </div>
 
