@@ -9,7 +9,7 @@ export default function AdminNewJobPage() {
           New job
         </h1>
       </div>
-      <JobEditor />
+      <JobEditor returnTo="" />
     </div>
   );
 }

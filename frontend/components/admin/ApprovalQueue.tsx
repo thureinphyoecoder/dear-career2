@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Check } from "lucide-react";
+import { Check, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -32,6 +32,7 @@ function formatDate(value?: string) {
 }
 
 export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
+  const reviewHrefFor = (jobId: number) => `/admin/jobs/${jobId}?returnTo=${encodeURIComponent("/admin/approvals")}`;
   const queryClient = useQueryClient();
   const jobsQuery = useAdminJobsQuery(jobs);
   const [workingId, setWorkingId] = useState<number | null>(null);
@@ -203,11 +204,7 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
                       : "border-l-[3px] border-l-[#8da693] bg-[rgba(144,168,147,0.08)]",
                   )}
                 >
-                  <Link
-                    href={`/admin/jobs/${job.id}`}
-                    onClick={() => markViewed(job.id)}
-                    className="min-w-0 max-w-[680px] grid gap-1.5 rounded-xl outline-none transition-colors hover:bg-[rgba(144,168,147,0.06)] focus-visible:ring-2 focus-visible:ring-[rgba(116,141,122,0.22)] focus-visible:ring-offset-2"
-                  >
+                  <div className="min-w-0 max-w-[680px] grid gap-1.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <strong className="break-words text-[1.02rem] font-medium leading-7 text-[#334039]">
                         {job.title}
@@ -229,10 +226,28 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
                     <div className="flex flex-wrap items-center gap-3 text-[0.82rem] text-[#7a847e]">
                       <span>{formatRequestedAction(job)}</span>
                       <span>{formatDate(job.updated_at ?? job.created_at)}</span>
-                      <span className="font-medium text-[#6f876f]">Review job</span>
+                      <Link
+                        href={reviewHrefFor(job.id)}
+                        onClick={() => markViewed(job.id)}
+                        className="font-medium text-[#6f876f] underline-offset-4 hover:underline"
+                      >
+                        Review job
+                      </Link>
                     </div>
-                  </Link>
-                  <div className="relative z-10 flex items-center justify-start pointer-events-auto xl:justify-end">
+                  </div>
+                  <div className="relative z-10 flex items-center justify-start gap-2 pointer-events-auto xl:justify-end">
+                    <Link
+                      href={reviewHrefFor(job.id)}
+                      onClick={() => markViewed(job.id)}
+                      className={cn(
+                        buttonVariants({ variant: "secondary" }),
+                        "h-11 w-11 rounded-xl border-border/70 bg-white px-0 text-[#6f7b73] hover:bg-[#f3f7f4] hover:text-[#334039]",
+                      )}
+                      aria-label={`View ${job.title}`}
+                      title="View job"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Link>
                     <button
                       type="button"
                       className={cn(buttonVariants(), "min-w-[188px] rounded-xl")}

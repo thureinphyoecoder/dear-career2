@@ -3,10 +3,14 @@ import { getAdminJob } from "@/lib/api-admin";
 
 export default async function AdminJobDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ returnTo?: string }>;
 }) {
   const { id } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const returnTo = resolvedSearchParams?.returnTo ?? "";
   const job = await getAdminJob(id);
 
   return (
@@ -17,7 +21,7 @@ export default async function AdminJobDetailPage({
           {job ? job.title : `Job #${id}`}
         </h1>
       </div>
-      <JobEditor initialJob={job ?? { title: `Job #${id}` }} />
+      <JobEditor initialJob={job ?? { title: `Job #${id}` }} returnTo={returnTo} />
     </div>
   );
 }

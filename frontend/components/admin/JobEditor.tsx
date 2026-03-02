@@ -55,7 +55,13 @@ function normalizeErrorDetail(detail: string) {
   }
 }
 
-export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
+export function JobEditor({
+  initialJob,
+  returnTo = "",
+}: {
+  initialJob?: Partial<Job>;
+  returnTo?: string;
+}) {
   const router = useRouter();
   const [title, setTitle] = useState(initialJob?.title ?? "");
   const [company, setCompany] = useState(initialJob?.company ?? "");
@@ -89,6 +95,7 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<JobEditorFieldErrors>({});
+  const safeReturnTo = returnTo.startsWith("/admin") && !returnTo.startsWith("//") ? returnTo : "";
 
   const fieldLabelClass = "grid gap-2";
   const eyebrowClass = "text-xs uppercase tracking-[0.16em] text-[#8da693]";
@@ -321,6 +328,10 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
       const nextMessage = isEdit ? "Job updated." : "Job created.";
       setMessage(nextMessage);
       toast.success(nextMessage);
+      if (isEdit && safeReturnTo) {
+        router.push(safeReturnTo);
+        return;
+      }
       router.push(`/admin/jobs/${result.id}`);
     } catch (saveError) {
       const nextError = saveError instanceof Error ? saveError.message : "Unable to save job.";
@@ -357,7 +368,7 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
       }
 
       toast.success("Job deleted.");
-      router.push("/admin/jobs");
+      router.push(safeReturnTo || "/admin/jobs");
     } catch (deleteError) {
       const nextError = deleteError instanceof Error ? deleteError.message : "Unable to delete job.";
       setError(nextError);
