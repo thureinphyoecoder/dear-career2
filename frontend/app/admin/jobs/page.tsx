@@ -1,9 +1,9 @@
+import { AdminJobsFilterForm } from "@/components/admin/AdminJobsFilterForm";
 import Link from "next/link";
 
 import { JobTable } from "@/components/admin/JobTable";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { getAdminJobs } from "@/lib/api-admin";
 import { cn } from "@/lib/utils";
 
@@ -58,38 +58,7 @@ export default async function AdminJobsPage({ searchParams }: AdminJobsPageProps
       </div>
       <Card className="rounded-2xl border-border/70 bg-white shadow-none">
         <CardContent className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <form className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-center" method="get">
-            <Input
-              className="h-11 rounded-xl border-border/70 bg-white shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-              name="query"
-              defaultValue={query}
-              placeholder="Search title, company, location, or source"
-            />
-            <select
-              className="h-11 min-w-[180px] rounded-xl border border-border/70 bg-white px-4 text-sm text-foreground shadow-none outline-none focus:border-[#8da693]"
-              name="status"
-              defaultValue={status}
-            >
-              <option value="all">All statuses</option>
-              <option value="published">Published</option>
-              <option value="draft">Draft</option>
-              <option value="archived">Archived</option>
-              <option value="pending-review">Pending review</option>
-            </select>
-            <div className="flex flex-wrap gap-2">
-              <button className={cn(buttonVariants(), "rounded-xl")} type="submit">
-                Search
-              </button>
-              {(query || status !== "all") ? (
-                <Link
-                  href="/admin/jobs"
-                  className={cn(buttonVariants({ variant: "secondary" }), "rounded-xl")}
-                >
-                  Clear
-                </Link>
-              ) : null}
-            </div>
-          </form>
+          <AdminJobsFilterForm initialQuery={query} initialStatus={status} />
           <div className="text-[0.82rem] uppercase tracking-[0.08em] text-[#727975] lg:text-right">
             {paginatedJobs.length} shown
           </div>

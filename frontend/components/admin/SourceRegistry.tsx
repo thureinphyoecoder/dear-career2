@@ -58,6 +58,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     () => Object.values(sourceState).sort((left, right) => left.label.localeCompare(right.label)),
     [sourceState],
   );
+  const canCreateSource = Object.keys(validateSourceCreateFields(newSource)).length === 0;
 
   function updateSource(sourceId: number, patch: Partial<FetchSource>) {
     setSourceState((current) => ({
@@ -429,7 +430,12 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
               />
               {createErrors.feed_url ? <span className="text-sm text-[#8e4a4a]">{createErrors.feed_url}</span> : null}
             </label>
-            <button className={buttonVariants()} type="button" disabled={creating} onClick={() => void createSource()}>
+            <button
+              className={cn(buttonVariants(), (creating || !canCreateSource) && "cursor-not-allowed opacity-60")}
+              type="button"
+              disabled={creating || !canCreateSource}
+              onClick={() => void createSource()}
+            >
               {creating ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               {creating ? "Creating..." : "Add source"}
             </button>
@@ -458,6 +464,9 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
             const isIntaking = intakingId === source.id;
             const currentFieldErrors = fieldErrors[source.id] ?? {};
             const intakeUrl = manualIntakeUrls[source.id] ?? "";
+            const canCreateDraft = Object.keys(validateManualSourceIntakeFields({ url: intakeUrl.trim() })).length === 0;
+            const canRunSource =
+              !current.requires_manual_url && current.mode !== "manual" && Boolean(current.feed_url?.trim());
 
             return (
               <article
@@ -521,9 +530,12 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
                     {isOpen ? "Close setup" : "Configure"}
                   </button>
                   <button
-                    className={buttonVariants({ variant: "secondary" })}
+                    className={cn(
+                      buttonVariants({ variant: "secondary" }),
+                      (!canRunSource || isRunning || isIntaking) && "cursor-not-allowed opacity-60",
+                    )}
                     type="button"
-                    disabled={isRunning || isIntaking}
+                    disabled={isRunning || isIntaking || !canRunSource}
                     onClick={() => void runSource(source.id)}
                   >
                     {isRunning ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
@@ -564,9 +576,9 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
                         </label>
                         <div className="flex justify-end">
                           <button
-                            className={buttonVariants()}
+                            className={cn(buttonVariants(), (!canCreateDraft || isIntaking) && "cursor-not-allowed opacity-60")}
                             type="button"
-                            disabled={isIntaking}
+                            disabled={isIntaking || !canCreateDraft}
                             onClick={() => void createDraftFromManualSource(source.id)}
                           >
                             {isIntaking ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
@@ -708,7 +720,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
                         Cancel
                       </button>
                       <button
-                        className={buttonVariants()}
+                        className={cn(buttonVariants(), isSaving && "cursor-not-allowed opacity-60")}
                         type="button"
                         disabled={isSaving}
                         onClick={() => void saveSource(source.id)}

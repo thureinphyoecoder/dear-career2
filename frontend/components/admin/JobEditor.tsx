@@ -96,6 +96,16 @@ export function JobEditor({
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<JobEditorFieldErrors>({});
   const safeReturnTo = returnTo.startsWith("/admin") && !returnTo.startsWith("//") ? returnTo : "";
+  const liveJobErrors = validateJobEditorFields({
+    title,
+    company,
+    location,
+    descriptionMm,
+    sourceUrl,
+    contactEmail,
+  });
+  const canFetchFromUrl = jobIntakeUrlSchema.safeParse(intakeUrl.trim()).success;
+  const canSaveJob = Object.keys(liveJobErrors).length === 0;
 
   const fieldLabelClass = "grid gap-2";
   const eyebrowClass = "text-xs uppercase tracking-[0.16em] text-[#8da693]";
@@ -432,11 +442,11 @@ export function JobEditor({
               className={cn(
                 buttonVariants(),
                 "min-w-[140px] rounded-md",
-                isFetchingFromUrl && "cursor-wait",
+                (isFetchingFromUrl || !canFetchFromUrl) && "cursor-not-allowed opacity-60",
               )}
               type="button"
               aria-busy={isFetchingFromUrl}
-              disabled={isFetchingFromUrl}
+              disabled={isFetchingFromUrl || !canFetchFromUrl}
               onClick={() => void fetchFromUrl()}
             >
               {isFetchingFromUrl ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
@@ -742,7 +752,15 @@ export function JobEditor({
           )}
 
           <div className="flex flex-wrap gap-2">
-            <button className={cn(buttonVariants(), "rounded-md")} type="submit" disabled={isSaving}>
+            <button
+              className={cn(
+                buttonVariants(),
+                "rounded-md",
+                (isSaving || !canSaveJob) && "cursor-not-allowed opacity-60",
+              )}
+              type="submit"
+              disabled={isSaving || !canSaveJob}
+            >
               {isSaving ? "Saving..." : initialJob?.id ? "Update job" : "Create job"}
             </button>
             {initialJob?.id ? (

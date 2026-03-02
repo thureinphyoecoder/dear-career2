@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 import { AdCard } from "@/components/public/AdCard";
+import { JobsSearchForm } from "@/components/public/JobsSearchForm";
 import { buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { JobCard } from "@/components/public/JobCard";
 import { cn } from "@/lib/utils";
 import { getPublicAds, getPublicJobs } from "@/lib/api-public";
@@ -133,21 +133,14 @@ export default async function PublicJobsPage({
         </a>
       </div>
 
-      <form action="/jobs" method="get">
-        {activeCategory ? <input type="hidden" name="category" value={activeCategory} /> : null}
-        <div className="flex items-center gap-2 rounded-full border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.52)] p-2">
-          <Input
-            name="q"
-            type="search"
-            defaultValue={displayQuery}
-            placeholder="Search jobs, companies, locations"
-            className="h-[52px] border-0 bg-transparent px-5 text-sm shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-          />
-          <button type="submit" className={cn(buttonVariants({ variant: "secondary" }), "h-[52px] px-5")}>
-            Search
-          </button>
-        </div>
-      </form>
+      <JobsSearchForm
+        initialQuery={displayQuery}
+        category={activeCategory}
+        buttonLabel="Search"
+        shellClassName="rounded-full border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.52)] p-2"
+        inputClassName="h-[52px] border-0 bg-transparent px-5 text-sm shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+        buttonClassName={cn(buttonVariants({ variant: "secondary" }), "h-[52px] px-5")}
+      />
 
       {query ? (
         <div className="mt-4 text-sm leading-7 text-[#727975]">
