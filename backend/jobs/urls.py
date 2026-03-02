@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    admin_dashboard_snapshot,
     admin_notification_list,
     admin_notification_stream,
     facebook_page_posts,
@@ -31,6 +32,7 @@ urlpatterns = [
     path("admin/jobs/create/", job_create, name="job-create"),
     path("admin/jobs/scrape/", job_scrape_preview, name="job-scrape-preview"),
     path("admin/jobs/<int:job_id>/", job_detail, name="job-detail"),
+    path("admin/dashboard/", admin_dashboard_snapshot, name="admin-dashboard-snapshot"),
     path("admin/analytics/visitors/", visitor_summary, name="visitor-summary"),
     path("admin/ads/", managed_ad_list, name="managed-ad-list"),
     path("admin/ads/create/", managed_ad_create, name="managed-ad-create"),

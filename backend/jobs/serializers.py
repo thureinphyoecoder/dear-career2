@@ -80,6 +80,25 @@ def serialize_admin_notification(notification):
     }
 
 
+def serialize_approval_item(job):
+    requested_actions = []
+    if job.requires_website_approval or job.status == "pending-review":
+        requested_actions.append("publish")
+    if job.requires_facebook_approval:
+        requested_actions.append("facebook-upload")
+
+    requested_action = requested_actions[0] if requested_actions else "manual-review"
+
+    return {
+        "id": f"approval-{job.id}",
+        "title": job.title,
+        "company": job.company,
+        "source_label": job.source or "Manual source",
+        "requested_action": requested_action,
+        "requested_at": job.updated_at.isoformat() if job.updated_at else None,
+    }
+
+
 def serialize_channel_credential(credential):
     return {
         "platform": credential.platform,

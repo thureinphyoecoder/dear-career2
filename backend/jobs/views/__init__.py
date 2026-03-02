@@ -1,5 +1,5 @@
 from .ads import managed_ad_create, managed_ad_detail, managed_ad_list, public_active_ad_list
-from .analytics import visitor_summary, visitor_track
+from .analytics import admin_dashboard_snapshot, visitor_summary, visitor_track
 from .channels import facebook_channel_credential, facebook_page_posts, facebook_publish_job
 from .feedback import feedback_create
 from .jobs import job_create, job_detail, job_list, job_scrape_preview
@@ -15,6 +15,7 @@ from .sources import (
 __all__ = [
     "admin_notification_list",
     "admin_notification_stream",
+    "admin_dashboard_snapshot",
     "facebook_channel_credential",
     "facebook_page_posts",
     "facebook_publish_job",
