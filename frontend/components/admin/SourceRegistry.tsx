@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AlertCircle, CheckCircle2, Link2, LoaderCircle, Plus, Settings2, Trash2, Zap } from "lucide-react";
+import { toast } from "sonner";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -101,8 +102,10 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     const nextErrors = validateNewSource();
     setCreateErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
-      setGlobalError("Please fix the new source fields.");
+      const nextError = "Please fix the new source fields.";
+      setGlobalError(nextError);
       setGlobalMessage("");
+      toast.error(nextError);
       return;
     }
 
@@ -146,10 +149,13 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
         feed_url: "",
       });
       setCreateErrors({});
-      setGlobalMessage("Source created. Open Configure to adjust mode or defaults.");
-      router.refresh();
+      const nextMessage = "Source created. Open Configure to adjust mode or defaults.";
+      setGlobalMessage(nextMessage);
+      toast.success(nextMessage);
     } catch (error) {
-      setGlobalError(error instanceof Error ? error.message : "Unable to create source.");
+      const nextError = error instanceof Error ? error.message : "Unable to create source.";
+      setGlobalError(nextError);
+      toast.error(nextError);
     } finally {
       setCreating(false);
     }
@@ -161,6 +167,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     const nextErrors = validateSource(source);
     setFieldErrors((current) => ({ ...current, [sourceId]: nextErrors }));
     if (Object.keys(nextErrors).length > 0) {
+      toast.error("Please fix the highlighted source fields.");
       setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
       setStatusError((current) => ({ ...current, [sourceId]: "Please fix the highlighted source fields." }));
       return;
@@ -204,12 +211,14 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
       setSourceState((current) => ({ ...current, [sourceId]: updated }));
       setFieldErrors((current) => ({ ...current, [sourceId]: {} }));
       setStatusMessage((current) => ({ ...current, [sourceId]: "Source updated." }));
-      router.refresh();
+      toast.success("Source updated.");
     } catch (error) {
+      const nextError = error instanceof Error ? error.message : "Unable to save source.";
       setStatusError((current) => ({
         ...current,
-        [sourceId]: error instanceof Error ? error.message : "Unable to save source.",
+        [sourceId]: nextError,
       }));
+      toast.error(nextError);
     } finally {
       setSavingId(null);
     }
@@ -219,6 +228,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     const source = sourceState[sourceId];
     if (!source) return;
     if (source.requires_manual_url || source.mode === "manual") {
+      toast.error("This source is manual-only.");
       setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
       setStatusError((current) => ({
         ...current,
@@ -228,6 +238,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
       return;
     }
     if (!source.feed_url?.trim()) {
+      toast.error("This source has no source URL configured yet.");
       setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
       setStatusError((current) => ({
         ...current,
@@ -257,16 +268,19 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
         created_count?: number;
         updated_count?: number;
       };
+      const nextMessage = `Run complete. ${result.fetched_count ?? 0} fetched, ${result.created_count ?? 0} created, ${result.updated_count ?? 0} updated.`;
       setStatusMessage((current) => ({
         ...current,
-        [sourceId]: `Run complete. ${result.fetched_count ?? 0} fetched, ${result.created_count ?? 0} created, ${result.updated_count ?? 0} updated.`,
+        [sourceId]: nextMessage,
       }));
-      router.refresh();
+      toast.success(nextMessage);
     } catch (error) {
+      const nextError = error instanceof Error ? error.message : "Unable to run source.";
       setStatusError((current) => ({
         ...current,
-        [sourceId]: error instanceof Error ? error.message : "Unable to run source.",
+        [sourceId]: nextError,
       }));
+      toast.error(nextError);
     } finally {
       setRunningId(null);
     }
@@ -278,6 +292,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
 
     if (!source) return;
     if (!intakeUrl) {
+      toast.error("Paste a job URL first.");
       setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
       setStatusError((current) => ({
         ...current,
@@ -286,6 +301,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
       return;
     }
     if (!isValidHttpUrl(intakeUrl)) {
+      toast.error("Enter a valid job URL.");
       setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
       setStatusError((current) => ({
         ...current,
@@ -362,18 +378,21 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
       }
 
       const created = (await createResponse.json()) as { id: number; title?: string };
+      const nextMessage = `Draft created for ${created.title || "the imported job"}. Opening editor...`;
       setStatusMessage((current) => ({
         ...current,
-        [sourceId]: `Draft created for ${created.title || "the imported job"}. Opening editor...`,
+        [sourceId]: nextMessage,
       }));
+      toast.success(nextMessage);
       router.push(`/admin/jobs/${created.id}`);
-      router.refresh();
     } catch (error) {
+      const nextError =
+        error instanceof Error ? error.message : "Unable to create a draft job from that URL.";
       setStatusError((current) => ({
         ...current,
-        [sourceId]:
-          error instanceof Error ? error.message : "Unable to create a draft job from that URL.",
+        [sourceId]: nextError,
       }));
+      toast.error(nextError);
     } finally {
       setIntakingId(null);
     }
@@ -404,9 +423,11 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
       });
       setOpenSourceId((current) => (current === targetDeleteId ? null : current));
       setGlobalMessage("Source deleted.");
-      router.refresh();
+      toast.success("Source deleted.");
     } catch (error) {
-      setGlobalError(error instanceof Error ? error.message : "Unable to delete source.");
+      const nextError = error instanceof Error ? error.message : "Unable to delete source.";
+      setGlobalError(nextError);
+      toast.error(nextError);
     } finally {
       setDeletingId(null);
       setTargetDeleteId(null);

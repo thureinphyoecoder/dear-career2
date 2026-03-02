@@ -26,10 +26,15 @@ export function AdminShell({
   children,
   title = "Admin",
   initialFacebookProfile,
+  initialSidebarCounts,
 }: {
   children: ReactNode;
   title?: string;
   initialFacebookProfile?: FacebookPageCredential | null;
+  initialSidebarCounts?: {
+    publishedJobs: number;
+    pendingApprovals: number;
+  };
 }) {
   const pathname = usePathname();
   const djangoAdminUrl =
@@ -75,14 +80,21 @@ export function AdminShell({
             (pathname?.startsWith("/admin/jobs/") && pathname !== "/admin/jobs/new"),
         },
         {
-          href: "/admin/jobs/new",
-          label: "Create job",
-          active: pathname === "/admin/jobs/new",
+          href: "/admin/jobs?status=published",
+          label: "Published",
+          active: false,
+          badge: initialSidebarCounts?.publishedJobs ?? 0,
         },
         {
           href: "/admin/approvals",
-          label: "Approvals",
+          label: "Pending",
           active: pathname === "/admin/approvals",
+          badge: initialSidebarCounts?.pendingApprovals ?? 0,
+        },
+        {
+          href: "/admin/jobs/new",
+          label: "Create job",
+          active: pathname === "/admin/jobs/new",
         },
         {
           href: "/admin/ads",
@@ -207,14 +219,26 @@ export function AdminShell({
                       <Link
                         key={item.href}
                         className={cn(
-                          "flex min-h-[34px] items-center rounded-lg border-l-2 px-2.5 text-[0.88rem] transition-colors",
+                          "flex min-h-[34px] items-center justify-between gap-3 rounded-lg border-l-2 px-2.5 text-[0.88rem] transition-colors",
                           item.active
                             ? "border-[rgba(116,141,122,0.7)] bg-[rgba(141,166,147,0.1)] font-medium text-[#294037]"
                             : "border-transparent text-[#7a847e] hover:text-[#465049]",
                         )}
                         href={item.href}
                       >
-                        {item.label}
+                        <span>{item.label}</span>
+                        {typeof item.badge === "number" ? (
+                          <span
+                            className={cn(
+                              "inline-flex min-w-[1.7rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[0.72rem] font-semibold",
+                              item.active
+                                ? "bg-[#7f9582] text-white"
+                                : "bg-[rgba(141,166,147,0.12)] text-[#5b6a62]",
+                            )}
+                          >
+                            {item.badge}
+                          </span>
+                        ) : null}
                       </Link>
                     ))}
                   </div>

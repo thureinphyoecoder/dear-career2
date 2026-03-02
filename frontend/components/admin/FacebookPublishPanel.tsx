@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AlertCircle, CheckCircle2, Send } from "lucide-react";
+import { toast } from "sonner";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,7 +49,9 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
     setSuccess("");
 
     if (!selectedJobId) {
-      setError("Choose a published job first.");
+      const nextError = "Choose a published job first.";
+      setError(nextError);
+      toast.error(nextError);
       return;
     }
 
@@ -65,13 +68,19 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
 
       const text = await response.text();
       if (!response.ok) {
-        setError(text || "Facebook publish failed.");
+        const nextError = text || "Facebook publish failed.";
+        setError(nextError);
+        toast.error(nextError);
         return;
       }
 
-      setSuccess("Post published to the connected Facebook page.");
+      const nextSuccess = "Post published to the connected Facebook page.";
+      setSuccess(nextSuccess);
+      toast.success(nextSuccess);
     } catch {
-      setError("Facebook publish failed. Try again.");
+      const nextError = "Facebook publish failed. Try again.";
+      setError(nextError);
+      toast.error(nextError);
     } finally {
       setSubmitting(false);
     }

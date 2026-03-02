@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AlertCircle, CheckCircle2, Link2, LoaderCircle, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 
 import { buttonVariants } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -111,9 +112,11 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
   async function fetchFromUrl() {
     const url = intakeUrl.trim();
     if (!url) {
-      setFetchError("Fetch failed. Paste a job URL first.");
+      const nextError = "Fetch failed. Paste a job URL first.";
+      setFetchError(nextError);
       setFetchMessage("");
       setFetchedFields([]);
+      toast.error(nextError);
       return;
     }
 
@@ -218,20 +221,22 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
       }
 
       setFetchedFields(nextFetchedFields);
-      setFetchMessage(
+      const nextMessage =
         nextFetchedFields.length > 0
           ? "Fetch complete. Review the autofilled fields below before saving."
-          : "Fetch completed, but the source did not expose usable job fields. Fill the form manually or try a different URL.",
-      );
+          : "Fetch completed, but the source did not expose usable job fields. Fill the form manually or try a different URL.";
+      setFetchMessage(nextMessage);
+      toast.success(nextMessage);
     } catch (fetchError) {
       setFetchedFields([]);
-      setFetchError(
+      const nextError =
         fetchError instanceof DOMException && fetchError.name === "AbortError"
           ? "Fetch failed. The source took too long to respond. Try again or use a different URL."
           : fetchError instanceof Error
             ? `Fetch failed. ${fetchError.message}`
-            : "Fetch failed. Could not fetch job details from that URL.",
-      );
+            : "Fetch failed. Could not fetch job details from that URL.";
+      setFetchError(nextError);
+      toast.error(nextError);
     } finally {
       if (timeoutId) {
         window.clearTimeout(timeoutId);
@@ -255,8 +260,10 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
     const nextErrors = validateJobForm();
     setFieldErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
-      setError("Please fix the highlighted job fields.");
+      const nextError = "Please fix the highlighted job fields.";
+      setError(nextError);
       setMessage("");
+      toast.error(nextError);
       return;
     }
 
@@ -304,11 +311,14 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
       }
 
       const result = (await response.json()) as Job;
-      setMessage(isEdit ? "Job updated." : "Job created.");
+      const nextMessage = isEdit ? "Job updated." : "Job created.";
+      setMessage(nextMessage);
+      toast.success(nextMessage);
       router.push(`/admin/jobs/${result.id}`);
-      router.refresh();
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Unable to save job.");
+      const nextError = saveError instanceof Error ? saveError.message : "Unable to save job.";
+      setError(nextError);
+      toast.error(nextError);
     } finally {
       setIsSaving(false);
     }
@@ -331,10 +341,12 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
         throw new Error(normalizeServerError(detail, "Unable to delete job."));
       }
 
+      toast.success("Job deleted.");
       router.push("/admin/jobs");
-      router.refresh();
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete job.");
+      const nextError = deleteError instanceof Error ? deleteError.message : "Unable to delete job.";
+      setError(nextError);
+      toast.error(nextError);
     } finally {
       setIsDeleting(false);
       setConfirmDeleteOpen(false);

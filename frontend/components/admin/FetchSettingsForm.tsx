@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AlertCircle, CheckCircle2, LoaderCircle } from "lucide-react";
 
@@ -16,7 +15,6 @@ export function FetchSettingsForm({
 }: {
   initialSettings: FetchSettings;
 }) {
-  const router = useRouter();
   const [cadenceValue, setCadenceValue] = useState(initialSettings.cadence_value);
   const [cadenceUnit, setCadenceUnit] = useState(initialSettings.cadence_unit);
   const [maxJobsPerRun, setMaxJobsPerRun] = useState(initialSettings.max_jobs_per_run);
@@ -107,7 +105,6 @@ export function FetchSettingsForm({
       }
 
       setMessage("Fetch settings updated across enabled sources.");
-      router.refresh();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Unable to save fetch settings.");
     } finally {
@@ -143,7 +140,6 @@ export function FetchSettingsForm({
       setMessage(
         `Fetch complete. ${result.fetched_count ?? 0} fetched, ${result.created_count ?? 0} created.`,
       );
-      router.refresh();
     } catch (runError) {
       setError(runError instanceof Error ? runError.message : "Unable to run fetch right now.");
     } finally {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,7 +47,9 @@ export function FeedbackForm() {
     setFieldErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
       setStatus("error");
-      setMessage("Please fix the highlighted fields and try again.");
+      const nextMessage = "Please fix the highlighted fields and try again.";
+      setMessage(nextMessage);
+      toast.error(nextMessage);
       return;
     }
 
@@ -66,17 +69,23 @@ export function FeedbackForm() {
 
       if (!response.ok) {
         setStatus("error");
-        setMessage(normalizeServerError(payload.detail ?? "", "Unable to send feedback right now."));
+        const nextMessage = normalizeServerError(payload.detail ?? "", "Unable to send feedback right now.");
+        setMessage(nextMessage);
+        toast.error(nextMessage);
         return;
       }
 
       setStatus("success");
-      setMessage(payload.detail ?? "Feedback received.");
+      const nextMessage = payload.detail ?? "Feedback received.";
+      setMessage(nextMessage);
+      toast.success(nextMessage);
       setForm(initialState);
       setFieldErrors({});
     } catch {
       setStatus("error");
-      setMessage("Unable to send feedback right now.");
+      const nextMessage = "Unable to send feedback right now.";
+      setMessage(nextMessage);
+      toast.error(nextMessage);
     }
   }
 

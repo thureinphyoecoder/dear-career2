@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AlertCircle, CheckCircle2, LoaderCircle, Megaphone, Pencil, Plus, Trash2 } from "lucide-react";
 
@@ -36,7 +35,6 @@ const emptyAd: Omit<ManagedAd, "id"> = {
 };
 
 export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
-  const router = useRouter();
   const [ads, setAds] = useState<Record<number, ManagedAd>>(
     Object.fromEntries(initialAds.map((ad) => [ad.id, ad])),
   );
@@ -113,7 +111,6 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
       setCreateErrors({});
       setMessage("Ad created.");
       setOpenAdId(created.id);
-      router.refresh();
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "Unable to create ad.");
     } finally {
@@ -152,7 +149,6 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
       setAds((current) => ({ ...current, [adId]: updated }));
       setEditErrors((current) => ({ ...current, [adId]: {} }));
       setMessage("Ad updated.");
-      router.refresh();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Unable to update ad.");
     } finally {
@@ -184,7 +180,6 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
       });
       setMessage("Ad deleted.");
       setOpenAdId((current) => (current === targetDeleteId ? null : current));
-      router.refresh();
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Unable to delete ad.");
     } finally {

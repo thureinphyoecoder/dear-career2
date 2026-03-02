@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PencilLine, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { StatusPill } from "@/components/admin/StatusPill";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,7 +27,7 @@ function formatDate(value?: string) {
 }
 
 export function JobTable({ jobs }: { jobs: Job[] }) {
-  const router = useRouter();
+  const [jobRows, setJobRows] = useState<Job[]>(jobs);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [pendingDeleteJob, setPendingDeleteJob] = useState<Job | null>(null);
   const [actionError, setActionError] = useState("");
@@ -47,9 +47,12 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
         throw new Error(detail || "Unable to delete job.");
       }
 
-      router.refresh();
+      setJobRows((current) => current.filter((job) => job.id !== pendingDeleteJob.id));
+      toast.success(`Deleted ${pendingDeleteJob.title}.`);
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : "Unable to delete job.");
+      const nextError = error instanceof Error ? error.message : "Unable to delete job.";
+      setActionError(nextError);
+      toast.error(nextError);
     } finally {
       setDeletingId(null);
       setPendingDeleteJob(null);
@@ -78,14 +81,14 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
               </tr>
             </thead>
             <tbody>
-            {jobs.length === 0 ? (
+            {jobRows.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-5 py-8 text-[0.92rem] text-[#727975]">
                   No jobs yet. Create a listing or queue a fetch source first.
                 </td>
               </tr>
             ) : (
-              jobs.map((job) => (
+              jobRows.map((job) => (
                 <tr key={job.id} className="hover:bg-[#fafcfb]">
                   <td className="border-b border-border/60 px-5 py-4 align-top">
                     <div className="grid gap-1">

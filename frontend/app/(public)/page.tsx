@@ -27,7 +27,7 @@ export default async function PublicHomePage() {
   );
 
   return (
-    <div className="grid h-screen snap-y snap-mandatory overflow-y-auto md:snap-proximity">
+    <div className="grid">
       <section className="hero-scene">
         <div className="hero-backdrop" />
         <div className="hero-orb hero-orb-left" />

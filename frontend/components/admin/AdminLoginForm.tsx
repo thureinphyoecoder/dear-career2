@@ -106,7 +106,6 @@ export function AdminLoginForm({
 
       startTransition(() => {
         router.push(payload.redirectTo || redirectTo);
-        router.refresh();
       });
     } catch {
       setFormError(ADMIN_LOGIN_MESSAGES.generic);

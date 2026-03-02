@@ -151,7 +151,14 @@ function createFallbackSources(): FetchSource[] {
 }
 
 function createFallbackApprovals(jobs: Job[]): ApprovalItem[] {
-  const jobsForReview = jobs.slice(0, 3);
+  const jobsForReview = jobs.filter((job) => {
+    const status = job.status ?? "published";
+    return (
+      status === "pending-review" ||
+      job.requires_website_approval === true ||
+      job.requires_facebook_approval === true
+    );
+  });
 
   if (jobsForReview.length === 0) {
     return [
@@ -273,8 +280,20 @@ export async function getAdminJobs(): Promise<Job[]> {
 }
 
 export async function getAdminJob(id: string): Promise<Job | null> {
-  const jobs = await getAdminJobs();
-  return jobs.find((job) => String(job.id) === id) ?? null;
+  try {
+    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/jobs/${id}/`, {
+      ...getAdminFetchOptions(),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return (await response.json()) as Job;
+  } catch {
+    const jobs = await getAdminJobs();
+    return jobs.find((job) => String(job.id) === id) ?? null;
+  }
 }
 
 async function getAdminSources(): Promise<FetchSource[]> {
@@ -355,6 +374,14 @@ export async function getVisitorSummary(): Promise<VisitorSummary> {
   }
 }
 
+function createVisitorSummaryFallbackFromJobs(jobs: Job[]) {
+  return createFallbackVisitorSummary(jobs);
+}
+
+function createNotificationsFallbackFromJobs(jobs: Job[]) {
+  return createFallbackNotifications(jobs);
+}
+
 export async function getManagedAds(): Promise<ManagedAd[]> {
   try {
     const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/ads/`, {
@@ -392,14 +419,48 @@ export async function getAdminNotifications(): Promise<AdminNotification[]> {
 }
 
 export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapshot> {
-  const [jobs, sources, visitors, ads, notifications] = await Promise.all([
+  try {
+    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/dashboard/`, {
+      ...getAdminFetchOptions(),
+    });
+
+    if (response.ok) {
+      const snapshot = (await response.json()) as AdminDashboardSnapshot & {
+        visitor_summary?: VisitorSummary;
+      };
+      return {
+        total_jobs: snapshot.total_jobs,
+        published_jobs: snapshot.published_jobs,
+        draft_jobs: snapshot.draft_jobs,
+        source_count: snapshot.source_count,
+        total_visitors: snapshot.total_visitors,
+        active_ads: snapshot.active_ads,
+        pending_approvals: snapshot.pending_approvals,
+        notifications: snapshot.notifications,
+        sources: snapshot.sources,
+      };
+    }
+  } catch {
+    // Fall back to the existing client-composed snapshot below.
+  }
+
+  const [jobs, sources, visitorsResult, ads, notificationsResult] = await Promise.all([
     getAdminJobs(),
     getAdminSources(),
     getVisitorSummary(),
     getManagedAds(),
     getAdminNotifications(),
   ]);
+  const visitors =
+    visitorsResult.total_visitors === 0 && jobs.length > 0
+      ? createVisitorSummaryFallbackFromJobs(jobs)
+      : visitorsResult;
+  const notifications =
+    notificationsResult.length === 0 && jobs.length > 0
+      ? createNotificationsFallbackFromJobs(jobs)
+      : notificationsResult;
   const publishedJobs = jobs.filter((job) => job.is_active !== false).length;
+  const pendingApprovals = createFallbackApprovals(jobs);
   const sourceCount = new Set(jobs.map((job) => job.source).filter(Boolean)).size;
 
   return {
@@ -409,7 +470,7 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     source_count: sourceCount || sources.length,
     total_visitors: visitors.total_visitors,
     active_ads: ads.filter((ad) => ad.status === "active").length,
-    pending_approvals: createFallbackApprovals(jobs),
+    pending_approvals: pendingApprovals,
     notifications,
     sources,
   };

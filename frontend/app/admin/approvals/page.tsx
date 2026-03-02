@@ -1,10 +1,16 @@
-import Link from "next/link";
-
-import { Card, CardContent } from "@/components/ui/card";
-import { getAdminDashboardSnapshot } from "@/lib/api-admin";
+import { ApprovalQueue } from "@/components/admin/ApprovalQueue";
+import { getAdminJobs } from "@/lib/api-admin";
 
 export default async function AdminApprovalsPage() {
-  const snapshot = await getAdminDashboardSnapshot();
+  const jobs = await getAdminJobs();
+  const pendingJobs = jobs.filter((job) => {
+    const status = job.status ?? "published";
+    return (
+      status === "pending-review" ||
+      job.requires_website_approval === true ||
+      job.requires_facebook_approval === true
+    );
+  });
 
   return (
     <div className="grid max-w-none gap-6 xl:pr-6">
@@ -18,35 +24,7 @@ export default async function AdminApprovalsPage() {
         </p>
       </header>
 
-      <Card className="rounded-2xl border-border/70 bg-white shadow-none">
-        <CardContent className="grid gap-0 p-0">
-          {snapshot.pending_approvals.length === 0 ? (
-            <p className="m-0 px-6 py-6 text-[0.92rem] text-[#727975]">No approvals waiting.</p>
-          ) : (
-            snapshot.pending_approvals.map((item) => (
-              <div
-                key={item.id}
-                className="flex flex-col gap-3 border-t border-border/60 px-6 py-4 first:border-t-0 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="grid gap-1.5">
-                  <strong className="font-medium text-[#334039]">{item.title}</strong>
-                  <span className="text-[0.92rem] text-[#727975]">
-                    {item.company} · {item.source_label}
-                  </span>
-                </div>
-                <div className="grid gap-1 text-left sm:justify-items-end">
-                  <span className="text-[0.92rem] capitalize text-[#727975]">
-                    {item.requested_action.replace("-", " ")}
-                  </span>
-                  <Link href="/admin/jobs" className="text-[0.88rem] text-[#7f9582]">
-                    Open jobs
-                  </Link>
-                </div>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+      <ApprovalQueue jobs={pendingJobs} />
     </div>
   );
 }
