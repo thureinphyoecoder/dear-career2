@@ -4,6 +4,7 @@ import { getAdminApiHeaders } from "@/lib/admin-api-auth";
 
 const ADMIN_API_BASE_URL =
   process.env.DJANGO_ADMIN_API_BASE_URL ?? "http://127.0.0.1:8000/api";
+const ADMIN_PROXY_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 4000 : 1200;
 
 async function proxyRequest(
   request: NextRequest,
@@ -29,9 +30,14 @@ async function proxyRequest(
       headers.set("last-event-id", lastEventId);
     }
 
+    const wantsEventStream =
+      request.headers.get("accept")?.includes("text/event-stream") ||
+      normalizedPath.endsWith("notifications/stream");
+
     const response = await fetch(target, {
       method: request.method,
       cache: "no-store",
+      signal: wantsEventStream ? undefined : AbortSignal.timeout(ADMIN_PROXY_TIMEOUT_MS),
       headers,
       body:
         request.method === "GET" || request.method === "HEAD"

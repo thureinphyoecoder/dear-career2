@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from "react";
 import type { AdminNotification } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+const ADMIN_DATA_CHANGED_EVENT = "admin-data-changed";
+
 function formatRelativeTime(value?: string) {
   if (!value) return "";
 
@@ -46,7 +48,7 @@ export function AdminNotificationBell() {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadInitial() {
+    async function loadNotifications() {
       try {
         const response = await fetch("/api/admin/proxy/jobs/admin/notifications", {
           cache: "no-store",
@@ -70,7 +72,7 @@ export function AdminNotificationBell() {
       }
     }
 
-    loadInitial();
+    void loadNotifications();
 
     const eventSource = new EventSource("/api/admin/proxy/jobs/admin/notifications/stream");
     eventSource.addEventListener("notification", (event) => {
@@ -93,8 +95,16 @@ export function AdminNotificationBell() {
       }
     };
 
+    function handleAdminDataChanged() {
+      setHasFreshItem(true);
+      void loadNotifications();
+    }
+
+    window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handleAdminDataChanged);
+
     return () => {
       cancelled = true;
+      window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handleAdminDataChanged);
       eventSource.close();
     };
   }, []);

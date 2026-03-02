@@ -13,6 +13,7 @@ import type { Job } from "@/lib/types";
 
 const PAGE_SIZE = 10;
 const VIEWED_STORAGE_KEY = "admin-pending-viewed-jobs";
+const ADMIN_DATA_CHANGED_EVENT = "admin-data-changed";
 
 function formatRequestedAction(job: Job) {
   const actions: string[] = [];
@@ -27,6 +28,10 @@ function formatDate(value?: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function emitAdminDataChanged() {
+  window.dispatchEvent(new CustomEvent(ADMIN_DATA_CHANGED_EVENT));
 }
 
 export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
@@ -108,6 +113,7 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
 
       setJobState((current) => current.filter((item) => item.id !== job.id));
       removeViewed(job.id);
+      emitAdminDataChanged();
       toast.success(`Approved ${job.title}.`);
     } catch (error) {
       const nextError = error instanceof Error ? error.message : "Unable to approve job.";
@@ -137,6 +143,7 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
         current.filter((item) => item.id !== pendingDeleteJob.id),
       );
       removeViewed(pendingDeleteJob.id);
+      emitAdminDataChanged();
       toast.success(`Deleted ${pendingDeleteJob.title}.`);
       setPendingDeleteJob(null);
     } catch (error) {

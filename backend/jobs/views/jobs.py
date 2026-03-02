@@ -69,11 +69,20 @@ def job_create(request: HttpRequest):
 @require_http_methods(["GET", "PATCH", "DELETE"])
 def job_detail(request: HttpRequest, job_id: int):
     job = get_object_or_404(Job, pk=job_id)
+    previous_status = job.status
+    previous_active = job.is_active
+    previous_requires_website_approval = job.requires_website_approval
+    previous_requires_facebook_approval = job.requires_facebook_approval
 
     if request.method == "GET":
         return JsonResponse(serialize_job(job))
 
     if request.method == "DELETE":
+        create_admin_notification(
+            "Job deleted",
+            f"{job.title} at {job.company} was deleted from the admin dashboard.",
+            tone=AdminNotification.ToneChoices.WARNING,
+        )
         job.delete()
         return JsonResponse({"detail": "Job deleted."})
 
@@ -124,6 +133,22 @@ def job_detail(request: HttpRequest, job_id: int):
     except ValidationError as exc:
         return HttpResponseBadRequest(format_validation_error(exc, "Invalid job payload."))
     job.save()
+
+    approval_cleared = (
+        (previous_requires_website_approval and not job.requires_website_approval)
+        or (previous_requires_facebook_approval and not job.requires_facebook_approval)
+    )
+    published_now = (
+        job.status == Job.WorkflowStatus.PUBLISHED
+        and (previous_status != Job.WorkflowStatus.PUBLISHED or not previous_active)
+    )
+    if published_now or approval_cleared:
+        create_admin_notification(
+            "Job published",
+            f"{job.title} at {job.company} is now live and approvals have been cleared.",
+            tone=AdminNotification.ToneChoices.SUCCESS,
+        )
+
     return JsonResponse(serialize_job(job))
 
 

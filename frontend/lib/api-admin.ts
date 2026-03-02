@@ -15,14 +15,21 @@ import { getAdminApiHeaders } from "@/lib/admin-api-auth";
 
 const ADMIN_API_BASE_URL =
   process.env.DJANGO_ADMIN_API_BASE_URL ?? "http://127.0.0.1:8000/api";
-const ADMIN_FETCH_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 2500 : 800;
+const ADMIN_FETCH_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 2500 : 1200;
+const ADMIN_REVALIDATE_SECONDS = process.env.NODE_ENV === "production" ? 15 : 5;
 
 function getAdminFetchOptions(): RequestInit {
   return {
-    cache: "no-store",
     signal: AbortSignal.timeout(ADMIN_FETCH_TIMEOUT_MS),
     headers: getAdminApiHeaders(),
+    next: { revalidate: ADMIN_REVALIDATE_SECONDS },
   };
+}
+
+async function fetchAdmin(url: string) {
+  return fetch(url, {
+    ...getAdminFetchOptions(),
+  });
 }
 
 function createFallbackSources(): FetchSource[] {
@@ -266,9 +273,7 @@ function createFallbackVisitorSummary(jobs: Job[]): VisitorSummary {
 
 export async function getAdminJobs(): Promise<Job[]> {
   try {
-    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/?include_inactive=1`, {
-      ...getAdminFetchOptions(),
-    });
+    const response = await fetchAdmin(`${ADMIN_API_BASE_URL}/jobs/?include_inactive=1`);
 
     if (!response.ok) {
       return [];
@@ -283,9 +288,7 @@ export async function getAdminJobs(): Promise<Job[]> {
 
 export async function getAdminJob(id: string): Promise<Job | null> {
   try {
-    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/jobs/${id}/`, {
-      ...getAdminFetchOptions(),
-    });
+    const response = await fetchAdmin(`${ADMIN_API_BASE_URL}/jobs/admin/jobs/${id}/`);
 
     if (!response.ok) {
       return null;
@@ -293,16 +296,13 @@ export async function getAdminJob(id: string): Promise<Job | null> {
 
     return (await response.json()) as Job;
   } catch {
-    const jobs = await getAdminJobs();
-    return jobs.find((job) => String(job.id) === id) ?? null;
+    return null;
   }
 }
 
 async function getAdminSources(): Promise<FetchSource[]> {
   try {
-    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/sources/`, {
-      ...getAdminFetchOptions(),
-    });
+    const response = await fetchAdmin(`${ADMIN_API_BASE_URL}/jobs/admin/sources/`);
 
     if (!response.ok) {
       return createFallbackSources();
@@ -317,9 +317,7 @@ async function getAdminSources(): Promise<FetchSource[]> {
 
 export async function getFacebookCredential(): Promise<FacebookPageCredential> {
   try {
-    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/channels/facebook/`, {
-      ...getAdminFetchOptions(),
-    });
+    const response = await fetchAdmin(`${ADMIN_API_BASE_URL}/jobs/admin/channels/facebook/`);
 
     if (!response.ok) {
       return {
@@ -343,9 +341,7 @@ export async function getFacebookCredential(): Promise<FacebookPageCredential> {
 
 export async function getFacebookPagePosts(): Promise<FacebookPagePost[]> {
   try {
-    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/channels/facebook/posts/`, {
-      ...getAdminFetchOptions(),
-    });
+    const response = await fetchAdmin(`${ADMIN_API_BASE_URL}/jobs/admin/channels/facebook/posts/`);
 
     if (!response.ok) {
       return [];
@@ -360,9 +356,7 @@ export async function getFacebookPagePosts(): Promise<FacebookPagePost[]> {
 
 export async function getVisitorSummary(): Promise<VisitorSummary> {
   try {
-    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/analytics/visitors/`, {
-      ...getAdminFetchOptions(),
-    });
+    const response = await fetchAdmin(`${ADMIN_API_BASE_URL}/jobs/admin/analytics/visitors/`);
 
     if (!response.ok) {
       const jobs = await getAdminJobs();
@@ -386,9 +380,7 @@ function createNotificationsFallbackFromJobs(jobs: Job[]) {
 
 export async function getManagedAds(): Promise<ManagedAd[]> {
   try {
-    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/ads/`, {
-      ...getAdminFetchOptions(),
-    });
+    const response = await fetchAdmin(`${ADMIN_API_BASE_URL}/jobs/admin/ads/`);
 
     if (!response.ok) {
       return createFallbackAds();
@@ -403,9 +395,7 @@ export async function getManagedAds(): Promise<ManagedAd[]> {
 
 export async function getAdminNotifications(): Promise<AdminNotification[]> {
   try {
-    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/notifications/`, {
-      ...getAdminFetchOptions(),
-    });
+    const response = await fetchAdmin(`${ADMIN_API_BASE_URL}/jobs/admin/notifications/`);
 
     if (!response.ok) {
       const jobs = await getAdminJobs();
@@ -422,9 +412,7 @@ export async function getAdminNotifications(): Promise<AdminNotification[]> {
 
 export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapshot> {
   try {
-    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/dashboard/`, {
-      ...getAdminFetchOptions(),
-    });
+    const response = await fetchAdmin(`${ADMIN_API_BASE_URL}/jobs/admin/dashboard/`);
 
     if (response.ok) {
       const snapshot = (await response.json()) as AdminDashboardSnapshot & {

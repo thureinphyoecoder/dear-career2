@@ -22,6 +22,8 @@ import { buttonVariants } from "@/components/ui/button";
 import type { FacebookPageCredential } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+const ADMIN_DATA_CHANGED_EVENT = "admin-data-changed";
+
 export function AdminShell({
   children,
   title = "Admin",
@@ -50,6 +52,21 @@ export function AdminShell({
       href: `/admin/${segments.slice(0, index + 1).join("/")}`,
       isLast: index === segments.length - 1,
     }));
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [facebookProfile, setFacebookProfile] = useState<FacebookPageCredential | null>(
+    initialFacebookProfile &&
+      (initialFacebookProfile.profile_name ||
+        initialFacebookProfile.account_name ||
+        initialFacebookProfile.profile_image_url)
+      ? initialFacebookProfile
+      : null,
+  );
+  const [sidebarCounts, setSidebarCounts] = useState(
+    initialSidebarCounts ?? {
+      publishedJobs: 0,
+      pendingApprovals: 0,
+    },
+  );
 
   const navGroups = [
     {
@@ -83,13 +100,13 @@ export function AdminShell({
           href: "/admin/jobs?status=published",
           label: "Published",
           active: false,
-          badge: initialSidebarCounts?.publishedJobs ?? 0,
+          badge: sidebarCounts.publishedJobs,
         },
         {
           href: "/admin/approvals",
           label: "Pending",
           active: pathname === "/admin/approvals",
-          badge: initialSidebarCounts?.pendingApprovals ?? 0,
+          badge: sidebarCounts.pendingApprovals,
         },
         {
           href: "/admin/jobs/new",
@@ -125,40 +142,49 @@ export function AdminShell({
       ],
     },
   ];
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [facebookProfile, setFacebookProfile] = useState<FacebookPageCredential | null>(
-    initialFacebookProfile &&
-      (initialFacebookProfile.profile_name ||
-        initialFacebookProfile.account_name ||
-        initialFacebookProfile.profile_image_url)
-      ? initialFacebookProfile
-      : null,
-  );
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadFacebookProfile() {
+    async function loadShellState() {
       try {
-        const response = await fetch("/api/admin/proxy/jobs/admin/channels/facebook", {
-          cache: "no-store",
-        });
-        if (!response.ok) {
-          return;
+        const [facebookResponse, dashboardResponse] = await Promise.all([
+          fetch("/api/admin/proxy/jobs/admin/channels/facebook"),
+          fetch("/api/admin/proxy/jobs/admin/dashboard"),
+        ]);
+
+        if (facebookResponse.ok) {
+          const data = (await facebookResponse.json()) as FacebookPageCredential;
+          if (!cancelled && (data.profile_name || data.account_name || data.profile_image_url)) {
+            setFacebookProfile(data);
+          }
         }
 
-        const data = (await response.json()) as FacebookPageCredential;
-        if (!cancelled && (data.profile_name || data.account_name || data.profile_image_url)) {
-          setFacebookProfile(data);
+        if (dashboardResponse.ok) {
+          const data = (await dashboardResponse.json()) as {
+            published_jobs?: number;
+            pending_approvals?: Array<unknown>;
+          };
+          if (!cancelled) {
+            setSidebarCounts({
+              publishedJobs: data.published_jobs ?? 0,
+              pendingApprovals: data.pending_approvals?.length ?? 0,
+            });
+          }
         }
       } catch {
-        // Ignore profile fetch failures in the shell.
+        // Ignore shell refresh failures and keep the initial render responsive.
       }
     }
 
-    void loadFacebookProfile();
+    void loadShellState();
+    function handleAdminDataChanged() {
+      void loadShellState();
+    }
+    window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handleAdminDataChanged);
     return () => {
       cancelled = true;
+      window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handleAdminDataChanged);
     };
   }, []);
 
