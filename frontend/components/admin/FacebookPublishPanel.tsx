@@ -6,6 +6,10 @@ import { toast } from "sonner";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  validateFacebookPublishFields,
+  type FacebookPublishFieldErrors,
+} from "@/lib/admin-form-validation";
 import type { Job } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +31,7 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FacebookPublishFieldErrors>({});
 
   const selectedJob = useMemo(
     () => jobs.find((job) => String(job.id) === selectedJobId) ?? null,
@@ -41,23 +46,31 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
     }
     setError("");
     setSuccess("");
+    setFieldErrors((current) => ({ ...current, selectedJobId: "" }));
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setSuccess("");
+    const nextFieldErrors = validateFacebookPublishFields({
+      selectedJobId,
+      message,
+    });
 
-    if (!selectedJobId) {
-      const nextError = "Choose a published job first.";
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
+      const nextError = "Please fix the Facebook post fields.";
       setError(nextError);
       toast.error(nextError);
       return;
     }
 
+    setFieldErrors({});
+
     setSubmitting(true);
     try {
-      const response = await fetch("/api/admin/proxy/jobs/admin/channels/facebook/publish/", {
+      const response = await fetch("/api/admin/proxy/jobs/admin/channels/facebook/publish", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -93,9 +106,13 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
           <div className="grid gap-1">
             <label className="text-[0.76rem] uppercase tracking-[0.16em] text-[#8da693]">Job</label>
             <select
-              className="h-11 rounded-xl border border-[rgba(160,183,164,0.24)] bg-white px-3 text-[0.95rem] text-[#334039] outline-none"
+              className={cn(
+                "h-11 rounded-xl border border-[rgba(160,183,164,0.24)] bg-white px-3 text-[0.95rem] text-[#334039] outline-none",
+                fieldErrors.selectedJobId && "border-[rgba(169,97,111,0.34)] shadow-[0_0_0_3px_rgba(169,97,111,0.1)]",
+              )}
               value={selectedJobId}
               onChange={(event) => handleJobChange(event.target.value)}
+              aria-invalid={Boolean(fieldErrors.selectedJobId)}
             >
               <option value="">Choose a job</option>
               {jobs.map((job) => (
@@ -104,16 +121,31 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
                 </option>
               ))}
             </select>
+            {fieldErrors.selectedJobId ? (
+              <span className="text-sm text-[#8e4a4a]">{fieldErrors.selectedJobId}</span>
+            ) : null}
           </div>
 
           <div className="grid gap-1">
             <label className="text-[0.76rem] uppercase tracking-[0.16em] text-[#8da693]">Post</label>
             <textarea
-              className="min-h-[180px] rounded-2xl border border-[rgba(160,183,164,0.24)] bg-white px-4 py-3 text-[0.95rem] leading-7 text-[#334039] outline-none"
+              className={cn(
+                "min-h-[180px] rounded-2xl border border-[rgba(160,183,164,0.24)] bg-white px-4 py-3 text-[0.95rem] leading-7 text-[#334039] outline-none",
+                fieldErrors.message && "border-[rgba(169,97,111,0.34)] shadow-[0_0_0_3px_rgba(169,97,111,0.1)]",
+              )}
               value={message}
-              onChange={(event) => setMessage(event.target.value)}
+              onChange={(event) => {
+                setMessage(event.target.value);
+                if (fieldErrors.message) {
+                  setFieldErrors((current) => ({ ...current, message: "" }));
+                }
+              }}
               placeholder="Write the Facebook post content"
+              aria-invalid={Boolean(fieldErrors.message)}
             />
+            {fieldErrors.message ? (
+              <span className="text-sm text-[#8e4a4a]">{fieldErrors.message}</span>
+            ) : null}
           </div>
 
           {selectedJob ? (

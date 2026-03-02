@@ -17,8 +17,19 @@ export function normalizeServerError(detail: string, fallback: string) {
 
   try {
     const parsed = JSON.parse(detail) as { detail?: string; error?: string; message?: string };
-    return (parsed.detail || parsed.error || parsed.message || fallback).trim();
+    const message = (parsed.detail || parsed.error || parsed.message || fallback).trim();
+    return message || fallback;
   } catch {
-    return trimmed.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() || fallback;
+    const normalized = trimmed.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    if (
+      normalized.includes("APPEND_SLASH") ||
+      normalized.includes("trailing slash") ||
+      normalized.includes("<!DOCTYPE html>") ||
+      normalized.includes("Traceback") ||
+      normalized.includes("RuntimeError at")
+    ) {
+      return fallback;
+    }
+    return normalized || fallback;
   }
 }

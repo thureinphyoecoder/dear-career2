@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { buttonVariants } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { normalizeServerError } from "@/lib/form-validation";
 import { cn } from "@/lib/utils";
 import type { Job } from "@/lib/types";
 
@@ -87,7 +88,7 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
     setActionError("");
 
     try {
-      const response = await fetch(`/api/admin/proxy/jobs/admin/jobs/${job.id}/`, {
+      const response = await fetch(`/api/admin/proxy/jobs/admin/jobs/${job.id}`, {
         method: "PATCH",
         headers: {
           "content-type": "application/json",
@@ -102,7 +103,7 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
 
       if (!response.ok) {
         const detail = await response.text();
-        throw new Error(detail || "Unable to approve job.");
+        throw new Error(normalizeServerError(detail, "Unable to approve job."));
       }
 
       setJobState((current) => current.filter((item) => item.id !== job.id));
@@ -123,13 +124,13 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
     setWorkingId(pendingDeleteJob.id);
     setActionError("");
     try {
-      const response = await fetch(`/api/admin/proxy/jobs/admin/jobs/${pendingDeleteJob.id}/`, {
+      const response = await fetch(`/api/admin/proxy/jobs/admin/jobs/${pendingDeleteJob.id}`, {
         method: "DELETE",
       });
 
       if (!response.ok) {
         const detail = await response.text();
-        throw new Error(detail || "Unable to delete job.");
+        throw new Error(normalizeServerError(detail, "Unable to delete job."));
       }
 
       setJobState((current) =>

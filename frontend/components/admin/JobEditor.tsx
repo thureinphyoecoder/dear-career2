@@ -9,7 +9,12 @@ import { buttonVariants } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { isValidEmail, isValidHttpUrl, normalizeServerError } from "@/lib/form-validation";
+import {
+  jobIntakeUrlSchema,
+  validateJobEditorFields,
+  type JobEditorFieldErrors,
+} from "@/lib/admin-form-validation";
+import { normalizeServerError } from "@/lib/form-validation";
 import { cn } from "@/lib/utils";
 import type { Job, JobCategory, JobStatus } from "@/lib/types";
 
@@ -80,14 +85,16 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
   const [fetchedFields, setFetchedFields] = useState<string[]>([]);
   const [fetchMessage, setFetchMessage] = useState("");
   const [fetchError, setFetchError] = useState("");
+  const [fetchFieldError, setFetchFieldError] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [fieldErrors, setFieldErrors] = useState<JobEditorFieldErrors>({});
 
   const fieldLabelClass = "grid gap-2";
   const eyebrowClass = "text-xs uppercase tracking-[0.16em] text-[#8da693]";
   const inputClassName =
     "h-11 rounded-md border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.9)] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0";
+  const inputErrorClass = "border-[rgba(169,97,111,0.34)] shadow-[0_0_0_3px_rgba(169,97,111,0.1)]";
   const selectClass =
     "h-11 w-full rounded-md border border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.9)] px-3 text-sm text-foreground outline-none transition focus:border-[rgba(116,141,122,0.3)]";
   const panelClass =
@@ -111,8 +118,11 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
 
   async function fetchFromUrl() {
     const url = intakeUrl.trim();
-    if (!url) {
-      const nextError = "Fetch failed. Paste a job URL first.";
+    const intakeResult = jobIntakeUrlSchema.safeParse(url);
+    if (!intakeResult.success) {
+      const nextFieldError = intakeResult.error.issues[0]?.message || "Enter a valid job URL.";
+      setFetchFieldError(nextFieldError);
+      const nextError = `Fetch failed. ${nextFieldError}`;
       setFetchError(nextError);
       setFetchMessage("");
       setFetchedFields([]);
@@ -121,6 +131,7 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
     }
 
     setIsFetchingFromUrl(true);
+    setFetchFieldError("");
     setFetchError("");
     setFetchMessage("");
     setFetchedFields([]);
@@ -130,7 +141,7 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
     try {
       const controller = new AbortController();
       timeoutId = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-      const response = await fetch("/api/admin/proxy/jobs/admin/jobs/scrape/", {
+      const response = await fetch("/api/admin/proxy/jobs/admin/jobs/scrape", {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -245,19 +256,15 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
     }
   }
 
-  function validateJobForm() {
-    const nextErrors: Record<string, string> = {};
-    if (!title.trim()) nextErrors.title = "Enter a job title.";
-    if (!company.trim()) nextErrors.company = "Enter a company name.";
-    if (!location.trim()) nextErrors.location = "Enter a location.";
-    if (!descriptionMm.trim()) nextErrors.descriptionMm = "Enter a Myanmar description.";
-    if (sourceUrl.trim() && !isValidHttpUrl(sourceUrl)) nextErrors.sourceUrl = "Enter a valid source URL.";
-    if (contactEmail.trim() && !isValidEmail(contactEmail)) nextErrors.contactEmail = "Enter a valid contact email.";
-    return nextErrors;
-  }
-
   async function saveJob() {
-    const nextErrors = validateJobForm();
+    const nextErrors = validateJobEditorFields({
+      title,
+      company,
+      location,
+      descriptionMm,
+      sourceUrl,
+      contactEmail,
+    });
     setFieldErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
       const nextError = "Please fix the highlighted job fields.";
@@ -294,8 +301,8 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
       const isEdit = Boolean(initialJob?.id);
       const response = await fetch(
         isEdit
-          ? `/api/admin/proxy/jobs/admin/jobs/${initialJob?.id}/`
-          : "/api/admin/proxy/jobs/admin/jobs/create/",
+          ? `/api/admin/proxy/jobs/admin/jobs/${initialJob?.id}`
+          : "/api/admin/proxy/jobs/admin/jobs/create",
         {
           method: isEdit ? "PATCH" : "POST",
           headers: {
@@ -324,6 +331,14 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
     }
   }
 
+  function clearFieldError(field: keyof JobEditorFieldErrors) {
+    if (!fieldErrors[field]) return;
+    setFieldErrors((current) => ({
+      ...current,
+      [field]: "",
+    }));
+  }
+
   async function deleteJob() {
     if (!initialJob?.id) return;
 
@@ -332,7 +347,7 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
     setMessage("");
 
     try {
-      const response = await fetch(`/api/admin/proxy/jobs/admin/jobs/${initialJob.id}/`, {
+      const response = await fetch(`/api/admin/proxy/jobs/admin/jobs/${initialJob.id}`, {
         method: "DELETE",
       });
 
@@ -365,9 +380,6 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className={eyebrowClass}>Manual intake</div>
-            <h2 className="mt-1 text-[1.02rem] font-semibold tracking-[-0.02em] text-foreground">
-              Paste a job URL and fetch the basics
-            </h2>
           </div>
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.74)] text-[#748d7a]">
             <Sparkles className="h-4 w-4" />
@@ -379,12 +391,30 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
             <div className="relative">
               <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8da693]" />
               <Input
-                className={cn(inputClassName, "pl-10")}
+                className={cn(
+                  inputClassName,
+                  "pl-10",
+                  fetchFieldError
+                    ? "border-[rgba(169,97,111,0.34)] shadow-[0_0_0_3px_rgba(169,97,111,0.1)]"
+                    : "",
+                )}
                 value={intakeUrl}
-                onChange={(event) => setIntakeUrl(event.target.value)}
+                onChange={(event) => {
+                  setIntakeUrl(event.target.value);
+                  if (fetchFieldError) {
+                    setFetchFieldError("");
+                  }
+                }}
                 placeholder="https://www.linkedin.com/jobs/view/..."
+                aria-invalid={Boolean(fetchFieldError)}
+                aria-describedby={fetchFieldError ? "job-intake-url-error" : undefined}
               />
             </div>
+            {fetchFieldError ? (
+              <span id="job-intake-url-error" className="text-sm text-[#8e4a4a]">
+                {fetchFieldError}
+              </span>
+            ) : null}
           </label>
           <div className="flex items-end">
             <button
@@ -403,57 +433,53 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
             </button>
           </div>
         </div>
-        <div
-          aria-live="polite"
-          className={cn("grid gap-3 rounded-md border px-3 py-3 text-sm", fetchStatusTone)}
-        >
-          <div className="flex items-start gap-2">
-            {isFetchingFromUrl ? (
-              <LoaderCircle className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
-            ) : fetchError ? (
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            ) : fetchMessage ? (
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-            ) : (
-              <Sparkles className="mt-0.5 h-4 w-4 shrink-0" />
-            )}
-            <div className="grid gap-1">
-              <strong className="font-medium">
-                {isFetchingFromUrl
-                  ? "Fetching job details..."
-                  : fetchError
-                    ? "Fetch did not complete"
-                    : fetchMessage
-                      ? "Fetch completed"
-                      : "Ready to fetch"}
-              </strong>
-              <span>
-                {isFetchingFromUrl
-                  ? "Checking the pasted source and extracting usable job fields."
-                  : fetchError
-                    ? fetchError
-                    : fetchMessage || "Paste a source URL, then fetch to autofill the form."}
-              </span>
-            </div>
-          </div>
-          {isFetchingFromUrl ? (
-            <div className="h-1.5 overflow-hidden rounded-full bg-[rgba(116,141,122,0.12)]">
-              <div className="admin-fetch-progress h-full w-1/3 rounded-full bg-[#7f9785]" />
-            </div>
-          ) : null}
-          {!isFetchingFromUrl && fetchedFields.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {fetchedFields.map((field) => (
-                <span
-                  key={field}
-                  className="inline-flex items-center rounded-full border border-[rgba(116,141,122,0.18)] bg-[rgba(255,255,255,0.86)] px-2.5 py-1 text-xs tracking-[0.08em] text-[#58705e]"
-                >
-                  {field}
+        {isFetchingFromUrl || fetchError || fetchMessage ? (
+          <div
+            aria-live="polite"
+            className={cn("grid gap-3 rounded-md border px-3 py-3 text-sm", fetchStatusTone)}
+          >
+            <div className="flex items-start gap-2">
+              {isFetchingFromUrl ? (
+                <LoaderCircle className="mt-0.5 h-4 w-4 shrink-0 animate-spin" />
+              ) : fetchError ? (
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              ) : (
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              )}
+              <div className="grid gap-1">
+                <strong className="font-medium">
+                  {isFetchingFromUrl
+                    ? "Fetching job details..."
+                    : fetchError
+                      ? "Fetch did not complete"
+                      : "Fetch completed"}
+                </strong>
+                <span>
+                  {isFetchingFromUrl
+                    ? "Checking the pasted source and extracting usable job fields."
+                    : fetchError || fetchMessage}
                 </span>
-              ))}
+              </div>
             </div>
-          ) : null}
-        </div>
+            {isFetchingFromUrl ? (
+              <div className="h-1.5 overflow-hidden rounded-full bg-[rgba(116,141,122,0.12)]">
+                <div className="admin-fetch-progress h-full w-1/3 rounded-full bg-[#7f9785]" />
+              </div>
+            ) : null}
+            {!isFetchingFromUrl && fetchedFields.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {fetchedFields.map((field) => (
+                  <span
+                    key={field}
+                    className="inline-flex items-center rounded-full border border-[rgba(116,141,122,0.18)] bg-[rgba(255,255,255,0.86)] px-2.5 py-1 text-xs tracking-[0.08em] text-[#58705e]"
+                  >
+                    {field}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </section>
 
       <section className={panelClass}>
@@ -467,9 +493,12 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
           <label className={fieldLabelClass}>
             <span className={eyebrowClass}>Job title</span>
             <Input
-              className={inputClassName}
+              className={cn(inputClassName, fieldErrors.title && inputErrorClass)}
               value={title}
-              onChange={(event) => setTitle(event.target.value)}
+              onChange={(event) => {
+                setTitle(event.target.value);
+                clearFieldError("title");
+              }}
               placeholder="Senior Operations Manager"
               aria-invalid={Boolean(fieldErrors.title)}
             />
@@ -478,9 +507,12 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
           <label className={fieldLabelClass}>
             <span className={eyebrowClass}>Company</span>
             <Input
-              className={inputClassName}
+              className={cn(inputClassName, fieldErrors.company && inputErrorClass)}
               value={company}
-              onChange={(event) => setCompany(event.target.value)}
+              onChange={(event) => {
+                setCompany(event.target.value);
+                clearFieldError("company");
+              }}
               placeholder="Dear Career"
               aria-invalid={Boolean(fieldErrors.company)}
             />
@@ -489,9 +521,12 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
           <label className={fieldLabelClass}>
             <span className={eyebrowClass}>Location</span>
             <Input
-              className={inputClassName}
+              className={cn(inputClassName, fieldErrors.location && inputErrorClass)}
               value={location}
-              onChange={(event) => setLocation(event.target.value)}
+              onChange={(event) => {
+                setLocation(event.target.value);
+                clearFieldError("location");
+              }}
               placeholder="Bangkok"
               aria-invalid={Boolean(fieldErrors.location)}
             />
@@ -552,9 +587,12 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
           <label className={fieldLabelClass}>
             <span className={eyebrowClass}>Contact email</span>
             <Input
-              className={inputClassName}
+              className={cn(inputClassName, fieldErrors.contactEmail && inputErrorClass)}
               value={contactEmail}
-              onChange={(event) => setContactEmail(event.target.value)}
+              onChange={(event) => {
+                setContactEmail(event.target.value);
+                clearFieldError("contactEmail");
+              }}
               placeholder="jobs@example.org"
               aria-invalid={Boolean(fieldErrors.contactEmail)}
             />
@@ -572,9 +610,12 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
           <label className={`${fieldLabelClass} md:col-span-2`}>
             <span className={eyebrowClass}>Source URL</span>
             <Input
-              className={inputClassName}
+              className={cn(inputClassName, fieldErrors.sourceUrl && inputErrorClass)}
               value={sourceUrl}
-              onChange={(event) => setSourceUrl(event.target.value)}
+              onChange={(event) => {
+                setSourceUrl(event.target.value);
+                clearFieldError("sourceUrl");
+              }}
               placeholder="https://www.linkedin.com/jobs/view/..."
               aria-invalid={Boolean(fieldErrors.sourceUrl)}
             />
@@ -595,9 +636,15 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
             <label className={fieldLabelClass}>
               <span className={eyebrowClass}>Myanmar description</span>
               <Textarea
-                className="min-h-[220px] rounded-md border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.9)] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                className={cn(
+                  "min-h-[220px] rounded-md border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.9)] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0",
+                  fieldErrors.descriptionMm && inputErrorClass,
+                )}
                 value={descriptionMm}
-                onChange={(event) => setDescriptionMm(event.target.value)}
+                onChange={(event) => {
+                  setDescriptionMm(event.target.value);
+                  clearFieldError("descriptionMm");
+                }}
                 placeholder="Myanmar copy..."
                 aria-invalid={Boolean(fieldErrors.descriptionMm)}
               />
@@ -667,16 +714,19 @@ export function JobEditor({ initialJob }: { initialJob?: Partial<Job> }) {
             </label>
           </div>
 
-          {(error || message) && (
+          {(error || message || Object.values(fieldErrors).some(Boolean)) && (
             <div
               className={cn(
                 "rounded-md border px-4 py-3 text-sm",
-                error
+                error || Object.values(fieldErrors).some(Boolean)
                   ? "border-[rgba(169,97,111,0.22)] bg-[rgba(169,97,111,0.08)] text-[#8e4a4a]"
                   : "border-[rgba(116,141,122,0.2)] bg-[rgba(144,168,147,0.1)] text-[#4f6354]",
               )}
             >
-              {error || message}
+              {error ||
+                (Object.values(fieldErrors).some(Boolean)
+                  ? "Please complete the required job fields before creating this listing."
+                  : message)}
             </div>
           )}
 

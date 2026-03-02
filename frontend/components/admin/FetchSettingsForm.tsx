@@ -6,6 +6,10 @@ import { AlertCircle, CheckCircle2, LoaderCircle } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  validateFetchSettingsFields,
+  type FetchSettingsFieldErrors,
+} from "@/lib/admin-form-validation";
 import { normalizeServerError } from "@/lib/form-validation";
 import { cn } from "@/lib/utils";
 import type { FetchSettings } from "@/lib/types";
@@ -34,33 +38,17 @@ export function FetchSettingsForm({
   const [isRunning, setIsRunning] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [fieldErrors, setFieldErrors] = useState<{
-    cadenceValue?: string;
-    maxJobsPerRun?: string;
-  }>({});
+  const [fieldErrors, setFieldErrors] = useState<FetchSettingsFieldErrors>({});
   const fieldLabelClass = "grid gap-2";
   const eyebrowClass = "text-xs uppercase tracking-[0.16em] text-[#8da693]";
   const selectClass =
     "h-14 w-full rounded-[1.5rem] border border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.88)] px-4 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-[#8da693]";
 
-  function validateSettings() {
-    const nextErrors: {
-      cadenceValue?: string;
-      maxJobsPerRun?: string;
-    } = {};
-
-    if (!Number.isFinite(cadenceValue) || cadenceValue < 1) {
-      nextErrors.cadenceValue = "Run interval must be at least 1.";
-    }
-    if (!Number.isFinite(maxJobsPerRun) || maxJobsPerRun < 1) {
-      nextErrors.maxJobsPerRun = "Max jobs per run must be at least 1.";
-    }
-
-    return nextErrors;
-  }
-
   async function saveSettings() {
-    const nextErrors = validateSettings();
+    const nextErrors = validateFetchSettingsFields({
+      cadenceValue,
+      maxJobsPerRun,
+    });
     setFieldErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
       setError("Please fix the highlighted settings.");
@@ -80,7 +68,7 @@ export function FetchSettingsForm({
 
       const responses = await Promise.all(
         enabledSources.map((source) =>
-          fetch(`/api/admin/proxy/jobs/admin/sources/${source.id}/`, {
+          fetch(`/api/admin/proxy/jobs/admin/sources/${source.id}`, {
             method: "PATCH",
             headers: {
               "content-type": "application/json",
@@ -124,7 +112,7 @@ export function FetchSettingsForm({
       }
 
       const response = await fetch(
-        `/api/admin/proxy/jobs/admin/sources/${firstEnabledSource.id}/run/`,
+        `/api/admin/proxy/jobs/admin/sources/${firstEnabledSource.id}/run`,
         {
           method: "POST",
         },

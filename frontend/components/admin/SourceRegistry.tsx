@@ -9,7 +9,12 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Input } from "@/components/ui/input";
-import { isValidHttpUrl, normalizeServerError } from "@/lib/form-validation";
+import {
+  validateManualSourceIntakeFields,
+  validateSourceCreateFields,
+  validateSourceEditFields,
+} from "@/lib/admin-form-validation";
+import { normalizeServerError } from "@/lib/form-validation";
 import { cn } from "@/lib/utils";
 import type { FetchSource } from "@/lib/types";
 
@@ -71,35 +76,8 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     }));
   }
 
-  function validateSource(source: FetchSource) {
-    const nextErrors: Record<string, string> = {};
-    if (!source.label.trim()) nextErrors.label = "Enter a source label.";
-    if (!source.domain.trim()) nextErrors.domain = "Enter a source domain.";
-    if (source.feed_url && source.feed_url.trim() && !isValidHttpUrl(source.feed_url)) {
-      nextErrors.feed_url = "Enter a valid feed URL.";
-    }
-    if (!Number.isFinite(source.cadence_value) || source.cadence_value < 0) {
-      nextErrors.cadence_value = "Cadence must be zero or higher.";
-    }
-    if (!Number.isFinite(source.max_jobs_per_run ?? 0) || (source.max_jobs_per_run ?? 0) < 1) {
-      nextErrors.max_jobs_per_run = "Max jobs per run must be at least 1.";
-    }
-    return nextErrors;
-  }
-
-  function validateNewSource() {
-    const nextErrors: Record<string, string> = {};
-    if (!newSource.feed_url.trim()) {
-      nextErrors.feed_url = "Paste a source URL first.";
-    }
-    if (newSource.feed_url.trim() && !isValidHttpUrl(newSource.feed_url)) {
-      nextErrors.feed_url = "Enter a valid feed URL.";
-    }
-    return nextErrors;
-  }
-
   async function createSource() {
-    const nextErrors = validateNewSource();
+    const nextErrors = validateSourceCreateFields(newSource);
     setCreateErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
       const nextError = "Please fix the new source fields.";
@@ -114,7 +92,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     setGlobalMessage("");
 
     try {
-      const response = await fetch("/api/admin/proxy/jobs/admin/sources/create/", {
+      const response = await fetch("/api/admin/proxy/jobs/admin/sources/create", {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -164,7 +142,13 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
   async function saveSource(sourceId: number) {
     const source = sourceState[sourceId];
     if (!source) return;
-    const nextErrors = validateSource(source);
+    const nextErrors = validateSourceEditFields({
+      label: source.label,
+      domain: source.domain,
+      feed_url: source.feed_url ?? "",
+      cadence_value: source.cadence_value,
+      max_jobs_per_run: source.max_jobs_per_run ?? 25,
+    });
     setFieldErrors((current) => ({ ...current, [sourceId]: nextErrors }));
     if (Object.keys(nextErrors).length > 0) {
       toast.error("Please fix the highlighted source fields.");
@@ -178,7 +162,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     setStatusError((current) => ({ ...current, [sourceId]: "" }));
 
     try {
-      const response = await fetch(`/api/admin/proxy/jobs/admin/sources/${sourceId}/`, {
+      const response = await fetch(`/api/admin/proxy/jobs/admin/sources/${sourceId}`, {
         method: "PATCH",
         headers: {
           "content-type": "application/json",
@@ -254,7 +238,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     setStatusError((current) => ({ ...current, [sourceId]: "" }));
 
     try {
-      const response = await fetch(`/api/admin/proxy/jobs/admin/sources/${sourceId}/run/`, {
+      const response = await fetch(`/api/admin/proxy/jobs/admin/sources/${sourceId}/run`, {
         method: "POST",
       });
 
@@ -291,21 +275,13 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     const intakeUrl = manualIntakeUrls[sourceId]?.trim() ?? "";
 
     if (!source) return;
-    if (!intakeUrl) {
-      toast.error("Paste a job URL first.");
+    const intakeErrors = validateManualSourceIntakeFields({ url: intakeUrl });
+    if (intakeErrors.url) {
+      toast.error(intakeErrors.url);
       setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
       setStatusError((current) => ({
         ...current,
-        [sourceId]: "Paste a job URL first.",
-      }));
-      return;
-    }
-    if (!isValidHttpUrl(intakeUrl)) {
-      toast.error("Enter a valid job URL.");
-      setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
-      setStatusError((current) => ({
-        ...current,
-        [sourceId]: "Enter a valid job URL.",
+        [sourceId]: intakeErrors.url || "Enter a valid job URL.",
       }));
       return;
     }
@@ -315,7 +291,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     setStatusError((current) => ({ ...current, [sourceId]: "" }));
 
     try {
-      const scrapeResponse = await fetch("/api/admin/proxy/jobs/admin/jobs/scrape/", {
+      const scrapeResponse = await fetch("/api/admin/proxy/jobs/admin/jobs/scrape", {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -343,7 +319,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
         contact_phone?: string;
       };
 
-      const createResponse = await fetch("/api/admin/proxy/jobs/admin/jobs/create/", {
+      const createResponse = await fetch("/api/admin/proxy/jobs/admin/jobs/create", {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -406,7 +382,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     setGlobalMessage("");
 
     try {
-      const response = await fetch(`/api/admin/proxy/jobs/admin/sources/${targetDeleteId}/`, {
+      const response = await fetch(`/api/admin/proxy/jobs/admin/sources/${targetDeleteId}`, {
         method: "DELETE",
       });
 

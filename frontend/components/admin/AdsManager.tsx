@@ -7,7 +7,11 @@ import { buttonVariants } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { isValidHttpUrl, normalizeServerError } from "@/lib/form-validation";
+import {
+  validateAdFields,
+  type AdFieldErrors,
+} from "@/lib/admin-form-validation";
+import { normalizeServerError } from "@/lib/form-validation";
 import { cn } from "@/lib/utils";
 import type { ManagedAd, ManagedAdPlacement, ManagedAdStatus } from "@/lib/types";
 
@@ -47,28 +51,13 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
   const [targetDeleteId, setTargetDeleteId] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
-  const [editErrors, setEditErrors] = useState<Record<number, Record<string, string>>>({});
+  const [createErrors, setCreateErrors] = useState<AdFieldErrors>({});
+  const [editErrors, setEditErrors] = useState<Record<number, AdFieldErrors>>({});
 
   const orderedAds = useMemo(
     () => Object.values(ads).sort((left, right) => left.sort_order - right.sort_order || left.id - right.id),
     [ads],
   );
-
-  function validateAd(ad: Omit<ManagedAd, "id"> | ManagedAd) {
-    const nextErrors: Record<string, string> = {};
-    if (!ad.title.trim()) nextErrors.title = "Enter an ad title.";
-    if (!ad.cta_label.trim()) nextErrors.cta_label = "Enter a CTA label.";
-    if (!ad.description.trim()) nextErrors.description = "Enter a short ad description.";
-    if (!ad.href.trim()) nextErrors.href = "Enter the target URL.";
-    else if (!ad.href.startsWith("/") && !isValidHttpUrl(ad.href)) {
-      nextErrors.href = "Enter a valid URL or internal path.";
-    }
-    if (!Number.isFinite(ad.sort_order) || ad.sort_order < 0) {
-      nextErrors.sort_order = "Sort order must be zero or higher.";
-    }
-    return nextErrors;
-  }
 
   function updateAd(adId: number, patch: Partial<ManagedAd>) {
     setAds((current) => ({
@@ -81,7 +70,13 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
   }
 
   async function createAd() {
-    const nextErrors = validateAd(newAd);
+    const nextErrors = validateAdFields({
+      title: newAd.title,
+      cta_label: newAd.cta_label,
+      description: newAd.description,
+      href: newAd.href,
+      sort_order: newAd.sort_order,
+    });
     setCreateErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
       setError("Please fix the new ad fields.");
@@ -94,7 +89,7 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
     setMessage("");
 
     try {
-      const response = await fetch("/api/admin/proxy/jobs/admin/ads/create/", {
+      const response = await fetch("/api/admin/proxy/jobs/admin/ads/create", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(newAd),
@@ -121,7 +116,13 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
   async function saveAd(adId: number) {
     const ad = ads[adId];
     if (!ad) return;
-    const nextErrors = validateAd(ad);
+    const nextErrors = validateAdFields({
+      title: ad.title,
+      cta_label: ad.cta_label,
+      description: ad.description,
+      href: ad.href,
+      sort_order: ad.sort_order,
+    });
     setEditErrors((current) => ({ ...current, [adId]: nextErrors }));
     if (Object.keys(nextErrors).length > 0) {
       setError("Please fix the highlighted ad fields.");
@@ -134,7 +135,7 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
     setMessage("");
 
     try {
-      const response = await fetch(`/api/admin/proxy/jobs/admin/ads/${adId}/`, {
+      const response = await fetch(`/api/admin/proxy/jobs/admin/ads/${adId}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(ad),
@@ -164,7 +165,7 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
     setMessage("");
 
     try {
-      const response = await fetch(`/api/admin/proxy/jobs/admin/ads/${targetDeleteId}/`, {
+      const response = await fetch(`/api/admin/proxy/jobs/admin/ads/${targetDeleteId}`, {
         method: "DELETE",
       });
 

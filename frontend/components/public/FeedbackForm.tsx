@@ -6,7 +6,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { isValidEmail, normalizeServerError } from "@/lib/form-validation";
+import { normalizeServerError } from "@/lib/form-validation";
+import {
+  validateFeedbackFormFields,
+  type FeedbackFormFieldErrors,
+} from "@/lib/public-form-validation";
 
 type FormState = {
   name: string;
@@ -24,26 +28,25 @@ const initialState: FormState = {
 
 export function FeedbackForm() {
   const [form, setForm] = useState<FormState>(initialState);
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof FormState, string>>>({});
+  const [fieldErrors, setFieldErrors] = useState<FeedbackFormFieldErrors>({});
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
 
-  function validateForm(nextForm: FormState) {
-    const nextErrors: Partial<Record<keyof FormState, string>> = {};
-
-    if (!nextForm.name.trim()) nextErrors.name = "Enter your name.";
-    if (!nextForm.email.trim()) nextErrors.email = "Enter your email address.";
-    else if (!isValidEmail(nextForm.email)) nextErrors.email = "Enter a valid email address.";
-    if (!nextForm.subject.trim()) nextErrors.subject = "Enter a subject.";
-    if (!nextForm.message.trim()) nextErrors.message = "Write your feedback.";
-    else if (nextForm.message.trim().length < 10) nextErrors.message = "Add a bit more detail.";
-
-    return nextErrors;
+  function clearFieldError<K extends keyof FormState>(field: K, value: FormState[K]) {
+    if (!fieldErrors[field]) return;
+    const nextErrors = validateFeedbackFormFields({
+      ...form,
+      [field]: value,
+    });
+    setFieldErrors((current) => ({
+      ...current,
+      [field]: nextErrors[field] ?? "",
+    }));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const nextErrors = validateForm(form);
+    const nextErrors = validateFeedbackFormFields(form);
     setFieldErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
       setStatus("error");
@@ -99,9 +102,7 @@ export function FeedbackForm() {
             onChange={(event) => {
               const value = event.target.value;
               setForm((current) => ({ ...current, name: value }));
-              if (fieldErrors.name) {
-                setFieldErrors((current) => ({ ...current, name: value.trim() ? "" : "Enter your name." }));
-              }
+              clearFieldError("name", value);
             }}
             placeholder="Your name"
             required
@@ -117,16 +118,7 @@ export function FeedbackForm() {
             onChange={(event) => {
               const value = event.target.value;
               setForm((current) => ({ ...current, email: value }));
-              if (fieldErrors.email) {
-                setFieldErrors((current) => ({
-                  ...current,
-                  email: !value.trim()
-                    ? "Enter your email address."
-                    : isValidEmail(value)
-                      ? ""
-                      : "Enter a valid email address.",
-                }));
-              }
+              clearFieldError("email", value);
             }}
             placeholder="you@example.com"
             required
@@ -143,9 +135,7 @@ export function FeedbackForm() {
           onChange={(event) => {
             const value = event.target.value;
             setForm((current) => ({ ...current, subject: value }));
-            if (fieldErrors.subject) {
-              setFieldErrors((current) => ({ ...current, subject: value.trim() ? "" : "Enter a subject." }));
-            }
+            clearFieldError("subject", value);
           }}
           placeholder="Bug, suggestion, broken link"
           required
@@ -161,12 +151,7 @@ export function FeedbackForm() {
           onChange={(event) => {
             const value = event.target.value;
             setForm((current) => ({ ...current, message: value }));
-            if (fieldErrors.message) {
-              setFieldErrors((current) => ({
-                ...current,
-                message: !value.trim() ? "Write your feedback." : value.trim().length < 10 ? "Add a bit more detail." : "",
-              }));
-            }
+            clearFieldError("message", value);
           }}
           placeholder="Write your feedback here"
           required
