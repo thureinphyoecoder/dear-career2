@@ -31,6 +31,7 @@ def create_admin_notification(
     tone: str = AdminNotification.ToneChoices.INFO,
     source: FetchSource | None = None,
     fetch_run: FetchRun | None = None,
+    target_url: str = "",
 ) -> AdminNotification:
     return AdminNotification.objects.create(
         title=clean_text(title)[:160],
@@ -38,6 +39,7 @@ def create_admin_notification(
         tone=tone,
         source=source,
         fetch_run=fetch_run,
+        target_url=clean_text(target_url)[:255],
     )
 
 

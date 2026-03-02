@@ -200,6 +200,8 @@ function createFallbackNotifications(jobs: Job[]): AdminNotification[] {
       detail: `${Math.max(jobs.length, 6)} roles processed in the latest sync window.`,
       created_at: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
       tone: "success",
+      target_url: "/admin/fetch",
+      is_read: false,
     },
     {
       id: "approval-pending",
@@ -207,6 +209,8 @@ function createFallbackNotifications(jobs: Job[]): AdminNotification[] {
       detail: "Website publish and Facebook upload both require editorial approval.",
       created_at: new Date(Date.now() - 32 * 60 * 1000).toISOString(),
       tone: "warning",
+      target_url: "/admin/approvals",
+      is_read: false,
     },
     {
       id: "manual-intake",
@@ -214,6 +218,8 @@ function createFallbackNotifications(jobs: Job[]): AdminNotification[] {
       detail: "A LinkedIn role was added to the review queue and needs classification.",
       created_at: new Date(Date.now() - 58 * 60 * 1000).toISOString(),
       tone: "info",
+      target_url: "/admin/jobs/new",
+      is_read: false,
     },
   ];
 }

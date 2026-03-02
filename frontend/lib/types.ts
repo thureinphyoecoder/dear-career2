@@ -75,6 +75,8 @@ export type AdminNotification = {
   detail: string;
   created_at: string;
   tone: NotificationTone;
+  target_url?: string;
+  is_read: boolean;
 };
 
 export type AdminDashboardSnapshot = {

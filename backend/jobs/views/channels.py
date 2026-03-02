@@ -136,6 +136,7 @@ def facebook_publish_job(request: HttpRequest):
             f"{job.title} Facebook post failed",
             reason,
             tone=AdminNotification.ToneChoices.WARNING,
+            target_url="/admin/facebook",
         )
         return HttpResponseBadRequest(reason)
 
@@ -143,5 +144,6 @@ def facebook_publish_job(request: HttpRequest):
         f"{job.title} posted to Facebook",
         f"{job.company} is now live on the connected Facebook page.",
         tone=AdminNotification.ToneChoices.SUCCESS,
+        target_url="/admin/facebook",
     )
     return JsonResponse(result)

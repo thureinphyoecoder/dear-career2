@@ -2,7 +2,10 @@ import json
 import time
 
 from django.http import HttpRequest, JsonResponse, StreamingHttpResponse
-from django.views.decorators.http import require_GET
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET, require_http_methods
 
 from ..admin_api import require_admin_api_auth
 from ..models import AdminNotification
@@ -56,3 +59,14 @@ def admin_notification_stream(request: HttpRequest):
     response["Cache-Control"] = "no-cache"
     response["X-Accel-Buffering"] = "no"
     return response
+
+
+@csrf_exempt
+@require_admin_api_auth
+@require_http_methods(["PATCH"])
+def admin_notification_mark_read(request: HttpRequest, notification_id: int):
+    notification = get_object_or_404(AdminNotification, pk=notification_id)
+    if notification.read_at is None:
+        notification.read_at = timezone.now()
+        notification.save(update_fields=["read_at"])
+    return JsonResponse(serialize_admin_notification(notification))

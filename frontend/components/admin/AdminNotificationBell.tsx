@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { Bell, BellDot, CheckCircle2, AlertCircle, Info, LoaderCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { useAdminNotificationsQuery } from "@/lib/admin-queries";
@@ -43,9 +44,11 @@ export function AdminNotificationBell({
 }: {
   initialNotifications?: AdminNotification[];
 }) {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const notificationsQuery = useAdminNotificationsQuery(initialNotifications);
   const items = notificationsQuery.data ?? [];
+  const unreadCount = items.filter((item) => !item.is_read).length;
   const [isOpen, setIsOpen] = useState(false);
   const [streamError, setStreamError] = useState("");
   const [hasFreshItem, setHasFreshItem] = useState(false);
@@ -94,6 +97,30 @@ export function AdminNotificationBell({
     }
   }, [isOpen]);
 
+  async function openNotification(item: AdminNotification) {
+    setIsOpen(false);
+
+    if (!item.is_read) {
+      queryClient.setQueryData<AdminNotification[]>(
+        adminQueryKeys.notifications,
+        (current) =>
+          (current ?? []).map((entry) =>
+            entry.id === item.id ? { ...entry, is_read: true } : entry,
+          ),
+      );
+
+      try {
+        await fetch(`/api/admin/proxy/jobs/admin/notifications/${item.id}/read`, {
+          method: "PATCH",
+        });
+      } catch {
+        // Keep the optimistic UI state; the next poll will reconcile if needed.
+      }
+    }
+
+    router.push(item.target_url || "/admin");
+  }
+
   return (
     <div ref={shellRef} className="relative">
       <button
@@ -104,9 +131,9 @@ export function AdminNotificationBell({
         onClick={() => setIsOpen((current) => !current)}
       >
         {hasFreshItem ? <BellDot size={17} strokeWidth={1.9} /> : <Bell size={17} strokeWidth={1.9} />}
-        {items.length > 0 ? (
+        {unreadCount > 0 ? (
           <span className="absolute right-1.5 top-1.5 min-w-[18px] rounded-full bg-[#8da693] px-1.5 py-[1px] text-[0.62rem] font-semibold leading-none text-white">
-            {Math.min(items.length, 9)}
+            {Math.min(unreadCount, 9)}
           </span>
         ) : null}
       </button>
@@ -139,26 +166,34 @@ export function AdminNotificationBell({
             ) : null}
 
             {items.map((item) => (
-              <article
+              <button
                 key={item.id}
+                type="button"
+                onClick={() => void openNotification(item)}
                 className={cn(
-                  "grid gap-2 rounded-xl border px-3 py-3",
+                  "grid w-full gap-2 rounded-xl border px-3 py-3 text-left transition-colors hover:border-[rgba(116,141,122,0.24)] hover:bg-[rgba(144,168,147,0.08)]",
                   item.tone === "success" && "border-[rgba(116,141,122,0.16)] bg-[rgba(144,168,147,0.08)]",
                   item.tone === "warning" && "border-[rgba(169,97,111,0.16)] bg-[rgba(169,97,111,0.06)]",
                   item.tone === "info" && "border-border/70 bg-[#fafbfa]",
+                  item.is_read && "opacity-70",
                 )}
               >
                 <div className="flex items-start gap-2">
                   <NotificationToneIcon tone={item.tone} />
                   <div className="grid gap-1">
-                    <strong className="text-sm font-medium text-[#334039]">{item.title}</strong>
+                    <div className="flex items-center gap-2">
+                      <strong className="text-sm font-medium text-[#334039]">{item.title}</strong>
+                      {!item.is_read ? (
+                        <span className="inline-flex h-2.5 w-2.5 rounded-full bg-[#8da693]" />
+                      ) : null}
+                    </div>
                     <p className="text-sm text-[#66726b]">{item.detail}</p>
                   </div>
                 </div>
                 <div className="pl-6 text-xs uppercase tracking-[0.14em] text-[#8da693]">
                   {formatRelativeTime(item.created_at)}
                 </div>
-              </article>
+              </button>
             ))}
           </div>
         </div>

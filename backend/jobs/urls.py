@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     admin_dashboard_snapshot,
     admin_notification_list,
+    admin_notification_mark_read,
     admin_notification_stream,
     facebook_page_posts,
     facebook_publish_job,
@@ -41,6 +42,11 @@ urlpatterns = [
     path("admin/channels/facebook/posts/", facebook_page_posts, name="facebook-page-posts"),
     path("admin/channels/facebook/publish/", facebook_publish_job, name="facebook-publish-job"),
     path("admin/notifications/", admin_notification_list, name="admin-notification-list"),
+    path(
+        "admin/notifications/<int:notification_id>/read/",
+        admin_notification_mark_read,
+        name="admin-notification-mark-read",
+    ),
     path("admin/notifications/stream/", admin_notification_stream, name="admin-notification-stream"),
     path("feedback/", feedback_create, name="feedback-create"),
     path("admin/sources/", fetch_source_list, name="fetch-source-list"),

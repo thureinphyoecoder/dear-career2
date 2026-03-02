@@ -77,6 +77,8 @@ def serialize_admin_notification(notification):
         "detail": notification.detail,
         "created_at": notification.created_at.isoformat() if notification.created_at else None,
         "tone": notification.tone,
+        "target_url": notification.target_url,
+        "is_read": bool(notification.read_at),
     }
 
 

@@ -82,6 +82,7 @@ def job_detail(request: HttpRequest, job_id: int):
             "Job deleted",
             f"{job.title} at {job.company} was deleted from the admin dashboard.",
             tone=AdminNotification.ToneChoices.WARNING,
+            target_url="/admin/jobs",
         )
         job.delete()
         return JsonResponse({"detail": "Job deleted."})
@@ -147,6 +148,7 @@ def job_detail(request: HttpRequest, job_id: int):
             "Job published",
             f"{job.title} at {job.company} is now live and approvals have been cleared.",
             tone=AdminNotification.ToneChoices.SUCCESS,
+            target_url=f"/admin/jobs/{job.id}",
         )
 
     return JsonResponse(serialize_job(job))
@@ -189,6 +191,7 @@ def job_scrape_preview(request: HttpRequest):
             "Manual scrape failed",
             f"{urlparse(url).netloc or 'Source URL'} could not be fetched. {exc}",
             tone=AdminNotification.ToneChoices.WARNING,
+            target_url="/admin/jobs/new",
         )
         return HttpResponseBadRequest(f"Unable to fetch URL: {exc}")
 
@@ -197,5 +200,6 @@ def job_scrape_preview(request: HttpRequest):
         "Manual scrape ready",
         f"{result['title']} from {result['company']} was fetched and is ready for review.",
         tone=AdminNotification.ToneChoices.SUCCESS,
+        target_url="/admin/jobs/new",
     )
     return JsonResponse(result)

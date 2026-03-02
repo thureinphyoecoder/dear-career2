@@ -3,7 +3,11 @@ from .analytics import admin_dashboard_snapshot, visitor_summary, visitor_track
 from .channels import facebook_channel_credential, facebook_page_posts, facebook_publish_job
 from .feedback import feedback_create
 from .jobs import job_create, job_detail, job_list, job_scrape_preview
-from .notifications import admin_notification_list, admin_notification_stream
+from .notifications import (
+    admin_notification_list,
+    admin_notification_mark_read,
+    admin_notification_stream,
+)
 from .sources import (
     fetch_run_list,
     fetch_source_create,
@@ -14,6 +18,7 @@ from .sources import (
 
 __all__ = [
     "admin_notification_list",
+    "admin_notification_mark_read",
     "admin_notification_stream",
     "admin_dashboard_snapshot",
     "facebook_channel_credential",

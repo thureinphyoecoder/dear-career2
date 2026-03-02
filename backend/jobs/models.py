@@ -213,6 +213,8 @@ class AdminNotification(models.Model):
         blank=True,
         related_name="notifications",
     )
+    target_url = models.CharField(max_length=255, blank=True)
+    read_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -220,6 +222,7 @@ class AdminNotification(models.Model):
         indexes = [
             models.Index(fields=["created_at"]),
             models.Index(fields=["tone"]),
+            models.Index(fields=["read_at"]),
         ]
 
     def __str__(self):

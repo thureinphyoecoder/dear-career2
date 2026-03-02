@@ -176,6 +176,7 @@ def fetch_source_run(request: HttpRequest, source_id: int):
             tone=AdminNotification.ToneChoices.WARNING,
             source=source,
             fetch_run=latest_run,
+            target_url="/admin/fetch",
         )
         return HttpResponseBadRequest(str(exc))
 
@@ -186,6 +187,7 @@ def fetch_source_run(request: HttpRequest, source_id: int):
         tone=AdminNotification.ToneChoices.SUCCESS,
         source=source,
         fetch_run=latest_run,
+        target_url="/admin/fetch",
     )
     return JsonResponse(result)
 
