@@ -66,6 +66,27 @@ function NotificationToneIcon({ tone }: { tone: AdminNotification["tone"] }) {
   return <Info className="h-4 w-4 text-[#6c7b72]" />;
 }
 
+function resolveNotificationHref(item: AdminNotification) {
+  if (item.target_url?.startsWith("/")) {
+    return item.target_url;
+  }
+
+  const haystack = `${item.title} ${item.detail}`.toLowerCase();
+  if (haystack.includes("facebook")) {
+    return "/admin/facebook";
+  }
+  if (haystack.includes("scrape") || haystack.includes("manual")) {
+    return "/admin/jobs/new";
+  }
+  if (haystack.includes("run") || haystack.includes("fetch") || haystack.includes("source")) {
+    return "/admin/fetch";
+  }
+  if (haystack.includes("job")) {
+    return "/admin/jobs";
+  }
+  return "/admin";
+}
+
 export function AdminNotificationBell({
   initialNotifications = [],
 }: {
@@ -126,6 +147,7 @@ export function AdminNotificationBell({
   }, [isOpen]);
 
   async function openNotification(item: AdminNotification) {
+    const nextHref = resolveNotificationHref(item);
     setIsOpen(false);
 
     if (!item.is_read) {
@@ -146,7 +168,8 @@ export function AdminNotificationBell({
       }
     }
 
-    router.push(item.target_url || "/admin");
+    router.push(nextHref);
+    router.refresh();
   }
 
   return (
