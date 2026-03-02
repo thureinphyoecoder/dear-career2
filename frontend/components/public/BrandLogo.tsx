@@ -14,9 +14,14 @@ export function BrandLogo({
   inline?: boolean;
   href?: string;
 }) {
+  const isAdminLogo = className?.includes("admin-brand-logo");
   const textStyle = {
-    fontSize: compact ? "clamp(2.1rem, 5vw, 3rem)" : "clamp(3.2rem, 7vw, 5.5rem)",
-    lineHeight: compact ? 0.9 : 0.86,
+    fontSize: isAdminLogo
+      ? "clamp(1.7rem, 3vw, 2.2rem)"
+      : compact
+        ? "clamp(2.1rem, 5vw, 3rem)"
+        : "clamp(3.2rem, 7vw, 5.5rem)",
+    lineHeight: isAdminLogo ? 0.92 : compact ? 0.9 : 0.86,
   } satisfies CSSProperties;
 
   const logo = (
@@ -24,6 +29,7 @@ export function BrandLogo({
       className={cn(
         "inline-flex items-center gap-4 text-[#454c49]",
         compact && "gap-2.5",
+        isAdminLogo && "gap-2",
         className,
       )}
     >
@@ -32,7 +38,7 @@ export function BrandLogo({
           "h-auto shrink-0",
           inline ? "w-16" : compact ? "w-[72px]" : "w-40",
           className?.includes("nav-brand-logo") && "w-16",
-          className?.includes("admin-brand-logo") && "w-[92px]",
+          isAdminLogo && "w-[74px]",
         )}
       />
       <div className={cn("grid items-end", inline && "flex items-center")}>

@@ -1,69 +1,7 @@
 import Link from "next/link";
+import { ExternalLink, Mail, MapPin, ShieldCheck } from "lucide-react";
 
 import { BrandLogo } from "@/components/public/BrandLogo";
-
-function FacebookIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M14.5 8H16.5V4.5H13.8C10.9 4.5 9 6.3 9 9.8V12H6.5V15.5H9V22H12.8V15.5H16.1L16.7 12H12.8V10.2C12.8 8.9 13.2 8 14.5 8Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
-
-function PinIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 21C12 21 18 14.7 18 10.2C18 6.78 15.31 4 12 4C8.69 4 6 6.78 6 10.2C6 14.7 12 21 12 21Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <circle cx="12" cy="10" r="2.2" fill="currentColor" />
-    </svg>
-  );
-}
-
-function ShieldIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 3L18.5 5.5V11.2C18.5 15.55 15.72 19.47 12 21C8.28 19.47 5.5 15.55 5.5 11.2V5.5L12 3Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path
-        d="M9.5 12.2L11.2 13.9L14.8 10.3"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function MailIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M4 7.5H20V16.5C20 17.33 19.33 18 18.5 18H5.5C4.67 18 4 17.33 4 16.5V7.5Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M5 8L12 13L19 8"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 export function PublicFooter() {
   const facebookPageUrl =
@@ -99,7 +37,7 @@ export function PublicFooter() {
                     rel="noreferrer"
                   >
                     <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[rgba(255,247,240,0.9)]">
-                      <FacebookIcon />
+                      <ExternalLink size={16} strokeWidth={1.9} />
                     </span>
                     <span className="grid gap-0.5">
                       <strong className="font-semibold">Facebook Page</strong>
@@ -108,7 +46,7 @@ export function PublicFooter() {
                   </a>
                   <div className="inline-flex items-center gap-3 text-sm text-[#727975]">
                     <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[rgba(255,247,240,0.9)] text-foreground">
-                      <PinIcon />
+                      <MapPin size={16} strokeWidth={1.9} />
                     </span>
                     <span className="grid gap-0.5">
                       <strong className="font-semibold text-foreground">Coverage</strong>
@@ -122,7 +60,7 @@ export function PublicFooter() {
             <section className="grid min-h-[220px] content-start gap-4 self-start p-6">
               <div className="flex items-start gap-4">
                 <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[rgba(255,255,255,0.82)] text-foreground">
-                  <ShieldIcon />
+                  <ShieldCheck size={18} strokeWidth={1.9} />
                 </span>
                 <div className="grid gap-2">
                   <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Safety</div>
@@ -142,7 +80,7 @@ export function PublicFooter() {
                 <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Feedback</div>
                 <div className="flex items-start gap-4">
                   <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[rgba(255,247,240,0.9)] text-foreground">
-                    <MailIcon />
+                    <Mail size={18} strokeWidth={1.9} />
                   </div>
                   <div className="grid gap-2">
                     <strong className="text-[1.02rem] text-foreground">

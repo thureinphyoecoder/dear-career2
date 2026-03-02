@@ -66,3 +66,13 @@ def serialize_fetch_run(run):
         "started_at": run.started_at.isoformat() if run.started_at else None,
         "finished_at": run.finished_at.isoformat() if run.finished_at else None,
     }
+
+
+def serialize_channel_credential(credential):
+    return {
+        "platform": credential.platform,
+        "account_name": credential.account_name,
+        "page_id": credential.page_id,
+        "access_token": credential.access_token,
+        "updated_at": credential.updated_at.isoformat() if credential.updated_at else None,
+    }

@@ -1,3 +1,4 @@
+import { ADMIN_LOGIN_MESSAGES } from "@/lib/admin-login-validation";
 import { AdminLoginForm } from "@/components/admin/AdminLoginForm";
 import { BrandLogo } from "@/components/public/BrandLogo";
 
@@ -9,7 +10,7 @@ type AdminLoginPageProps = {
 };
 
 const errorMessages: Record<string, string> = {
-  invalid: "",
+  invalid: ADMIN_LOGIN_MESSAGES.invalidCredentials,
   config: "Admin auth is not configured yet. Set the admin env values first.",
 };
 
@@ -23,16 +24,33 @@ export default async function AdminLoginPage({
     : "/admin";
 
   return (
-    <main className="grid min-h-screen place-items-center bg-[#f2f2f2] px-4 py-8">
-      <section className="grid w-full max-w-[440px] gap-5 rounded-[28px] border border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.78)] p-6 shadow-soft backdrop-blur-xl">
-        <div className="grid gap-3">
-          <BrandLogo compact inline className="nav-brand-logo" />
-          <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Admin</div>
-          <h1 className="font-serif text-[clamp(2rem,4vw,3.2rem)] font-normal leading-[1.05] text-foreground">
-            Dear Career Login
-          </h1>
+    <main className="admin-login-page">
+      <section className="admin-login-card">
+        <div className="admin-login-ribbon" aria-hidden="true">
+          <svg
+            viewBox="0 0 400 126"
+            xmlns="http://www.w3.org/2000/svg"
+            preserveAspectRatio="none"
+          >
+            <defs>
+              <linearGradient id="adminLoginRibbon" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#a7b8aa" />
+                <stop offset="45%" stopColor="#8ea291" />
+                <stop offset="100%" stopColor="#71866f" />
+              </linearGradient>
+            </defs>
+            <polygon points="0,0 400,0 400,88 200,126 0,88" fill="url(#adminLoginRibbon)" />
+          </svg>
+          <div className="admin-login-ribbon-content">
+            <span>Admin only</span>
+          </div>
         </div>
-        <AdminLoginForm redirectTo={redirectTo} error={error} />
+        <div className="admin-login-form-area">
+          <div className="admin-login-brand">
+            <BrandLogo compact inline className="admin-brand-logo" />
+          </div>
+          <AdminLoginForm redirectTo={redirectTo} error={error} />
+        </div>
       </section>
     </main>
   );

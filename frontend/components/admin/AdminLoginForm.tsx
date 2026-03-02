@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useState, type FormEvent } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -10,50 +11,6 @@ import {
   AdminLoginFieldErrors,
   validateAdminLoginFields,
 } from "@/lib/admin-login-validation";
-
-function EyeIcon({ crossed = false }: { crossed?: boolean }) {
-  return crossed ? (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M3 3L21 21"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <path
-        d="M10.58 10.58A2 2 0 0013.41 13.4"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <path
-        d="M9.36 5.37A9.93 9.93 0 0112 5c5 0 9.27 3.11 11 7-.42.92-.99 1.77-1.68 2.52"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M6.23 6.23C4.27 7.48 2.74 9.15 2 12c1.73 3.89 6 7 10 7 1.61 0 3.15-.36 4.53-1"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  ) : (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M2 12C3.73 8.11 8 5 12 5s8.27 3.11 10 7c-1.73 3.89-6 7-10 7S3.73 15.89 2 12Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
-    </svg>
-  );
-}
 
 export function AdminLoginForm({
   redirectTo,
@@ -69,8 +26,28 @@ export function AdminLoginForm({
   const [fieldErrors, setFieldErrors] = useState<AdminLoginFieldErrors>({});
   const [formError, setFormError] = useState(error ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [touchedFields, setTouchedFields] = useState<
+    Partial<Record<keyof AdminLoginFieldErrors, boolean>>
+  >({});
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const baseInputClassName =
+    "admin-login-input rounded-[6px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0";
 
-  function setSingleFieldError(name: keyof AdminLoginFieldErrors, value: string) {
+  function setSingleFieldError(
+    name: keyof AdminLoginFieldErrors,
+    value: string,
+    options?: { force?: boolean },
+  ) {
+    const shouldValidate = options?.force || value.trim().length > 0;
+
+    if (!shouldValidate) {
+      setFieldErrors((current) => ({
+        ...current,
+        [name]: "",
+      }));
+      return;
+    }
+
     const nextErrors = validateAdminLoginFields({
       username: name === "username" ? value : username,
       password: name === "password" ? value : password,
@@ -85,6 +62,11 @@ export function AdminLoginForm({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormError("");
+    setHasSubmitted(true);
+    setTouchedFields({
+      username: true,
+      password: true,
+    });
 
     const nextFieldErrors = validateAdminLoginFields({ username, password });
     setFieldErrors(nextFieldErrors);
@@ -135,89 +117,126 @@ export function AdminLoginForm({
 
   return (
     <form
-      className="grid gap-4"
+      className="admin-login-form"
       action="/api/admin/session/login"
       method="post"
       onSubmit={handleSubmit}
       noValidate
     >
       <input type="hidden" name="redirect" value={redirectTo} />
-      <label className="grid gap-2">
-        <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Username</span>
+      <label className="admin-login-field">
+        <span className="admin-login-label">Username</span>
         <Input
           className={
             fieldErrors.username
-              ? "border-[rgba(205,111,111,0.5)] shadow-[0_0_0_4px_rgba(205,111,111,0.08)]"
-              : "bg-[rgba(255,255,255,0.88)]"
+              ? `${baseInputClassName} border-[rgba(169,97,111,0.34)] shadow-[0_0_0_3px_rgba(169,97,111,0.1)]`
+              : baseInputClassName
           }
           type="text"
           name="username"
           autoComplete="username"
+          placeholder="Admin username"
           value={username}
           aria-invalid={Boolean(fieldErrors.username)}
           aria-describedby={fieldErrors.username ? "admin-login-username-error" : undefined}
           autoFocus
           onChange={(event) => {
-            setUsername(event.target.value);
-            setFieldErrors((current) => ({ ...current, username: "" }));
+            const nextValue = event.target.value;
+            setUsername(nextValue);
+            if (touchedFields.username || hasSubmitted) {
+              setSingleFieldError("username", nextValue, { force: true });
+            } else {
+              setFieldErrors((current) => ({ ...current, username: "" }));
+            }
             if (formError) {
               setFormError("");
             }
           }}
-          onBlur={(event) => setSingleFieldError("username", event.target.value)}
+          onBlur={(event) => {
+            setTouchedFields((current) => ({ ...current, username: true }));
+            setSingleFieldError("username", event.target.value);
+          }}
         />
         {fieldErrors.username ? (
-          <span id="admin-login-username-error" className="text-[0.82rem] leading-6 text-[#8e4a4a]">
+          <span id="admin-login-username-error" className="admin-login-error">
             {fieldErrors.username}
           </span>
         ) : null}
       </label>
-      <label className="grid gap-2">
-        <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Password</span>
+      <label className="admin-login-field">
+        <span className="admin-login-label">Password</span>
         <span className="relative block">
           <Input
             className={
               fieldErrors.password
-                ? "bg-[rgba(255,255,255,0.88)] pr-14 border-[rgba(205,111,111,0.5)] shadow-[0_0_0_4px_rgba(205,111,111,0.08)]"
-                : "bg-[rgba(255,255,255,0.88)] pr-14"
+                ? `${baseInputClassName} pr-16 border-[rgba(169,97,111,0.34)] shadow-[0_0_0_3px_rgba(169,97,111,0.1)]`
+                : `${baseInputClassName} pr-16`
             }
             type={showPassword ? "text" : "password"}
             name="password"
             autoComplete="current-password"
+            placeholder="Enter your password"
             value={password}
             aria-invalid={Boolean(fieldErrors.password)}
             aria-describedby={fieldErrors.password ? "admin-login-password-error" : undefined}
             onChange={(event) => {
-              setPassword(event.target.value);
-              setFieldErrors((current) => ({ ...current, password: "" }));
+              const nextValue = event.target.value;
+              setPassword(nextValue);
+              if (touchedFields.password || hasSubmitted) {
+                setSingleFieldError("password", nextValue, { force: true });
+              } else {
+                setFieldErrors((current) => ({ ...current, password: "" }));
+              }
               if (formError) {
                 setFormError("");
               }
             }}
-            onBlur={(event) => setSingleFieldError("password", event.target.value)}
+            onBlur={(event) => {
+              setTouchedFields((current) => ({ ...current, password: true }));
+              setSingleFieldError("password", event.target.value);
+            }}
           />
           <button
             type="button"
-            className="absolute right-2 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[10px] text-[#727975]/82 transition-colors hover:bg-[rgba(160,183,164,0.12)] hover:text-foreground"
+            className={`absolute right-2 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border transition-all duration-200 ${
+              showPassword
+                ? "scale-105 border-[rgba(116,141,122,0.28)] bg-[rgba(144,168,147,0.22)] text-[#5c7162] shadow-[0_8px_20px_rgba(116,141,122,0.16)]"
+                : "border-[rgba(144,168,147,0.18)] bg-[rgba(255,253,249,0.96)] text-[#8a968c] hover:border-[rgba(144,168,147,0.22)] hover:bg-[rgba(144,168,147,0.08)]"
+            }`}
             aria-label={showPassword ? "Hide password" : "Show password"}
             aria-pressed={showPassword}
+            title={showPassword ? "Hide password" : "Show password"}
             onClick={() => setShowPassword((value) => !value)}
           >
-            <EyeIcon crossed={showPassword} />
+            {showPassword ? (
+              <Eye
+                key="password-visible"
+                size={19}
+                strokeWidth={2.35}
+                className="animate-[eyeOpenPop_220ms_ease-out]"
+              />
+            ) : (
+              <EyeOff
+                key="password-hidden"
+                size={19}
+                strokeWidth={2.35}
+                className="animate-[eyeClosedPop_180ms_ease-out]"
+              />
+            )}
           </button>
         </span>
         {fieldErrors.password ? (
-          <span id="admin-login-password-error" className="text-[0.82rem] leading-6 text-[#8e4a4a]">
+          <span id="admin-login-password-error" className="admin-login-error">
             {fieldErrors.password}
           </span>
         ) : null}
       </label>
       {formError ? (
-        <p className="rounded-[14px] border border-[rgba(205,111,111,0.18)] bg-[rgba(205,111,111,0.1)] px-4 py-3 text-sm text-[#8e4a4a]">
+        <p role="alert" className="admin-login-form-error">
           {formError}
         </p>
       ) : null}
-      <Button type="submit" className="h-[52px] w-full" disabled={isSubmitting}>
+      <Button type="submit" className="admin-login-submit" disabled={isSubmitting}>
         {isSubmitting ? "Signing in..." : "Login"}
       </Button>
     </form>

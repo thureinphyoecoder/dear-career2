@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import FeedbackMessage, FetchRun, FetchSource, Job
+from .models import ChannelCredential, FeedbackMessage, FetchRun, FetchSource, Job
 
 
 @admin.register(Job)
@@ -70,3 +70,9 @@ class FetchRunAdmin(admin.ModelAdmin):
 class FeedbackMessageAdmin(admin.ModelAdmin):
     list_display = ("subject", "name", "email", "created_at")
     search_fields = ("subject", "name", "email", "message")
+
+
+@admin.register(ChannelCredential)
+class ChannelCredentialAdmin(admin.ModelAdmin):
+    list_display = ("platform", "account_name", "page_id", "updated_at")
+    search_fields = ("platform", "account_name", "page_id")

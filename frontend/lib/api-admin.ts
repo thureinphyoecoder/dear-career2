@@ -2,6 +2,7 @@ import type {
   AdminDashboardSnapshot,
   AdminNotification,
   ApprovalItem,
+  FacebookPageCredential,
   FetchSettings,
   FetchSource,
   Job,
@@ -23,10 +24,10 @@ function createFallbackSources(): FetchSource[] {
   return [
     {
       id: 1,
-      key: "jobthai",
-      label: "JobThai",
-      domain: "jobthai.com",
-      feed_url: "https://www.jobthai.com/%E0%B8%AB%E0%B8%B2%E0%B8%87%E0%B8%B2%E0%B8%99",
+      key: "sabai-job",
+      label: "Sabai Job",
+      domain: "sabaijob.com",
+      feed_url: "https://sabaijob.com/",
       mode: "manual",
       enabled: true,
       requires_manual_url: true,
@@ -34,20 +35,20 @@ function createFallbackSources(): FetchSource[] {
       auto_publish_facebook: false,
       approval_required_for_website: true,
       approval_required_for_facebook: true,
-      default_category: "white-collar",
+      default_category: "blue-collar",
       cadence_value: 30,
       cadence_unit: "minutes",
-      max_jobs_per_run: 40,
+      max_jobs_per_run: 25,
       last_run_at: new Date(Date.now() - 18 * 60 * 1000).toISOString(),
       status: "warning",
-      last_error: "Landing page does not expose stable server-rendered job cards for auto-ingest.",
+      last_error: "Blue-collar source shortlisted. Confirm listing selectors before switching to HTML mode.",
     },
     {
       id: 2,
       key: "jobsdb-th",
       label: "JobsDB Thailand",
-      domain: "jobsdb.com",
-      feed_url: "http://jobsdb.com/",
+      domain: "th.jobsdb.com",
+      feed_url: "https://th.jobsdb.com/foreigners-are-welcome-jobs",
       mode: "manual",
       enabled: true,
       requires_manual_url: true,
@@ -61,10 +62,71 @@ function createFallbackSources(): FetchSource[] {
       max_jobs_per_run: 40,
       last_run_at: new Date(Date.now() - 62 * 60 * 1000).toISOString(),
       status: "warning",
-      last_error: "Homepage is accessible but does not expose stable job result cards without a search query.",
+      last_error: "Cloudflare challenge blocks direct server-side fetch. Keep manual until a browser automation layer exists.",
     },
     {
       id: 3,
+      key: "jobthai",
+      label: "JobThai",
+      domain: "jobthai.com",
+      feed_url: "https://www.jobthai.com/",
+      mode: "manual",
+      enabled: true,
+      requires_manual_url: true,
+      auto_publish_website: false,
+      auto_publish_facebook: false,
+      approval_required_for_website: true,
+      approval_required_for_facebook: true,
+      default_category: "white-collar",
+      cadence_value: 4,
+      cadence_unit: "hours",
+      max_jobs_per_run: 25,
+      status: "warning",
+      last_error: "General job portal shortlisted. Confirm stable result URLs before enabling fetch.",
+    },
+    {
+      id: 4,
+      key: "thaingo",
+      label: "ThaiNGO Jobs",
+      domain: "thaingo.org",
+      feed_url: "https://www.thaingo.org/jobs",
+      mode: "manual",
+      enabled: true,
+      requires_manual_url: true,
+      auto_publish_website: false,
+      auto_publish_facebook: false,
+      approval_required_for_website: true,
+      approval_required_for_facebook: true,
+      default_category: "ngo",
+      cadence_value: 6,
+      cadence_unit: "hours",
+      max_jobs_per_run: 20,
+      last_run_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+      status: "warning",
+      last_error: "Robot verification appears on the jobs page. Keep as manual source.",
+    },
+    {
+      id: 5,
+      key: "unjobs-thailand",
+      label: "UN Jobs Thailand",
+      domain: "unjobs.org",
+      feed_url: "https://unjobs.org/duty_stations/thailand",
+      mode: "html",
+      enabled: true,
+      requires_manual_url: false,
+      auto_publish_website: false,
+      auto_publish_facebook: false,
+      approval_required_for_website: true,
+      approval_required_for_facebook: true,
+      default_category: "ngo",
+      cadence_value: 6,
+      cadence_unit: "hours",
+      max_jobs_per_run: 20,
+      status: "warning",
+      last_error: "Thailand vacancy index is accessible, but selectors still need page-specific tuning.",
+    },
+    {
+      id: 6,
       key: "linkedin",
       label: "LinkedIn",
       domain: "linkedin.com",
@@ -80,25 +142,7 @@ function createFallbackSources(): FetchSource[] {
       cadence_unit: "hours",
       max_jobs_per_run: 25,
       status: "warning",
-    },
-    {
-      id: 4,
-      key: "ngo-board",
-      label: "NGO Board",
-      domain: "ngoboard.org",
-      mode: "manual",
-      enabled: true,
-      requires_manual_url: true,
-      auto_publish_website: false,
-      auto_publish_facebook: false,
-      approval_required_for_website: true,
-      approval_required_for_facebook: true,
-      default_category: "ngo",
-      cadence_value: 12,
-      cadence_unit: "hours",
-      max_jobs_per_run: 20,
-      last_run_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-      status: "paused",
+      last_error: "Manual URL intake only.",
     },
   ];
 }
@@ -155,6 +199,7 @@ function createFallbackNotifications(jobs: Job[]): AdminNotification[] {
   ];
 }
 
+
 export async function getAdminJobs(): Promise<Job[]> {
   try {
     const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/?include_inactive=1`, {
@@ -194,6 +239,32 @@ async function getAdminSources(): Promise<FetchSource[]> {
   }
 }
 
+async function getFacebookCredential(): Promise<FacebookPageCredential> {
+  try {
+    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/channels/facebook/`, {
+      ...getAdminFetchOptions(),
+    });
+
+    if (!response.ok) {
+      return {
+        platform: "facebook",
+        account_name: "",
+        page_id: "",
+        access_token: "",
+      };
+    }
+
+    return (await response.json()) as FacebookPageCredential;
+  } catch {
+    return {
+      platform: "facebook",
+      account_name: "",
+      page_id: "",
+      access_token: "",
+    };
+  }
+}
+
 export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapshot> {
   const [jobs, sources] = await Promise.all([getAdminJobs(), getAdminSources()]);
   const publishedJobs = jobs.filter((job) => job.is_active !== false).length;
@@ -211,7 +282,7 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
 }
 
 export async function getFetchSettings(): Promise<FetchSettings> {
-  const sources = await getAdminSources();
+  const [sources, facebook] = await Promise.all([getAdminSources(), getFacebookCredential()]);
   const firstSource = sources[0];
 
   return {
@@ -225,5 +296,6 @@ export async function getFetchSettings(): Promise<FetchSettings> {
     facebook_auto_upload: firstSource?.auto_publish_facebook ?? false,
     realtime_notifications: true,
     sources,
+    facebook,
   };
 }

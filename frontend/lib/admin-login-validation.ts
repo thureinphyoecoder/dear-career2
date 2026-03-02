@@ -1,8 +1,8 @@
 import { z } from "zod";
 
 export const ADMIN_LOGIN_MESSAGES = {
-  invalidCredentials: "Incorrect username or password.",
-  generic: "Unable to sign in right now. Please try again.",
+  invalidCredentials: "Sign-in failed. Check your username and password, then try again.",
+  generic: "Sign-in could not be completed right now. Please try again in a moment.",
   config: "Admin login is not configured yet.",
 } as const;
 
@@ -10,12 +10,12 @@ export const adminLoginSchema = z.object({
   username: z
     .string()
     .trim()
-    .min(1, "Username is required.")
-    .min(3, "Username must be at least 3 characters."),
+    .min(1, "Enter your admin username.")
+    .min(3, "Username looks too short. Use at least 3 characters."),
   password: z
     .string()
-    .min(1, "Password is required.")
-    .min(8, "Password must be at least 8 characters."),
+    .min(1, "Enter your password.")
+    .min(8, "Password looks too short. Use at least 8 characters."),
 });
 
 export type AdminLoginFields = z.input<typeof adminLoginSchema>;

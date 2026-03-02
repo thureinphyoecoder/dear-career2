@@ -30,53 +30,53 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
         <span className="text-[0.78rem] uppercase tracking-[0.08em] text-[#727975]">{jobs.length} records</span>
       </div>
 
-      <Card className="border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.72)] shadow-none">
+      <Card className="rounded-2xl border-border/70 bg-white shadow-none">
         <CardContent className="overflow-x-auto p-0">
           <table className="w-full border-collapse text-left">
-          <thead>
-            <tr>
-              <th className="border-b border-[rgba(160,183,164,0.18)] px-4 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Role</th>
-              <th className="border-b border-[rgba(160,183,164,0.18)] px-4 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Category</th>
-              <th className="border-b border-[rgba(160,183,164,0.18)] px-4 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Source</th>
-              <th className="border-b border-[rgba(160,183,164,0.18)] px-4 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Status</th>
-              <th className="border-b border-[rgba(160,183,164,0.18)] px-4 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Updated</th>
-              <th className="border-b border-[rgba(160,183,164,0.18)] px-4 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]" />
-            </tr>
-          </thead>
-          <tbody>
+            <thead className="bg-[#fafbfa]">
+              <tr>
+                <th className="border-b border-border/70 px-5 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Role</th>
+                <th className="border-b border-border/70 px-5 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Category</th>
+                <th className="border-b border-border/70 px-5 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Source</th>
+                <th className="border-b border-border/70 px-5 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Status</th>
+                <th className="border-b border-border/70 px-5 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Updated</th>
+                <th className="border-b border-border/70 px-5 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]" />
+              </tr>
+            </thead>
+            <tbody>
             {jobs.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-[0.92rem] text-[#727975]">
+                <td colSpan={6} className="px-5 py-8 text-[0.92rem] text-[#727975]">
                   No jobs yet. Create a listing or queue a fetch source first.
                 </td>
               </tr>
             ) : (
               jobs.map((job) => (
-                <tr key={job.id}>
-                  <td className="border-b border-[rgba(160,183,164,0.18)] px-4 py-3 align-top">
+                <tr key={job.id} className="hover:bg-[#fafcfb]">
+                  <td className="border-b border-border/60 px-5 py-4 align-top">
                     <div className="grid gap-1">
-                      <strong>{job.title}</strong>
+                      <strong className="font-medium text-[#334039]">{job.title}</strong>
                       <span className="text-[0.92rem] text-[#727975]">
                         {job.company} · {job.location || "Thailand"}
                       </span>
                     </div>
                   </td>
-                  <td className="border-b border-[rgba(160,183,164,0.18)] px-4 py-3 align-top capitalize">{formatCategory(job.category)}</td>
-                  <td className="border-b border-[rgba(160,183,164,0.18)] px-4 py-3 align-top">{job.source || "manual"}</td>
-                  <td className="border-b border-[rgba(160,183,164,0.18)] px-4 py-3 align-top">
+                  <td className="border-b border-border/60 px-5 py-4 align-top capitalize">{formatCategory(job.category)}</td>
+                  <td className="border-b border-border/60 px-5 py-4 align-top">{job.source || "manual"}</td>
+                  <td className="border-b border-border/60 px-5 py-4 align-top">
                     <StatusPill status={job.status ?? "published"} />
                   </td>
-                  <td className="border-b border-[rgba(160,183,164,0.18)] px-4 py-3 align-top">{formatDate(job.updated_at ?? job.created_at)}</td>
-                  <td className="border-b border-[rgba(160,183,164,0.18)] px-4 py-3 align-top">
-                    <Link className="text-[#8da693]" href={`/admin/jobs/${job.id}`}>
+                  <td className="border-b border-border/60 px-5 py-4 align-top">{formatDate(job.updated_at ?? job.created_at)}</td>
+                  <td className="border-b border-border/60 px-5 py-4 align-top">
+                    <Link className="text-[#7f9582]" href={`/admin/jobs/${job.id}`}>
                       Edit
                     </Link>
                   </td>
                 </tr>
               ))
             )}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
         </CardContent>
       </Card>
     </div>

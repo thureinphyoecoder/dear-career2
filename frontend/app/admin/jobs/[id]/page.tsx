@@ -10,7 +10,7 @@ export default async function AdminJobDetailPage({
   const job = await getAdminJob(id);
 
   return (
-    <div className="grid max-w-[980px] gap-5">
+    <div className="grid max-w-[1360px] gap-5">
       <div>
         <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Edit or view</div>
         <h1 className="mt-1 text-[clamp(1.7rem,2.4vw,2.2rem)] font-semibold leading-none text-foreground">

@@ -1,24 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-function SearchIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-    >
-      <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M16 16L21 21" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 export function HeroSearchForm() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -39,7 +25,7 @@ export function HeroSearchForm() {
             className="pointer-events-none absolute left-5 top-1/2 z-10 -translate-y-1/2 text-[#727975]/82"
             aria-hidden="true"
           >
-            <SearchIcon />
+            <Search size={16} strokeWidth={1.9} />
           </span>
           <Input
             ref={inputRef}

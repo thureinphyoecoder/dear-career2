@@ -2,7 +2,7 @@
 
 from django.conf import settings
 
-from jobs.models import Job
+from jobs.models import ChannelCredential, Job
 
 
 def publish_job(job: Job, *, channel: str = "website") -> dict:
@@ -16,6 +16,13 @@ def publish_job(job: Job, *, channel: str = "website") -> dict:
     if channel == "facebook":
         page_id = getattr(settings, "FACEBOOK_PAGE_ID", "")
         access_token = getattr(settings, "FACEBOOK_PAGE_ACCESS_TOKEN", "")
+        if not page_id or not access_token:
+            credential = ChannelCredential.objects.filter(
+                platform=ChannelCredential.PlatformChoices.FACEBOOK
+            ).first()
+            if credential:
+                page_id = page_id or credential.page_id
+                access_token = access_token or credential.access_token
         if not page_id or not access_token:
             return {
                 "job_id": job.id,

@@ -195,3 +195,24 @@ class FeedbackMessage(models.Model):
 
     def __str__(self):
         return f"{self.subject} · {self.email}"
+
+
+class ChannelCredential(models.Model):
+    class PlatformChoices(models.TextChoices):
+        FACEBOOK = "facebook", "Facebook"
+
+    platform = models.CharField(
+        max_length=32,
+        choices=PlatformChoices.choices,
+        unique=True,
+    )
+    account_name = models.CharField(max_length=120, blank=True)
+    page_id = models.CharField(max_length=120, blank=True)
+    access_token = models.TextField(blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["platform"]
+
+    def __str__(self):
+        return self.platform

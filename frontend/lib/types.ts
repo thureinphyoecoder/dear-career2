@@ -18,6 +18,8 @@ export type Job = {
   source?: string;
   source_url?: string;
   is_active?: boolean;
+  requires_website_approval?: boolean;
+  requires_facebook_approval?: boolean;
   status?: JobStatus;
   description_mm?: string;
   description_en?: string;
@@ -81,6 +83,14 @@ export type AdminDashboardSnapshot = {
   sources: FetchSource[];
 };
 
+export type FacebookPageCredential = {
+  platform: "facebook";
+  account_name: string;
+  page_id: string;
+  access_token: string;
+  updated_at?: string;
+};
+
 export type FetchSettings = {
   cadence_value: number;
   cadence_unit: FetchIntervalUnit;
@@ -90,4 +100,5 @@ export type FetchSettings = {
   facebook_auto_upload: boolean;
   realtime_notifications: boolean;
   sources: FetchSource[];
+  facebook: FacebookPageCredential;
 };
