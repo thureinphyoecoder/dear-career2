@@ -1,12 +1,13 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { Bell, BellDot, CheckCircle2, AlertCircle, Info, LoaderCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { useAdminNotificationsQuery } from "@/lib/admin-queries";
+import { adminQueryKeys } from "@/lib/admin-query-keys";
 import type { AdminNotification } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-const ADMIN_DATA_CHANGED_EVENT = "admin-data-changed";
 
 function formatRelativeTime(value?: string) {
   if (!value) return "";
@@ -37,77 +38,44 @@ function NotificationToneIcon({ tone }: { tone: AdminNotification["tone"] }) {
   return <Info className="h-4 w-4 text-[#6c7b72]" />;
 }
 
-export function AdminNotificationBell() {
-  const [items, setItems] = useState<AdminNotification[]>([]);
+export function AdminNotificationBell({
+  initialNotifications = [],
+}: {
+  initialNotifications?: AdminNotification[];
+}) {
+  const queryClient = useQueryClient();
+  const notificationsQuery = useAdminNotificationsQuery(initialNotifications);
+  const items = notificationsQuery.data ?? [];
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [streamError, setStreamError] = useState("");
   const [hasFreshItem, setHasFreshItem] = useState(false);
   const shellRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadNotifications() {
-      try {
-        const response = await fetch("/api/admin/proxy/jobs/admin/notifications", {
-          cache: "no-store",
-        });
-        if (!response.ok) {
-          throw new Error("Unable to load notifications.");
-        }
-        const data = (await response.json()) as { results: AdminNotification[] };
-        if (!cancelled) {
-          setItems(data.results);
-          setStreamError("");
-        }
-      } catch {
-        if (!cancelled) {
-          setStreamError("Notifications are temporarily unavailable.");
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadNotifications();
-
     const eventSource = new EventSource("/api/admin/proxy/jobs/admin/notifications/stream");
     eventSource.addEventListener("notification", (event) => {
       const message = event as MessageEvent<string>;
       try {
         const parsed = JSON.parse(message.data) as AdminNotification;
-        if (cancelled) return;
-        setItems((current) => [parsed, ...current.filter((item) => item.id !== parsed.id)].slice(0, 12));
+        queryClient.setQueryData(
+          adminQueryKeys.notifications,
+          (current: AdminNotification[] | undefined) =>
+            [parsed, ...(current ?? []).filter((item) => item.id !== parsed.id)].slice(0, 12),
+        );
         setHasFreshItem(true);
         setStreamError("");
       } catch {
-        if (!cancelled) {
-          setStreamError("A notification update could not be read.");
-        }
+        setStreamError("A notification update could not be read.");
       }
     });
     eventSource.onerror = () => {
-      if (!cancelled) {
-        setStreamError("Live updates paused. Reconnecting...");
-      }
+      setStreamError("Live updates paused. Reconnecting...");
     };
-
-    function handleAdminDataChanged() {
-      setHasFreshItem(true);
-      void loadNotifications();
-    }
-
-    window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handleAdminDataChanged);
 
     return () => {
-      cancelled = true;
-      window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handleAdminDataChanged);
       eventSource.close();
     };
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -147,21 +115,24 @@ export function AdminNotificationBell() {
         <div className="absolute right-0 z-30 mt-2 grid w-[360px] gap-3 rounded-2xl border border-border/70 bg-white p-3 shadow-[0_20px_50px_rgba(44,56,48,0.08)]">
           <div className="flex items-center justify-between px-1">
             <div className="text-sm font-medium text-[#334039]">Notifications</div>
-            {isLoading ? (
+            {notificationsQuery.isLoading ? (
               <LoaderCircle className="h-4 w-4 animate-spin text-[#7f9582]" />
             ) : (
               <span className="text-xs text-[#7f9582]">Live</span>
             )}
           </div>
 
-          {streamError ? (
+          {streamError || notificationsQuery.error ? (
             <div className="rounded-xl border border-[rgba(169,97,111,0.2)] bg-[rgba(169,97,111,0.08)] px-3 py-2 text-sm text-[#8e4a4a]">
-              {streamError}
+              {streamError ||
+                (notificationsQuery.error instanceof Error
+                  ? notificationsQuery.error.message
+                  : "Notifications are temporarily unavailable.")}
             </div>
           ) : null}
 
           <div className="grid max-h-[420px] gap-2 overflow-y-auto pr-1">
-            {items.length === 0 && !isLoading ? (
+            {items.length === 0 && !notificationsQuery.isLoading ? (
               <div className="rounded-xl border border-border/70 bg-[#fafbfa] px-3 py-4 text-sm text-[#727975]">
                 No scrape notifications yet.
               </div>

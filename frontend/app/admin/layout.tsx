@@ -1,20 +1,28 @@
 import type { ReactNode } from "react";
 
+import { AdminClientProvider } from "@/components/admin/AdminClientProvider";
 import { AdminShell } from "@/components/admin/AdminShell";
-import { getAdminDashboardSnapshot } from "@/lib/api-admin";
+import { getAdminDashboardSnapshot, getFacebookCredential } from "@/lib/api-admin";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  const snapshot = await getAdminDashboardSnapshot();
+  const [snapshot, facebookProfile] = await Promise.all([
+    getAdminDashboardSnapshot(),
+    getFacebookCredential(),
+  ]);
 
   return (
-    <AdminShell
-      title="Operations"
-      initialSidebarCounts={{
-        publishedJobs: snapshot.published_jobs,
-        pendingApprovals: snapshot.pending_approvals.length,
-      }}
+    <AdminClientProvider
+      initialDashboardSnapshot={snapshot}
+      initialFacebookProfile={facebookProfile}
     >
-      {children}
-    </AdminShell>
+      <AdminShell
+        title="Operations"
+        initialDashboardSnapshot={snapshot}
+        initialFacebookProfile={facebookProfile}
+        initialNotifications={snapshot.notifications}
+      >
+        {children}
+      </AdminShell>
+    </AdminClientProvider>
   );
 }

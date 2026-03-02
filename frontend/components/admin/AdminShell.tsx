@@ -14,29 +14,28 @@ import {
   Shield,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import { AdminNotificationBell } from "@/components/admin/AdminNotificationBell";
 import { BrandLogo } from "@/components/public/BrandLogo";
 import { buttonVariants } from "@/components/ui/button";
-import type { FacebookPageCredential } from "@/lib/types";
+import { useAdminDashboardQuery, useFacebookCredentialQuery } from "@/lib/admin-queries";
+import { useAdminShellStore } from "@/lib/admin-store";
+import type { AdminDashboardSnapshot, AdminNotification, FacebookPageCredential } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-const ADMIN_DATA_CHANGED_EVENT = "admin-data-changed";
 
 export function AdminShell({
   children,
   title = "Admin",
+  initialDashboardSnapshot,
   initialFacebookProfile,
-  initialSidebarCounts,
+  initialNotifications = [],
 }: {
   children: ReactNode;
   title?: string;
+  initialDashboardSnapshot?: AdminDashboardSnapshot;
   initialFacebookProfile?: FacebookPageCredential | null;
-  initialSidebarCounts?: {
-    publishedJobs: number;
-    pendingApprovals: number;
-  };
+  initialNotifications?: AdminNotification[];
 }) {
   const pathname = usePathname();
   const djangoAdminUrl =
@@ -52,21 +51,26 @@ export function AdminShell({
       href: `/admin/${segments.slice(0, index + 1).join("/")}`,
       isLast: index === segments.length - 1,
     }));
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [facebookProfile, setFacebookProfile] = useState<FacebookPageCredential | null>(
-    initialFacebookProfile &&
-      (initialFacebookProfile.profile_name ||
-        initialFacebookProfile.account_name ||
-        initialFacebookProfile.profile_image_url)
-      ? initialFacebookProfile
-      : null,
-  );
-  const [sidebarCounts, setSidebarCounts] = useState(
-    initialSidebarCounts ?? {
-      publishedJobs: 0,
-      pendingApprovals: 0,
-    },
-  );
+  const sidebarCollapsed = useAdminShellStore((state) => state.sidebarCollapsed);
+  const setSidebarCollapsed = useAdminShellStore((state) => state.setSidebarCollapsed);
+  const sidebarCounts = useAdminShellStore((state) => state.sidebarCounts);
+  const facebookProfile = useAdminShellStore((state) => state.facebookProfile);
+  const hydrateFromSnapshot = useAdminShellStore((state) => state.hydrateFromSnapshot);
+  const setFacebookProfile = useAdminShellStore((state) => state.setFacebookProfile);
+  const dashboardQuery = useAdminDashboardQuery(initialDashboardSnapshot);
+  const facebookCredentialQuery = useFacebookCredentialQuery(initialFacebookProfile);
+
+  useEffect(() => {
+    if (dashboardQuery.data) {
+      hydrateFromSnapshot(dashboardQuery.data);
+    }
+  }, [dashboardQuery.data, hydrateFromSnapshot]);
+
+  useEffect(() => {
+    if (facebookCredentialQuery.data) {
+      setFacebookProfile(facebookCredentialQuery.data);
+    }
+  }, [facebookCredentialQuery.data, setFacebookProfile]);
 
   const navGroups = [
     {
@@ -143,51 +147,6 @@ export function AdminShell({
     },
   ];
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadShellState() {
-      try {
-        const [facebookResponse, dashboardResponse] = await Promise.all([
-          fetch("/api/admin/proxy/jobs/admin/channels/facebook"),
-          fetch("/api/admin/proxy/jobs/admin/dashboard"),
-        ]);
-
-        if (facebookResponse.ok) {
-          const data = (await facebookResponse.json()) as FacebookPageCredential;
-          if (!cancelled && (data.profile_name || data.account_name || data.profile_image_url)) {
-            setFacebookProfile(data);
-          }
-        }
-
-        if (dashboardResponse.ok) {
-          const data = (await dashboardResponse.json()) as {
-            published_jobs?: number;
-            pending_approvals?: Array<unknown>;
-          };
-          if (!cancelled) {
-            setSidebarCounts({
-              publishedJobs: data.published_jobs ?? 0,
-              pendingApprovals: data.pending_approvals?.length ?? 0,
-            });
-          }
-        }
-      } catch {
-        // Ignore shell refresh failures and keep the initial render responsive.
-      }
-    }
-
-    void loadShellState();
-    function handleAdminDataChanged() {
-      void loadShellState();
-    }
-    window.addEventListener(ADMIN_DATA_CHANGED_EVENT, handleAdminDataChanged);
-    return () => {
-      cancelled = true;
-      window.removeEventListener(ADMIN_DATA_CHANGED_EVENT, handleAdminDataChanged);
-    };
-  }, []);
-
   return (
     <div
       className={cn(
@@ -233,9 +192,7 @@ export function AdminShell({
                     <ChevronDown
                       size={16}
                       strokeWidth={1.9}
-                      className={cn(
-                        "ml-auto transition-transform group-open:rotate-180",
-                      )}
+                      className="ml-auto transition-transform group-open:rotate-180"
                     />
                   ) : null}
                 </summary>
@@ -349,7 +306,7 @@ export function AdminShell({
                 </span>
               </div>
             ) : null}
-            <AdminNotificationBell />
+            <AdminNotificationBell initialNotifications={initialNotifications} />
             <form action="/api/admin/session/logout" method="post">
               <input type="hidden" name="redirect" value="/admin/login" />
               <button

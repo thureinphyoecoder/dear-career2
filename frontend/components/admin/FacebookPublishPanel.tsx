@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AlertCircle, CheckCircle2, Send } from "lucide-react";
@@ -11,10 +12,9 @@ import {
   validateFacebookPublishFields,
   type FacebookPublishFieldErrors,
 } from "@/lib/admin-form-validation";
+import { adminQueryKeys } from "@/lib/admin-query-keys";
 import type { Job } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-const ADMIN_DATA_CHANGED_EVENT = "admin-data-changed";
 
 function buildDefaultMessage(job: Job) {
   const lines = [job.title, `${job.company} · ${job.location}`];
@@ -30,6 +30,7 @@ function buildDefaultMessage(job: Job) {
 
 export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [selectedJobId, setSelectedJobId] = useState<string>(jobs[0] ? String(jobs[0].id) : "");
   const [message, setMessage] = useState<string>(jobs[0] ? buildDefaultMessage(jobs[0]) : "");
   const [error, setError] = useState("");
@@ -41,6 +42,40 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
     () => jobs.find((job) => String(job.id) === selectedJobId) ?? null,
     [jobs, selectedJobId],
   );
+  const publishMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/admin/proxy/jobs/admin/channels/facebook/publish", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          job_id: selectedJobId,
+          message,
+        }),
+      });
+
+      const text = await response.text();
+      if (!response.ok) {
+        throw new Error(text || "Facebook publish failed.");
+      }
+
+      return text;
+    },
+    onSuccess: () => {
+      const nextSuccess = "Post published to the connected Facebook page.";
+      setSuccess(nextSuccess);
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.jobs });
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.dashboard });
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.notifications });
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.facebookCredential });
+      router.refresh();
+      toast.success(nextSuccess);
+    },
+    onError: (error) => {
+      const nextError = error instanceof Error ? error.message : "Facebook publish failed. Try again.";
+      setError(nextError);
+      toast.error(nextError);
+    },
+  });
 
   function handleJobChange(nextId: string) {
     setSelectedJobId(nextId);
@@ -74,32 +109,7 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
 
     setSubmitting(true);
     try {
-      const response = await fetch("/api/admin/proxy/jobs/admin/channels/facebook/publish", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          job_id: selectedJobId,
-          message,
-        }),
-      });
-
-      const text = await response.text();
-      if (!response.ok) {
-        const nextError = text || "Facebook publish failed.";
-        setError(nextError);
-        toast.error(nextError);
-        return;
-      }
-
-      const nextSuccess = "Post published to the connected Facebook page.";
-      setSuccess(nextSuccess);
-      window.dispatchEvent(new CustomEvent(ADMIN_DATA_CHANGED_EVENT));
-      router.refresh();
-      toast.success(nextSuccess);
-    } catch {
-      const nextError = "Facebook publish failed. Try again.";
-      setError(nextError);
-      toast.error(nextError);
+      await publishMutation.mutateAsync();
     } finally {
       setSubmitting(false);
     }

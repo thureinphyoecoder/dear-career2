@@ -197,7 +197,7 @@ export function AdminLoginForm({
           />
           <button
             type="button"
-            className={`absolute right-2 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border transition-all duration-200 ${
+            className={`absolute right-2 top-1/2 z-10 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border transition-all duration-200 ${
               showPassword
                 ? "scale-105 border-[rgba(116,141,122,0.28)] bg-[rgba(144,168,147,0.22)] text-[#5c7162] shadow-[0_8px_20px_rgba(116,141,122,0.16)]"
                 : "border-[rgba(144,168,147,0.18)] bg-[rgba(255,253,249,0.96)] text-[#8a968c] hover:border-[rgba(144,168,147,0.22)] hover:bg-[rgba(144,168,147,0.08)]"
@@ -205,6 +205,7 @@ export function AdminLoginForm({
             aria-label={showPassword ? "Hide password" : "Show password"}
             aria-pressed={showPassword}
             title={showPassword ? "Hide password" : "Show password"}
+            onMouseDown={(event) => event.preventDefault()}
             onClick={() => setShowPassword((value) => !value)}
           >
             {showPassword ? (

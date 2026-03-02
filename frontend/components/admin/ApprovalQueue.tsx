@@ -1,19 +1,19 @@
 "use client";
 
-import Link from "next/link";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Check, Eye, PencilLine, Trash2 } from "lucide-react";
+import { Check } from "lucide-react";
 import { toast } from "sonner";
 
 import { buttonVariants } from "@/components/ui/button";
-import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { useAdminJobsQuery } from "@/lib/admin-queries";
+import { adminQueryKeys } from "@/lib/admin-query-keys";
 import { normalizeServerError } from "@/lib/form-validation";
 import { cn } from "@/lib/utils";
 import type { Job } from "@/lib/types";
 
 const PAGE_SIZE = 10;
 const VIEWED_STORAGE_KEY = "admin-pending-viewed-jobs";
-const ADMIN_DATA_CHANGED_EVENT = "admin-data-changed";
 
 function formatRequestedAction(job: Job) {
   const actions: string[] = [];
@@ -30,17 +30,14 @@ function formatDate(value?: string) {
   }).format(new Date(value));
 }
 
-function emitAdminDataChanged() {
-  window.dispatchEvent(new CustomEvent(ADMIN_DATA_CHANGED_EVENT));
-}
-
 export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
-  const [jobState, setJobState] = useState<Job[]>(jobs);
+  const queryClient = useQueryClient();
+  const jobsQuery = useAdminJobsQuery(jobs);
   const [workingId, setWorkingId] = useState<number | null>(null);
-  const [pendingDeleteJob, setPendingDeleteJob] = useState<Job | null>(null);
   const [actionError, setActionError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [viewedJobIds, setViewedJobIds] = useState<number[]>([]);
+  const jobState = jobsQuery.data ?? jobs;
 
   const orderedJobs = useMemo(
     () =>
@@ -78,21 +75,14 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
     window.localStorage.setItem(VIEWED_STORAGE_KEY, JSON.stringify(nextViewedIds));
   }
 
-  function markViewed(jobId: number) {
-    if (viewedJobIds.includes(jobId)) return;
-    persistViewed([...viewedJobIds, jobId]);
-  }
-
   function removeViewed(jobId: number) {
     if (!viewedJobIds.includes(jobId)) return;
     persistViewed(viewedJobIds.filter((id) => id !== jobId));
   }
 
-  async function approveJob(job: Job) {
-    setWorkingId(job.id);
-    setActionError("");
-
-    try {
+  const approveMutation = useMutation({
+    mutationFn: async (job: Job) => {
+      const publishToFacebook = Boolean(job.requires_facebook_approval);
       const response = await fetch(`/api/admin/proxy/jobs/admin/jobs/${job.id}`, {
         method: "PATCH",
         headers: {
@@ -102,7 +92,7 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
           status: "published",
           is_active: true,
           requires_website_approval: false,
-          requires_facebook_approval: false,
+          requires_facebook_approval: publishToFacebook ? true : false,
         }),
       });
 
@@ -111,48 +101,56 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
         throw new Error(normalizeServerError(detail, "Unable to approve job."));
       }
 
-      setJobState((current) => current.filter((item) => item.id !== job.id));
+      if (publishToFacebook) {
+        const publishResponse = await fetch("/api/admin/proxy/jobs/admin/channels/facebook/publish", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            job_id: job.id,
+          }),
+        });
+
+        if (!publishResponse.ok) {
+          const detail = await publishResponse.text();
+          throw new Error(normalizeServerError(detail, "Approved website publish, but Facebook posting failed."));
+        }
+      }
+
+      return {
+        job,
+        publishToFacebook,
+      };
+    },
+    onSuccess: ({ job, publishToFacebook }) => {
+      queryClient.setQueryData<Job[]>(
+        adminQueryKeys.jobs,
+        (current) => current?.filter((item) => item.id !== job.id) ?? [],
+      );
       removeViewed(job.id);
-      emitAdminDataChanged();
-      toast.success(`Approved ${job.title}.`);
-    } catch (error) {
+      toast.success(
+        publishToFacebook ? `Approved and posted ${job.title} to Facebook.` : `Approved ${job.title}.`,
+      );
+    },
+    onError: (error) => {
       const nextError = error instanceof Error ? error.message : "Unable to approve job.";
       setActionError(nextError);
       toast.error(nextError);
-    } finally {
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.jobs });
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.dashboard });
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.notifications });
+      void queryClient.invalidateQueries({ queryKey: adminQueryKeys.facebookCredential });
       setWorkingId(null);
-    }
-  }
+    },
+  });
 
-  async function deleteJob() {
-    if (!pendingDeleteJob) return;
-
-    setWorkingId(pendingDeleteJob.id);
+  async function approveJob(job: Job) {
+    setWorkingId(job.id);
     setActionError("");
-    try {
-      const response = await fetch(`/api/admin/proxy/jobs/admin/jobs/${pendingDeleteJob.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const detail = await response.text();
-        throw new Error(normalizeServerError(detail, "Unable to delete job."));
-      }
-
-      setJobState((current) =>
-        current.filter((item) => item.id !== pendingDeleteJob.id),
-      );
-      removeViewed(pendingDeleteJob.id);
-      emitAdminDataChanged();
-      toast.success(`Deleted ${pendingDeleteJob.title}.`);
-      setPendingDeleteJob(null);
-    } catch (error) {
-      const nextError = error instanceof Error ? error.message : "Unable to delete job.";
-      setActionError(nextError);
-      toast.error(nextError);
-    } finally {
-      setWorkingId(null);
-    }
+    await approveMutation.mutateAsync(job);
   }
 
   return (
@@ -175,16 +173,18 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
                 <article
                   key={job.id}
                   className={cn(
-                    "flex flex-col gap-4 px-6 py-4 sm:flex-row sm:items-center sm:justify-between",
+                    "grid gap-4 px-6 py-4 xl:grid-cols-[minmax(0,680px)_minmax(188px,220px)] xl:items-center xl:justify-between xl:gap-8",
                     index > 0 && "border-t border-border/60",
                     isViewed
                       ? "bg-white"
                       : "border-l-[3px] border-l-[#8da693] bg-[rgba(144,168,147,0.08)]",
                   )}
                 >
-                  <div className="grid gap-1.5">
+                  <div className="min-w-0 max-w-[680px] grid gap-1.5">
                     <div className="flex flex-wrap items-center gap-2">
-                      <strong className="font-medium text-[#334039]">{job.title}</strong>
+                      <strong className="break-words text-[1.02rem] font-medium leading-7 text-[#334039]">
+                        {job.title}
+                      </strong>
                       <span
                         className={cn(
                           "inline-flex rounded-full px-2.5 py-1 text-[0.68rem] uppercase tracking-[0.12em]",
@@ -204,58 +204,19 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
                       <span>{formatDate(job.updated_at ?? job.created_at)}</span>
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Link
-                      href={`/admin/jobs/${job.id}`}
-                      onClick={() => {
-                        markViewed(job.id);
-                        toast("Opening job details.");
-                      }}
-                      className={cn(
-                        buttonVariants({ variant: "secondary" }),
-                        "rounded-xl border-border/70 bg-white text-[#6f7b73] hover:bg-[#f3f7f4] hover:text-[#334039]",
-                      )}
-                    >
-                      <Eye className="h-4 w-4" />
-                      View
-                    </Link>
+                  <div className="relative z-10 flex items-center justify-start pointer-events-auto xl:justify-end">
                     <button
                       type="button"
-                      className={cn(
-                        buttonVariants({ variant: "secondary" }),
-                        "rounded-xl border-[rgba(116,141,122,0.28)] bg-[rgba(144,168,147,0.08)] text-[#4f6354] hover:bg-[rgba(144,168,147,0.16)]",
-                      )}
+                      className={cn(buttonVariants(), "min-w-[188px] rounded-xl")}
                       disabled={workingId === job.id}
                       onClick={() => void approveJob(job)}
                     >
                       <Check className="h-4 w-4" />
-                      {workingId === job.id ? "Working..." : "Approve"}
-                    </button>
-                    <Link
-                      href={`/admin/jobs/${job.id}`}
-                      onClick={() => {
-                        markViewed(job.id);
-                        toast("Opening editor.");
-                      }}
-                      className={cn(
-                        buttonVariants({ variant: "secondary" }),
-                        "rounded-xl border-border/70 bg-white text-[#6f7b73] hover:bg-[#f3f7f4] hover:text-[#334039]",
-                      )}
-                    >
-                      <PencilLine className="h-4 w-4" />
-                      Edit
-                    </Link>
-                    <button
-                      type="button"
-                      className={cn(
-                        buttonVariants({ variant: "secondary" }),
-                        "rounded-xl border-border/70 bg-white text-[#8e4a4a] hover:border-[rgba(169,97,111,0.28)] hover:bg-[rgba(169,97,111,0.08)]",
-                      )}
-                      disabled={workingId === job.id}
-                      onClick={() => setPendingDeleteJob(job)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete
+                      {workingId === job.id
+                        ? "Working..."
+                        : job.requires_facebook_approval
+                          ? "Approve + Post"
+                          : "Approve"}
                     </button>
                   </div>
                 </article>
@@ -313,23 +274,6 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
           </>
         )}
       </div>
-
-      <ConfirmModal
-        open={Boolean(pendingDeleteJob)}
-        title="Delete pending job"
-        description={
-          pendingDeleteJob
-            ? `This will permanently remove "${pendingDeleteJob.title}" from the approval queue.`
-            : ""
-        }
-        confirmLabel="Delete"
-        isLoading={Boolean(pendingDeleteJob && workingId === pendingDeleteJob.id)}
-        onConfirm={() => void deleteJob()}
-        onCancel={() => {
-          if (workingId) return;
-          setPendingDeleteJob(null);
-        }}
-      />
     </div>
   );
 }

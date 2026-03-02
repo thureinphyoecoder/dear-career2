@@ -4,7 +4,24 @@ import { getAdminApiHeaders } from "@/lib/admin-api-auth";
 
 const ADMIN_API_BASE_URL =
   process.env.DJANGO_ADMIN_API_BASE_URL ?? "http://127.0.0.1:8000/api";
-const ADMIN_PROXY_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 4000 : 1200;
+const ADMIN_PROXY_READ_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 4000 : 2000;
+const ADMIN_PROXY_WRITE_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 20000 : 20000;
+
+function getProxyTimeoutMs(request: NextRequest, normalizedPath: string) {
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    return ADMIN_PROXY_WRITE_TIMEOUT_MS;
+  }
+
+  if (
+    normalizedPath.endsWith("channels/facebook/posts") ||
+    normalizedPath.endsWith("channels/facebook/publish") ||
+    normalizedPath.endsWith("jobs/scrape")
+  ) {
+    return ADMIN_PROXY_WRITE_TIMEOUT_MS;
+  }
+
+  return ADMIN_PROXY_READ_TIMEOUT_MS;
+}
 
 async function proxyRequest(
   request: NextRequest,
@@ -33,11 +50,12 @@ async function proxyRequest(
     const wantsEventStream =
       request.headers.get("accept")?.includes("text/event-stream") ||
       normalizedPath.endsWith("notifications/stream");
+    const timeoutMs = getProxyTimeoutMs(request, normalizedPath);
 
     const response = await fetch(target, {
       method: request.method,
       cache: "no-store",
-      signal: wantsEventStream ? undefined : AbortSignal.timeout(ADMIN_PROXY_TIMEOUT_MS),
+      signal: wantsEventStream ? undefined : AbortSignal.timeout(timeoutMs),
       headers,
       body:
         request.method === "GET" || request.method === "HEAD"
@@ -65,7 +83,13 @@ async function proxyRequest(
         "content-type": contentType,
       },
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.name === "TimeoutError") {
+      return NextResponse.json(
+        { detail: "Proxy target timed out." },
+        { status: 504 },
+      );
+    }
     return NextResponse.json(
       { detail: "Proxy target is unavailable." },
       { status: 502 },
