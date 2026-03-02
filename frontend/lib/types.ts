@@ -122,7 +122,20 @@ export type FacebookPageCredential = {
   account_name: string;
   page_id: string;
   access_token: string;
+  profile_name?: string;
+  profile_image_url?: string;
   updated_at?: string;
+};
+
+export type FacebookPagePost = {
+  id: string;
+  message?: string;
+  permalink_url?: string;
+  created_time?: string;
+  full_picture?: string;
+  reactions_count: number;
+  comments_count: number;
+  shares_count: number;
 };
 
 export type FetchSettings = {

@@ -41,7 +41,11 @@ function normalizeErrorDetail(detail: string) {
     const parsed = JSON.parse(detail) as { detail?: string; error?: string; message?: string };
     return (parsed.detail || parsed.error || parsed.message || trimmed).trim();
   } catch {
-    return trimmed.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    const normalized = trimmed.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    if (normalized.includes("APPEND_SLASH") || normalized.includes("trailing slash")) {
+      return "The source fetch endpoint was requested with the wrong URL format. Try again.";
+    }
+    return normalized;
   }
 }
 

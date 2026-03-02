@@ -3,6 +3,7 @@ import type {
   AdminNotification,
   ApprovalItem,
   FacebookPageCredential,
+  FacebookPagePost,
   FetchSettings,
   FetchSource,
   Job,
@@ -293,7 +294,7 @@ async function getAdminSources(): Promise<FetchSource[]> {
   }
 }
 
-async function getFacebookCredential(): Promise<FacebookPageCredential> {
+export async function getFacebookCredential(): Promise<FacebookPageCredential> {
   try {
     const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/channels/facebook/`, {
       ...getAdminFetchOptions(),
@@ -316,6 +317,23 @@ async function getFacebookCredential(): Promise<FacebookPageCredential> {
       page_id: "",
       access_token: "",
     };
+  }
+}
+
+export async function getFacebookPagePosts(): Promise<FacebookPagePost[]> {
+  try {
+    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/channels/facebook/posts/`, {
+      ...getAdminFetchOptions(),
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = (await response.json()) as { results: FacebookPagePost[] };
+    return data.results;
+  } catch {
+    return [];
   }
 }
 
@@ -354,12 +372,32 @@ export async function getManagedAds(): Promise<ManagedAd[]> {
   }
 }
 
+export async function getAdminNotifications(): Promise<AdminNotification[]> {
+  try {
+    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/notifications/`, {
+      ...getAdminFetchOptions(),
+    });
+
+    if (!response.ok) {
+      const jobs = await getAdminJobs();
+      return createFallbackNotifications(jobs);
+    }
+
+    const data = (await response.json()) as { results: AdminNotification[] };
+    return data.results;
+  } catch {
+    const jobs = await getAdminJobs();
+    return createFallbackNotifications(jobs);
+  }
+}
+
 export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapshot> {
-  const [jobs, sources, visitors, ads] = await Promise.all([
+  const [jobs, sources, visitors, ads, notifications] = await Promise.all([
     getAdminJobs(),
     getAdminSources(),
     getVisitorSummary(),
     getManagedAds(),
+    getAdminNotifications(),
   ]);
   const publishedJobs = jobs.filter((job) => job.is_active !== false).length;
   const sourceCount = new Set(jobs.map((job) => job.source).filter(Boolean)).size;
@@ -372,7 +410,7 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     total_visitors: visitors.total_visitors,
     active_ads: ads.filter((ad) => ad.status === "active").length,
     pending_approvals: createFallbackApprovals(jobs),
-    notifications: createFallbackNotifications(jobs),
+    notifications,
     sources,
   };
 }

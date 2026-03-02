@@ -1,11 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { CheckCircle2, LoaderCircle, Settings2, Zap } from "lucide-react";
+import { useMemo, useState } from "react";
+import { AlertCircle, CheckCircle2, Link2, LoaderCircle, Plus, Settings2, Trash2, Zap } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Input } from "@/components/ui/input";
 import { isValidHttpUrl, normalizeServerError } from "@/lib/form-validation";
 import { cn } from "@/lib/utils";
@@ -28,12 +29,29 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
   const [sourceState, setSourceState] = useState<Record<number, FetchSource>>(
     Object.fromEntries(sources.map((source) => [source.id, source])),
   );
+  const [newSource, setNewSource] = useState({
+    feed_url: "",
+  });
   const [openSourceId, setOpenSourceId] = useState<number | null>(null);
   const [savingId, setSavingId] = useState<number | null>(null);
   const [runningId, setRunningId] = useState<number | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [intakingId, setIntakingId] = useState<number | null>(null);
+  const [targetDeleteId, setTargetDeleteId] = useState<number | null>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [globalMessage, setGlobalMessage] = useState("");
+  const [globalError, setGlobalError] = useState("");
   const [statusMessage, setStatusMessage] = useState<Record<number, string>>({});
   const [statusError, setStatusError] = useState<Record<number, string>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<number, Record<string, string>>>({});
+  const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
+  const [manualIntakeUrls, setManualIntakeUrls] = useState<Record<number, string>>({});
+
+  const orderedSources = useMemo(
+    () => Object.values(sourceState).sort((left, right) => left.label.localeCompare(right.label)),
+    [sourceState],
+  );
 
   function updateSource(sourceId: number, patch: Partial<FetchSource>) {
     setSourceState((current) => ({
@@ -42,6 +60,13 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
         ...current[sourceId],
         ...patch,
       },
+    }));
+  }
+
+  function updateManualIntakeUrl(sourceId: number, value: string) {
+    setManualIntakeUrls((current) => ({
+      ...current,
+      [sourceId]: value,
     }));
   }
 
@@ -59,6 +84,75 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
       nextErrors.max_jobs_per_run = "Max jobs per run must be at least 1.";
     }
     return nextErrors;
+  }
+
+  function validateNewSource() {
+    const nextErrors: Record<string, string> = {};
+    if (!newSource.feed_url.trim()) {
+      nextErrors.feed_url = "Paste a source URL first.";
+    }
+    if (newSource.feed_url.trim() && !isValidHttpUrl(newSource.feed_url)) {
+      nextErrors.feed_url = "Enter a valid feed URL.";
+    }
+    return nextErrors;
+  }
+
+  async function createSource() {
+    const nextErrors = validateNewSource();
+    setCreateErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      setGlobalError("Please fix the new source fields.");
+      setGlobalMessage("");
+      return;
+    }
+
+    setCreating(true);
+    setGlobalError("");
+    setGlobalMessage("");
+
+    try {
+      const response = await fetch("/api/admin/proxy/jobs/admin/sources/create/", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          feed_url: newSource.feed_url.trim(),
+          enabled: true,
+          requires_manual_url: true,
+          auto_publish_website: false,
+          auto_publish_facebook: false,
+          approval_required_for_website: true,
+          approval_required_for_facebook: true,
+          cadence_value: 30,
+          cadence_unit: "minutes",
+          max_jobs_per_run: 25,
+          status: "warning",
+          mode: "manual",
+          default_category: "white-collar",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          normalizeServerError(await response.text(), "Unable to create source."),
+        );
+      }
+
+      const created = (await response.json()) as FetchSource;
+      setSourceState((current) => ({ ...current, [created.id]: created }));
+      setOpenSourceId(created.id);
+      setNewSource({
+        feed_url: "",
+      });
+      setCreateErrors({});
+      setGlobalMessage("Source created. Open Configure to adjust mode or defaults.");
+      router.refresh();
+    } catch (error) {
+      setGlobalError(error instanceof Error ? error.message : "Unable to create source.");
+    } finally {
+      setCreating(false);
+    }
   }
 
   async function saveSource(sourceId: number) {
@@ -122,6 +216,28 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
   }
 
   async function runSource(sourceId: number) {
+    const source = sourceState[sourceId];
+    if (!source) return;
+    if (source.requires_manual_url || source.mode === "manual") {
+      setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
+      setStatusError((current) => ({
+        ...current,
+        [sourceId]:
+          "This source is manual-only. Use Create job > Fetch with a job URL, or switch the source to HTML/RSS first.",
+      }));
+      return;
+    }
+    if (!source.feed_url?.trim()) {
+      setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
+      setStatusError((current) => ({
+        ...current,
+        [sourceId]: "This source has no source URL configured yet.",
+      }));
+      return;
+    }
+
+    setGlobalError("");
+    setGlobalMessage("");
     setRunningId(sourceId);
     setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
     setStatusError((current) => ({ ...current, [sourceId]: "" }));
@@ -156,21 +272,203 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     }
   }
 
+  async function createDraftFromManualSource(sourceId: number) {
+    const source = sourceState[sourceId];
+    const intakeUrl = manualIntakeUrls[sourceId]?.trim() ?? "";
+
+    if (!source) return;
+    if (!intakeUrl) {
+      setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
+      setStatusError((current) => ({
+        ...current,
+        [sourceId]: "Paste a job URL first.",
+      }));
+      return;
+    }
+    if (!isValidHttpUrl(intakeUrl)) {
+      setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
+      setStatusError((current) => ({
+        ...current,
+        [sourceId]: "Enter a valid job URL.",
+      }));
+      return;
+    }
+
+    setIntakingId(sourceId);
+    setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
+    setStatusError((current) => ({ ...current, [sourceId]: "" }));
+
+    try {
+      const scrapeResponse = await fetch("/api/admin/proxy/jobs/admin/jobs/scrape/", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ url: intakeUrl }),
+      });
+
+      if (!scrapeResponse.ok) {
+        throw new Error(
+          normalizeServerError(await scrapeResponse.text(), "Unable to fetch job details from that URL."),
+        );
+      }
+
+      const scraped = (await scrapeResponse.json()) as {
+        title?: string;
+        company?: string;
+        location?: string;
+        employment_type?: string;
+        category?: FetchSource["default_category"];
+        source_url?: string;
+        description_en?: string;
+        description_mm?: string;
+        salary?: string;
+        contact_email?: string;
+        contact_phone?: string;
+      };
+
+      const createResponse = await fetch("/api/admin/proxy/jobs/admin/jobs/create/", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          title: scraped.title?.trim() || "Imported job listing",
+          company: scraped.company?.trim() || source.label,
+          location: scraped.location?.trim() || "Thailand",
+          category: scraped.category || source.default_category,
+          description_mm:
+            scraped.description_mm?.trim() ||
+            scraped.description_en?.trim() ||
+            `Imported from ${source.label}.`,
+          description_en: scraped.description_en?.trim() || "",
+          source: "manual",
+          source_url: scraped.source_url?.trim() || intakeUrl,
+          employment_type: scraped.employment_type?.trim() || "full-time",
+          salary: scraped.salary?.trim() || "",
+          contact_email: scraped.contact_email?.trim() || "",
+          contact_phone: scraped.contact_phone?.trim() || "",
+          status: "draft",
+          is_active: false,
+          requires_website_approval: true,
+          requires_facebook_approval: true,
+        }),
+      });
+
+      if (!createResponse.ok) {
+        throw new Error(
+          normalizeServerError(await createResponse.text(), "Unable to create a draft job from that URL."),
+        );
+      }
+
+      const created = (await createResponse.json()) as { id: number; title?: string };
+      setStatusMessage((current) => ({
+        ...current,
+        [sourceId]: `Draft created for ${created.title || "the imported job"}. Opening editor...`,
+      }));
+      router.push(`/admin/jobs/${created.id}`);
+      router.refresh();
+    } catch (error) {
+      setStatusError((current) => ({
+        ...current,
+        [sourceId]:
+          error instanceof Error ? error.message : "Unable to create a draft job from that URL.",
+      }));
+    } finally {
+      setIntakingId(null);
+    }
+  }
+
+  async function deleteSource() {
+    if (!targetDeleteId) return;
+
+    setDeletingId(targetDeleteId);
+    setGlobalError("");
+    setGlobalMessage("");
+
+    try {
+      const response = await fetch(`/api/admin/proxy/jobs/admin/sources/${targetDeleteId}/`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          normalizeServerError(await response.text(), "Unable to delete source."),
+        );
+      }
+
+      setSourceState((current) => {
+        const next = { ...current };
+        delete next[targetDeleteId];
+        return next;
+      });
+      setOpenSourceId((current) => (current === targetDeleteId ? null : current));
+      setGlobalMessage("Source deleted.");
+      router.refresh();
+    } catch (error) {
+      setGlobalError(error instanceof Error ? error.message : "Unable to delete source.");
+    } finally {
+      setDeletingId(null);
+      setTargetDeleteId(null);
+      setConfirmDeleteOpen(false);
+    }
+  }
+
   return (
     <Card className="border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.92)] shadow-none">
       <CardContent className="grid gap-4 p-5">
+        <section className="grid gap-4 rounded-[20px] border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.74)] p-4">
+          <div className="flex items-center gap-2 text-[#334039]">
+            <Plus className="h-4 w-4" />
+            <strong className="font-medium">New source</strong>
+          </div>
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+            <label className="grid gap-2">
+              <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Source URL</span>
+              <Input
+                value={newSource.feed_url}
+                onChange={(event) => setNewSource({ feed_url: event.target.value })}
+                placeholder="https://example.com/jobs or RSS feed"
+              />
+              {createErrors.feed_url ? <span className="text-sm text-[#8e4a4a]">{createErrors.feed_url}</span> : null}
+            </label>
+            <button className={buttonVariants()} type="button" disabled={creating} onClick={() => void createSource()}>
+              {creating ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              {creating ? "Creating..." : "Add source"}
+            </button>
+          </div>
+        </section>
+
+        {globalError ? (
+          <div className="flex items-start gap-2 rounded-md border border-[rgba(169,97,111,0.22)] bg-[rgba(169,97,111,0.08)] px-3 py-2 text-sm text-[#8e4a4a]">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{globalError}</span>
+          </div>
+        ) : null}
+        {globalMessage ? (
+          <div className="flex items-start gap-2 rounded-md border border-[rgba(116,141,122,0.2)] bg-[rgba(144,168,147,0.1)] px-3 py-2 text-sm text-[#4f6354]">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{globalMessage}</span>
+          </div>
+        ) : null}
+
         <div className="grid gap-4 md:grid-cols-2">
-          {sources.map((source) => {
+          {orderedSources.map((source) => {
             const current = sourceState[source.id] ?? source;
             const isOpen = openSourceId === source.id;
             const isSaving = savingId === source.id;
             const isRunning = runningId === source.id;
+            const isIntaking = intakingId === source.id;
             const currentFieldErrors = fieldErrors[source.id] ?? {};
+            const intakeUrl = manualIntakeUrls[source.id] ?? "";
 
             return (
               <article
                 key={source.id}
-                className="grid gap-4 rounded-[20px] border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.74)] p-4"
+                className={cn(
+                  "grid gap-4 rounded-[20px] border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.74)] p-4 transition-colors",
+                  isOpen && "border-[rgba(116,141,122,0.28)] bg-[rgba(246,250,247,0.96)]",
+                )}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -211,26 +509,75 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
 
                 <div className="flex flex-wrap gap-2">
                   <button
-                    className={buttonVariants({ variant: "secondary" })}
+                    className={cn(
+                      buttonVariants({ variant: "secondary" }),
+                      isOpen && "border-[rgba(116,141,122,0.24)] bg-[rgba(144,168,147,0.12)] text-[#30423a]",
+                    )}
                     type="button"
-                    onClick={() => setOpenSourceId(isOpen ? null : source.id)}
+                    onClick={() => {
+                      setGlobalError("");
+                      setGlobalMessage("");
+                      setOpenSourceId(isOpen ? null : source.id);
+                    }}
                   >
                     <Settings2 className="h-4 w-4" />
-                    {isOpen ? "Close" : "Configure"}
+                    {isOpen ? "Close setup" : "Configure"}
                   </button>
                   <button
                     className={buttonVariants({ variant: "secondary" })}
                     type="button"
-                    disabled={isRunning}
+                    disabled={isRunning || isIntaking}
                     onClick={() => void runSource(source.id)}
                   >
                     {isRunning ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
                     {isRunning ? "Running..." : "Run now"}
                   </button>
+                  <button
+                    className={buttonVariants({ variant: "secondary" })}
+                    type="button"
+                    onClick={() => {
+                      setTargetDeleteId(source.id);
+                      setConfirmDeleteOpen(true);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </button>
                 </div>
 
                 {isOpen ? (
                   <div className="grid gap-4 border-t border-[rgba(160,183,164,0.16)] pt-4">
+                    <div className="rounded-xl border border-[rgba(116,141,122,0.14)] bg-[rgba(144,168,147,0.08)] px-3 py-2 text-sm text-[#4f6354]">
+                      Editing source configuration for <strong>{current.label}</strong>.
+                    </div>
+                    {current.requires_manual_url || current.mode === "manual" ? (
+                      <div className="grid gap-3 rounded-xl border border-[rgba(160,183,164,0.16)] bg-white px-3 py-3">
+                        <div className="text-sm font-medium text-[#334039]">Manual intake URL</div>
+                        <label className="grid gap-2">
+                          <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Job URL</span>
+                          <div className="relative">
+                            <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8da693]" />
+                            <Input
+                              className="bg-[rgba(255,255,255,0.88)] pl-10"
+                              value={intakeUrl}
+                              onChange={(event) => updateManualIntakeUrl(source.id, event.target.value)}
+                              placeholder="https://example.com/job-post"
+                            />
+                          </div>
+                        </label>
+                        <div className="flex justify-end">
+                          <button
+                            className={buttonVariants()}
+                            type="button"
+                            disabled={isIntaking}
+                            onClick={() => void createDraftFromManualSource(source.id)}
+                          >
+                            {isIntaking ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                            {isIntaking ? "Creating draft..." : "Create draft from URL"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
                     <div className="grid gap-4 md:grid-cols-2">
                       <label className="grid gap-2">
                         <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Label</span>
@@ -379,6 +726,19 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
             );
           })}
         </div>
+        <ConfirmModal
+          open={confirmDeleteOpen}
+          title="Delete source"
+          description="This will remove the selected source and its configuration."
+          confirmLabel="Delete"
+          isLoading={deletingId !== null}
+          onConfirm={() => void deleteSource()}
+          onCancel={() => {
+            if (deletingId !== null) return;
+            setConfirmDeleteOpen(false);
+            setTargetDeleteId(null);
+          }}
+        />
       </CardContent>
     </Card>
   );

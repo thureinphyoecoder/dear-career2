@@ -187,6 +187,7 @@ def _parse_rss_jobs(source: FetchSource, payload: str) -> list[dict[str, Any]]:
 def _parse_html_jobs(source: FetchSource, payload: str) -> list[dict[str, Any]]:
     BeautifulSoup = _import_bs4()
     soup = BeautifulSoup(payload, "html.parser")
+
     entry_selector = _get_selector(source, "entry", "")
     if not entry_selector:
         raise FetchConfigurationError(
@@ -195,21 +196,47 @@ def _parse_html_jobs(source: FetchSource, payload: str) -> list[dict[str, Any]]:
 
     entries = soup.select(entry_selector)
     records: list[dict[str, Any]] = []
-    link_selector = _get_selector(source, "link")
+
+    title_selector = _get_selector(source, "title")  # may be ""
+    link_selector = _get_selector(source, "link")  # may be ""
 
     for index, entry in enumerate(entries):
-        title = _pick_selector_text(entry, _get_selector(source, "title"))
-        company = _pick_selector_text(entry, _get_selector(source, "company")) or source.label
-        location = _pick_selector_text(entry, _get_selector(source, "location")) or "Thailand"
+        # --- Title ---
+        # Normal case: title is inside entry and selector is provided.
+        # Fallback case (like UNJobs): entry itself is <a> and title selector is blank.
+        title = _pick_selector_text(entry, title_selector)
+        if not title:
+            title = _clean_text(entry.get_text(" ", strip=True))
+
+        # --- Company/Location/Description/Salary/Employment ---
+        company = (
+            _pick_selector_text(entry, _get_selector(source, "company")) or source.label
+        )
+        location = (
+            _pick_selector_text(entry, _get_selector(source, "location")) or "Thailand"
+        )
         description = _pick_selector_text(entry, _get_selector(source, "description"))
         salary = _pick_selector_text(entry, _get_selector(source, "salary"))
+
         employment_type = _normalize_employment_type(
             _pick_selector_text(entry, _get_selector(source, "employment_type"))
         )
-        link = _pick_selector_attr(entry, link_selector, "href")
-        link = urljoin(source.feed_url, link) if link else source.feed_url
-        source_job_id = _pick_custom_identifier(entry, source) or link or f"{source.key}-{index}"
 
+        # --- Link ---
+        # Normal case: link is inside entry and link_selector exists.
+        # Fallback: entry itself is <a>.
+        link = _pick_selector_attr(entry, link_selector, "href")
+        if not link:
+            link = _clean_text(entry.get("href", ""))
+
+        link = urljoin(source.feed_url, link) if link else source.feed_url
+
+        # --- Source job id ---
+        source_job_id = (
+            _pick_custom_identifier(entry, source) or link or f"{source.key}-{index}"
+        )
+
+        # Skip empty titles (after fallback)
         if not title:
             continue
 
@@ -239,7 +266,9 @@ def _parse_records(source: FetchSource, payload: str) -> list[dict[str, Any]]:
     if source.mode == FetchSource.ModeChoices.HTML:
         return _parse_html_jobs(source, payload)
 
-    raise FetchConfigurationError(f"{source.label} is configured for manual intake only.")
+    raise FetchConfigurationError(
+        f"{source.label} is configured for manual intake only."
+    )
 
 
 def _apply_publish_policy(job: Job, source: FetchSource) -> int:
@@ -266,7 +295,9 @@ def _apply_publish_policy(job: Job, source: FetchSource) -> int:
     return published
 
 
-def _persist_records(source: FetchSource, records: list[dict[str, Any]]) -> PersistSummary:
+def _persist_records(
+    source: FetchSource, records: list[dict[str, Any]]
+) -> PersistSummary:
     created_count = 0
     updated_count = 0
     published_count = 0

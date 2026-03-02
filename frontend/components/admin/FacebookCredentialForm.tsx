@@ -1,206 +1,212 @@
 "use client";
 
-import { useState } from "react";
-import { CheckCircle2, LoaderCircle } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ExternalLink,
+  Heart,
+  Link2,
+  MessageCircle,
+  Share2,
+} from "lucide-react";
 
+import { FacebookPublishPanel } from "@/components/admin/FacebookPublishPanel";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { normalizeServerError } from "@/lib/form-validation";
-import type { FacebookPageCredential } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import type { FacebookPageCredential, FacebookPagePost, Job } from "@/lib/types";
 
 export function FacebookCredentialForm({
   initialCredential,
+  jobs,
+  posts,
+  oauthConnected = false,
+  oauthError,
+  missingConfig = [],
 }: {
   initialCredential: FacebookPageCredential;
+  jobs: Job[];
+  posts: FacebookPagePost[];
+  oauthConnected?: boolean;
+  oauthError?: string;
+  missingConfig?: string[];
 }) {
-  const [accountName, setAccountName] = useState(initialCredential.account_name);
-  const [pageId, setPageId] = useState(initialCredential.page_id);
-  const [accessToken, setAccessToken] = useState(initialCredential.access_token);
-  const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const [fieldErrors, setFieldErrors] = useState<{
-    accountName?: string;
-    pageId?: string;
-    accessToken?: string;
-  }>({});
+  const hasConnectedPage = Boolean(initialCredential.page_id && initialCredential.access_token);
+  const oauthReady = missingConfig.length === 0;
+  const buttonLabel = hasConnectedPage ? "Reconnect page" : "Connect page";
 
-  const fieldLabelClass = "grid gap-2";
-  const eyebrowClass = "text-xs uppercase tracking-[0.16em] text-[#8da693]";
-
-  function validateCredential() {
-    const nextErrors: {
-      accountName?: string;
-      pageId?: string;
-      accessToken?: string;
-    } = {};
-
-    if (!accountName.trim()) nextErrors.accountName = "Enter the Facebook page name.";
-    if (!pageId.trim()) nextErrors.pageId = "Enter the Facebook page ID.";
-    else if (!/^\d+$/.test(pageId.trim())) nextErrors.pageId = "Page ID should contain digits only.";
-    if (!accessToken.trim()) nextErrors.accessToken = "Enter the page access token.";
-
-    return nextErrors;
+  function formatOauthError(value?: string) {
+    if (!value) return "";
+    if (value === "missing-app-config") {
+      return "Facebook app ID or app secret is missing in server configuration.";
+    }
+    if (value === "invalid-state") {
+      return "Facebook login state could not be verified. Try connecting again.";
+    }
+    if (value === "missing-code") {
+      return "Facebook did not return an authorization code.";
+    }
+    if (value === "facebook-denied") {
+      return "Facebook login was cancelled before page access was granted.";
+    }
+    return decodeURIComponent(value.replace(/\+/g, " "));
   }
 
-  async function saveFacebookCredential() {
-    const nextErrors = validateCredential();
-    setFieldErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) {
-      setError("Please fix the highlighted Facebook fields.");
-      setMessage("");
-      return;
-    }
-
-    setIsSaving(true);
-    setMessage("");
-    setError("");
+  function formatPostDate(value?: string) {
+    if (!value) return "";
 
     try {
-      const response = await fetch("/api/admin/proxy/jobs/admin/channels/facebook/", {
-        method: "PATCH",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          account_name: accountName.trim(),
-          page_id: pageId.trim(),
-          access_token: accessToken.trim(),
-        }),
-      });
-
-      if (!response.ok) {
-        const detail = await response.text();
-        throw new Error(
-          normalizeServerError(detail, "Unable to save Facebook page credential."),
-        );
-      }
-
-      setMessage("Facebook page credential saved.");
-    } catch (saveError) {
-      setError(
-        saveError instanceof Error
-          ? saveError.message
-          : "Unable to save Facebook page credential.",
-      );
-    } finally {
-      setIsSaving(false);
+      return new Intl.DateTimeFormat("en", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(value));
+    } catch {
+      return "";
     }
   }
 
   return (
-    <Card className="border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.92)] shadow-none">
-      <CardContent className="grid gap-5 p-5">
-        <div>
-          <div className={eyebrowClass}>Facebook upload</div>
-          <h2 className="mt-1 text-[1.02rem] font-semibold tracking-[-0.02em] text-foreground">
-            Page credential
-          </h2>
-          <p className="mt-2 max-w-[56ch] text-[0.92rem] leading-6 text-[#727975]">
-            Store Facebook page ID and page access token here. Personal Facebook login
-            passwords should not be entered into the admin.
-          </p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className={fieldLabelClass}>
-            <span className={eyebrowClass}>Page account</span>
-            <Input
-              className="bg-[rgba(255,255,255,0.88)]"
-              value={accountName}
-              onChange={(event) => {
-                const value = event.target.value;
-                setAccountName(value);
-                if (fieldErrors.accountName) {
-                  setFieldErrors((current) => ({
-                    ...current,
-                    accountName: value.trim() ? "" : "Enter the Facebook page name.",
-                  }));
-                }
-              }}
-              placeholder="Dear Career Page"
-              aria-invalid={Boolean(fieldErrors.accountName)}
-            />
-            {fieldErrors.accountName ? (
-              <span className="text-sm text-[#8e4a4a]">{fieldErrors.accountName}</span>
-            ) : null}
-          </label>
-          <label className={fieldLabelClass}>
-            <span className={eyebrowClass}>Page ID</span>
-            <Input
-              className="bg-[rgba(255,255,255,0.88)]"
-              value={pageId}
-              onChange={(event) => {
-                const value = event.target.value;
-                setPageId(value);
-                if (fieldErrors.pageId) {
-                  setFieldErrors((current) => ({
-                    ...current,
-                    pageId: !value.trim()
-                      ? "Enter the Facebook page ID."
-                      : /^\d+$/.test(value.trim())
-                        ? ""
-                        : "Page ID should contain digits only.",
-                  }));
-                }
-              }}
-              placeholder="123456789012345"
-              aria-invalid={Boolean(fieldErrors.pageId)}
-            />
-            {fieldErrors.pageId ? (
-              <span className="text-sm text-[#8e4a4a]">{fieldErrors.pageId}</span>
-            ) : null}
-          </label>
-          <label className={`${fieldLabelClass} md:col-span-2`}>
-            <span className={eyebrowClass}>Page access token</span>
-            <Input
-              className="bg-[rgba(255,255,255,0.88)]"
-              type="password"
-              value={accessToken}
-              onChange={(event) => {
-                const value = event.target.value;
-                setAccessToken(value);
-                if (fieldErrors.accessToken) {
-                  setFieldErrors((current) => ({
-                    ...current,
-                    accessToken: value.trim() ? "" : "Enter the page access token.",
-                  }));
-                }
-              }}
-              placeholder="EAAB..."
-              aria-invalid={Boolean(fieldErrors.accessToken)}
-            />
-            {fieldErrors.accessToken ? (
-              <span className="text-sm text-[#8e4a4a]">{fieldErrors.accessToken}</span>
-            ) : null}
-          </label>
-        </div>
-
-        {error ? (
-          <div className="rounded-md border border-[rgba(169,97,111,0.22)] bg-[rgba(169,97,111,0.08)] px-3 py-2 text-sm text-[#8e4a4a]">
-            {error}
+    <div className="grid gap-6">
+      <Card className="border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.92)] shadow-none">
+        <CardContent className="grid gap-4 p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              {initialCredential.profile_image_url ? (
+                <img
+                  src={initialCredential.profile_image_url}
+                  alt={initialCredential.profile_name || initialCredential.account_name || "Facebook profile"}
+                  className="h-12 w-12 rounded-full object-cover"
+                />
+              ) : (
+                <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[rgba(141,166,147,0.12)] text-[#6f7b73]">
+                  <Link2 className="h-5 w-5" />
+                </span>
+              )}
+              <div className="grid gap-0.5">
+                <strong className="text-[1rem] font-semibold text-[#334039]">
+                  {initialCredential.account_name || initialCredential.profile_name || "Facebook page"}
+                </strong>
+                {hasConnectedPage ? (
+                  <span className="text-sm text-[#727975]">
+                    {initialCredential.page_id ? `Page ID ${initialCredential.page_id}` : "Connected"}
+                  </span>
+                ) : (
+                  <span className="text-sm text-[#727975]">Not connected</span>
+                )}
+              </div>
+            </div>
+            <a
+              className={cn(
+                buttonVariants(),
+                "rounded-md",
+                !oauthReady && "pointer-events-none opacity-50",
+              )}
+              href={oauthReady ? "/api/admin/facebook/connect" : "#"}
+              aria-disabled={!oauthReady}
+            >
+              <Link2 className="h-4 w-4" />
+              {buttonLabel}
+            </a>
           </div>
-        ) : null}
-        {message ? (
-          <div className="flex items-center gap-2 rounded-md border border-[rgba(116,141,122,0.2)] bg-[rgba(144,168,147,0.1)] px-3 py-2 text-sm text-[#4f6354]">
-            <CheckCircle2 className="h-4 w-4" />
-            <span>{message}</span>
-          </div>
-        ) : null}
 
-        <div className="flex flex-wrap gap-2">
-          <button
-            className={buttonVariants()}
-            type="button"
-            disabled={isSaving}
-            onClick={() => void saveFacebookCredential()}
-          >
-            {isSaving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
-            {isSaving ? "Saving..." : "Save Facebook page"}
-          </button>
-        </div>
-      </CardContent>
-    </Card>
+          {!oauthReady ? (
+            <div className="flex items-start gap-2 rounded-md border border-[rgba(169,97,111,0.22)] bg-[rgba(169,97,111,0.08)] px-3 py-2 text-sm text-[#8e4a4a]">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                Facebook connect is not ready yet. Add these vars to `frontend/.env.local`:{" "}
+                <strong>{missingConfig.join(", ")}</strong>
+              </span>
+            </div>
+          ) : null}
+
+          {oauthConnected ? (
+            <div className="flex items-start gap-2 rounded-md border border-[rgba(116,141,122,0.2)] bg-[rgba(144,168,147,0.1)] px-3 py-2 text-sm text-[#4f6354]">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>Facebook page connected.</span>
+            </div>
+          ) : null}
+
+          {oauthError ? (
+            <div className="flex items-start gap-2 rounded-md border border-[rgba(169,97,111,0.22)] bg-[rgba(169,97,111,0.08)] px-3 py-2 text-sm text-[#8e4a4a]">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{formatOauthError(oauthError)}</span>
+            </div>
+          ) : null}
+
+          {hasConnectedPage ? (
+            <div className="rounded-md border border-[rgba(116,141,122,0.18)] bg-[rgba(144,168,147,0.08)] px-3 py-3 text-sm text-[#4f6354]">
+              Connected page: <strong>{initialCredential.account_name || "Unnamed page"}</strong>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <FacebookPublishPanel jobs={jobs} />
+
+      <Card className="border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.92)] shadow-none">
+        <CardContent className="grid gap-0 p-0">
+          {posts.length > 0 ? (
+            posts.map((post, index) => (
+              <article
+                key={post.id}
+                className={cn(
+                  "grid gap-4 px-5 py-4",
+                  index > 0 && "border-t border-[rgba(160,183,164,0.16)]",
+                )}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="grid gap-2">
+                    <p className="max-w-[88ch] whitespace-pre-line text-[0.95rem] leading-7 text-[#334039]">
+                      {post.message?.trim() || "This post has no text content."}
+                    </p>
+                    {post.created_time ? (
+                      <span className="text-[0.82rem] text-[#7a847e]">
+                        {formatPostDate(post.created_time)}
+                      </span>
+                    ) : null}
+                  </div>
+                  {post.permalink_url ? (
+                    <a
+                      href={post.permalink_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-md border border-[rgba(160,183,164,0.16)] px-3 py-2 text-[0.82rem] font-medium text-[#4f6354] transition-colors hover:bg-[#f7faf7]"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Open
+                    </a>
+                  ) : null}
+                </div>
+                {post.full_picture ? (
+                  <img
+                    src={post.full_picture}
+                    alt="Facebook post"
+                    className="max-h-[320px] w-full rounded-xl border border-[rgba(160,183,164,0.16)] object-cover"
+                  />
+                ) : null}
+                <div className="flex flex-wrap items-center gap-3 text-[0.82rem] text-[#66726b]">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f5f7f5] px-3 py-1.5">
+                    <Heart className="h-4 w-4" />
+                    {post.reactions_count}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f5f7f5] px-3 py-1.5">
+                    <MessageCircle className="h-4 w-4" />
+                    {post.comments_count}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f5f7f5] px-3 py-1.5">
+                    <Share2 className="h-4 w-4" />
+                    {post.shares_count}
+                  </span>
+                </div>
+              </article>
+            ))
+          ) : (
+            <div className="px-5 py-4 text-sm text-[#727975]">
+              No page posts found yet.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

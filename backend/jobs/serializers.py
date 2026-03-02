@@ -70,12 +70,24 @@ def serialize_fetch_run(run):
     }
 
 
+def serialize_admin_notification(notification):
+    return {
+        "id": str(notification.id),
+        "title": notification.title,
+        "detail": notification.detail,
+        "created_at": notification.created_at.isoformat() if notification.created_at else None,
+        "tone": notification.tone,
+    }
+
+
 def serialize_channel_credential(credential):
     return {
         "platform": credential.platform,
         "account_name": credential.account_name,
         "page_id": credential.page_id,
         "access_token": credential.access_token,
+        "profile_name": credential.profile_name,
+        "profile_image_url": credential.profile_image_url,
         "updated_at": credential.updated_at.isoformat() if credential.updated_at else None,
     }
 

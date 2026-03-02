@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
     name: ADMIN_SESSION_COOKIE,
     value: token,
     httpOnly: true,
-    sameSite: "strict" as const,
+    sameSite: "lax" as const,
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: Math.floor(getSessionDurationMs() / 1000),

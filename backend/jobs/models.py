@@ -186,6 +186,46 @@ class FetchRun(models.Model):
         return f"{self.source.label} · {self.status}"
 
 
+class AdminNotification(models.Model):
+    class ToneChoices(models.TextChoices):
+        INFO = "info", "Info"
+        SUCCESS = "success", "Success"
+        WARNING = "warning", "Warning"
+
+    title = models.CharField(max_length=160)
+    detail = models.TextField()
+    tone = models.CharField(
+        max_length=20,
+        choices=ToneChoices.choices,
+        default=ToneChoices.INFO,
+    )
+    source = models.ForeignKey(
+        FetchSource,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="notifications",
+    )
+    fetch_run = models.ForeignKey(
+        FetchRun,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="notifications",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["created_at"]),
+            models.Index(fields=["tone"]),
+        ]
+
+    def __str__(self):
+        return self.title
+
+
 class FeedbackMessage(models.Model):
     name = models.CharField(max_length=120)
     email = models.EmailField()
@@ -212,6 +252,8 @@ class ChannelCredential(models.Model):
     account_name = models.CharField(max_length=120, blank=True)
     page_id = models.CharField(max_length=120, blank=True)
     access_token = models.TextField(blank=True)
+    profile_name = models.CharField(max_length=120, blank=True)
+    profile_image_url = models.URLField(blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

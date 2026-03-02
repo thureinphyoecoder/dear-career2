@@ -1,6 +1,10 @@
 from django.urls import path
 
 from .views import (
+    admin_notification_list,
+    admin_notification_stream,
+    facebook_page_posts,
+    facebook_publish_job,
     facebook_channel_credential,
     feedback_create,
     fetch_run_list,
@@ -32,6 +36,10 @@ urlpatterns = [
     path("admin/ads/create/", managed_ad_create, name="managed-ad-create"),
     path("admin/ads/<int:ad_id>/", managed_ad_detail, name="managed-ad-detail"),
     path("admin/channels/facebook/", facebook_channel_credential, name="facebook-channel-credential"),
+    path("admin/channels/facebook/posts/", facebook_page_posts, name="facebook-page-posts"),
+    path("admin/channels/facebook/publish/", facebook_publish_job, name="facebook-publish-job"),
+    path("admin/notifications/", admin_notification_list, name="admin-notification-list"),
+    path("admin/notifications/stream/", admin_notification_stream, name="admin-notification-stream"),
     path("feedback/", feedback_create, name="feedback-create"),
     path("admin/sources/", fetch_source_list, name="fetch-source-list"),
     path("admin/sources/create/", fetch_source_create, name="fetch-source-create"),

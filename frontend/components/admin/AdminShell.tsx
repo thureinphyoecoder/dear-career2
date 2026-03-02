@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import {
-  Bell,
+  CircleUserRound,
   BriefcaseBusiness,
   ChevronDown,
   ChevronRight,
@@ -14,18 +14,22 @@ import {
   Shield,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
+import { AdminNotificationBell } from "@/components/admin/AdminNotificationBell";
 import { BrandLogo } from "@/components/public/BrandLogo";
 import { buttonVariants } from "@/components/ui/button";
+import type { FacebookPageCredential } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function AdminShell({
   children,
   title = "Admin",
+  initialFacebookProfile,
 }: {
   children: ReactNode;
   title?: string;
+  initialFacebookProfile?: FacebookPageCredential | null;
 }) {
   const pathname = usePathname();
   const djangoAdminUrl =
@@ -103,13 +107,48 @@ export function AdminShell({
         },
         {
           href: "/admin/facebook",
-          label: "Facebook upload",
+          label: "Facebook",
           active: pathname?.startsWith("/admin/facebook"),
         },
       ],
     },
   ];
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [facebookProfile, setFacebookProfile] = useState<FacebookPageCredential | null>(
+    initialFacebookProfile &&
+      (initialFacebookProfile.profile_name ||
+        initialFacebookProfile.account_name ||
+        initialFacebookProfile.profile_image_url)
+      ? initialFacebookProfile
+      : null,
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadFacebookProfile() {
+      try {
+        const response = await fetch("/api/admin/proxy/jobs/admin/channels/facebook/", {
+          cache: "no-store",
+        });
+        if (!response.ok) {
+          return;
+        }
+
+        const data = (await response.json()) as FacebookPageCredential;
+        if (!cancelled && (data.profile_name || data.account_name || data.profile_image_url)) {
+          setFacebookProfile(data);
+        }
+      } catch {
+        // Ignore profile fetch failures in the shell.
+      }
+    }
+
+    void loadFacebookProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div
@@ -242,14 +281,25 @@ export function AdminShell({
             ))}
           </div>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              aria-label="Notifications"
-              className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-[#fafbfa] text-[#6f7b73] transition-colors hover:bg-[#f0f4f1] hover:text-[#465049]"
-            >
-              <Bell size={17} strokeWidth={1.9} />
-              <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-[#8da693]" />
-            </button>
+            {facebookProfile ? (
+              <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-[#fafbfa] px-3 py-1.5">
+                {facebookProfile.profile_image_url ? (
+                  <img
+                    src={facebookProfile.profile_image_url}
+                    alt={facebookProfile.profile_name || facebookProfile.account_name || "Facebook profile"}
+                    className="h-7 w-7 rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#eef3ef] text-[#6f7b73]">
+                    <CircleUserRound size={15} strokeWidth={1.9} />
+                  </span>
+                )}
+                <span className="text-[0.82rem] font-medium text-[#334039]">
+                  {facebookProfile.profile_name || facebookProfile.account_name}
+                </span>
+              </div>
+            ) : null}
+            <AdminNotificationBell />
             <form action="/api/admin/session/logout" method="post">
               <input type="hidden" name="redirect" value="/admin/login" />
               <button

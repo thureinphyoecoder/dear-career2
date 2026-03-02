@@ -1,21 +1,39 @@
 import { FacebookCredentialForm } from "@/components/admin/FacebookCredentialForm";
-import { getFetchSettings } from "@/lib/api-admin";
+import { getAdminJobs, getFacebookCredential, getFacebookPagePosts } from "@/lib/api-admin";
 
-export default async function AdminFacebookPage() {
-  const settings = await getFetchSettings();
+export default async function AdminFacebookPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ connected?: string; error?: string }>;
+}) {
+  const [credential, posts, jobs] = await Promise.all([
+    getFacebookCredential(),
+    getFacebookPagePosts(),
+    getAdminJobs(),
+  ]);
+  const params = await searchParams;
+  const missingConfig: string[] = [];
+
+  if (!process.env.FACEBOOK_APP_ID) {
+    missingConfig.push("FACEBOOK_APP_ID");
+  }
+  if (!process.env.FACEBOOK_APP_SECRET) {
+    missingConfig.push("FACEBOOK_APP_SECRET");
+  }
+  if (!process.env.NEXT_PUBLIC_APP_URL) {
+    missingConfig.push("NEXT_PUBLIC_APP_URL");
+  }
 
   return (
     <div className="grid max-w-none gap-6 xl:pr-6">
-      <header className="grid gap-2">
-        <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Facebook upload</div>
-        <h1 className="text-[clamp(1.7rem,2.4vw,2.2rem)] font-semibold leading-none text-foreground">
-          Facebook upload
-        </h1>
-        <p className="max-w-[48ch] text-[0.92rem] leading-6 text-[#727975]">
-          Store the Facebook page credential used for publishing approved jobs.
-        </p>
-      </header>
-      <FacebookCredentialForm initialCredential={settings.facebook} />
+      <FacebookCredentialForm
+        initialCredential={credential}
+        jobs={jobs.filter((job) => (job.status ?? "published") === "published")}
+        posts={posts}
+        oauthConnected={params.connected === "1"}
+        oauthError={params.error}
+        missingConfig={missingConfig}
+      />
     </div>
   );
 }

@@ -33,13 +33,16 @@ export async function proxy(request: NextRequest) {
   const isLoginPage = pathname === "/admin/login";
   const isSessionLogin = pathname === "/api/admin/session/login";
   const isSessionLogout = pathname === "/api/admin/session/logout";
+  const isFacebookOauthRoute =
+    pathname === "/api/admin/facebook/connect" ||
+    pathname === "/api/admin/facebook/callback";
 
   if (!pathname.startsWith("/admin") && !pathname.startsWith("/api/admin")) {
     return applySecurityHeaders(NextResponse.next());
   }
 
   if (!isAdminAuthConfigured()) {
-    if (isLoginPage || isSessionLogin || isSessionLogout) {
+    if (isLoginPage || isSessionLogin || isSessionLogout || isFacebookOauthRoute) {
       return applySecurityHeaders(NextResponse.next());
     }
 
@@ -55,7 +58,7 @@ export async function proxy(request: NextRequest) {
     return applySecurityHeaders(NextResponse.next());
   }
 
-  if (isLoginPage || isSessionLogin || isSessionLogout) {
+  if (isLoginPage || isSessionLogin || isSessionLogout || isFacebookOauthRoute) {
     return applySecurityHeaders(NextResponse.next());
   }
 

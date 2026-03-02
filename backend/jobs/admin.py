@@ -1,6 +1,7 @@
 from django.contrib import admin
 
 from .models import (
+    AdminNotification,
     ChannelCredential,
     FeedbackMessage,
     FetchRun,
@@ -72,6 +73,13 @@ class FetchRunAdmin(admin.ModelAdmin):
     )
     list_filter = ("status", "source")
     search_fields = ("source__label", "source__key", "error_message")
+
+
+@admin.register(AdminNotification)
+class AdminNotificationAdmin(admin.ModelAdmin):
+    list_display = ("title", "tone", "source", "fetch_run", "created_at")
+    list_filter = ("tone", "source")
+    search_fields = ("title", "detail", "source__label")
 
 
 @admin.register(FeedbackMessage)

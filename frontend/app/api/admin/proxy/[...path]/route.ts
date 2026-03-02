@@ -8,26 +8,51 @@ async function proxyRequest(
   context: { params: Promise<{ path: string[] }> },
 ) {
   const { path } = await context.params;
-  const target = `${ADMIN_API_BASE_URL}/${path.join("/")}`;
+  const hasTrailingSlash = request.nextUrl.pathname.endsWith("/");
+  const target = `${ADMIN_API_BASE_URL}/${path.join("/")}${hasTrailingSlash ? "/" : ""}`;
 
   try {
+    const headers = new Headers();
+    headers.set("content-type", request.headers.get("content-type") ?? "application/json");
+
+    const accept = request.headers.get("accept");
+    if (accept) {
+      headers.set("accept", accept);
+    }
+
+    const lastEventId = request.headers.get("last-event-id");
+    if (lastEventId) {
+      headers.set("last-event-id", lastEventId);
+    }
+
     const response = await fetch(target, {
       method: request.method,
       cache: "no-store",
-      headers: {
-        "content-type": request.headers.get("content-type") ?? "application/json",
-      },
+      headers,
       body:
         request.method === "GET" || request.method === "HEAD"
           ? undefined
           : await request.text(),
     });
+    const contentType = response.headers.get("content-type") ?? "application/json";
+
+    if (contentType.includes("text/event-stream")) {
+      return new NextResponse(response.body, {
+        status: response.status,
+        headers: {
+          "content-type": contentType,
+          "cache-control": "no-cache, no-transform",
+          connection: "keep-alive",
+        },
+      });
+    }
+
     const body = await response.text();
 
     return new NextResponse(body, {
       status: response.status,
       headers: {
-        "content-type": response.headers.get("content-type") ?? "application/json",
+        "content-type": contentType,
       },
     });
   } catch {
