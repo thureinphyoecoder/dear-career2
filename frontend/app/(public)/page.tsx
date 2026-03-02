@@ -53,7 +53,10 @@ export default async function PublicHomePage() {
             <div className="hero-actions flex flex-wrap gap-3">
               <Link
                 href="/jobs"
-                className={cn(buttonVariants({ variant: "secondary" }), "hero-explore-button")}
+                className={cn(
+                  buttonVariants({ variant: "ghost" }),
+                  "hero-explore-button h-[62px] border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.12)] px-7 text-base hover:bg-[rgba(255,255,255,0.22)]",
+                )}
               >
                 Explore jobs
               </Link>
@@ -66,6 +69,11 @@ export default async function PublicHomePage() {
                 description="A premium placement for employers who want one refined, high-visibility story at the top of the page."
                 ctaLabel="Book featured ad"
                 href="/jobs"
+                className="border border-[rgba(160,183,164,0.14)] bg-[linear-gradient(145deg,rgba(255,255,255,0.16),rgba(247,243,238,0.08))] shadow-none backdrop-blur-[2px]"
+                contentClassName="gap-2 p-4"
+                titleClassName="text-[1.18rem] leading-[1.05]"
+                descriptionClassName="text-[0.82rem] leading-5"
+                ctaClassName="h-9 px-4 py-0 text-xs"
               />
             </div>
           </main>

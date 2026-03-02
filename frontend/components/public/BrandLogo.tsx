@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { CSSProperties } from "react";
 import { SproutMark } from "@/components/public/SproutMark";
 import { cn } from "@/lib/utils";
@@ -6,17 +7,19 @@ export function BrandLogo({
   compact = false,
   className,
   inline = false,
+  href = "/",
 }: {
   compact?: boolean;
   className?: string;
   inline?: boolean;
+  href?: string;
 }) {
   const textStyle = {
     fontSize: compact ? "clamp(2.1rem, 5vw, 3rem)" : "clamp(3.2rem, 7vw, 5.5rem)",
     lineHeight: compact ? 0.9 : 0.86,
   } satisfies CSSProperties;
 
-  return (
+  const logo = (
     <div
       className={cn(
         "inline-flex items-center gap-4 text-[#454c49]",
@@ -60,5 +63,13 @@ export function BrandLogo({
         </div>
       </div>
     </div>
+  );
+
+  return href ? (
+    <Link href={href} className="inline-flex">
+      {logo}
+    </Link>
+  ) : (
+    logo
   );
 }

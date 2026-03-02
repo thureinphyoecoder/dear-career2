@@ -10,6 +10,13 @@ type AdCardProps = {
   ctaLabel: string;
   href: string;
   compact?: boolean;
+  className?: string;
+  contentClassName?: string;
+  titleClassName?: string;
+  descriptionClassName?: string;
+  ctaClassName?: string;
+  showHeaderBadges?: boolean;
+  showFooterBadges?: boolean;
 };
 
 export function AdCard({
@@ -19,30 +26,49 @@ export function AdCard({
   ctaLabel,
   href,
   compact = false,
+  className,
+  contentClassName,
+  titleClassName,
+  descriptionClassName,
+  ctaClassName,
+  showHeaderBadges = true,
+  showFooterBadges = true,
 }: AdCardProps) {
   return (
     <Card
       className={cn(
         "h-full border-0 bg-[linear-gradient(145deg,rgba(255,247,240,0.94),rgba(221,232,223,0.72))]",
         compact && "min-h-0",
+        className,
       )}
     >
-      <CardContent className="flex h-full flex-col gap-3 p-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Badge variant="outline">{eyebrow}</Badge>
-          <Badge>featured</Badge>
-        </div>
+      <CardContent className={cn("flex h-full flex-col gap-3 p-6", contentClassName)}>
+        {showHeaderBadges ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Badge variant="outline">{eyebrow}</Badge>
+            <Badge>featured</Badge>
+          </div>
+        ) : null}
         <div className="grid gap-2">
-          <CardTitle>{title}</CardTitle>
-          <p className="mb-0 text-sm leading-6 text-[#727975]">{description}</p>
+          <CardTitle className={titleClassName}>{title}</CardTitle>
+          <p className={cn("mb-0 text-sm leading-6 text-[#727975]", descriptionClassName)}>
+            {description}
+          </p>
         </div>
-        <div className="mt-auto flex flex-wrap gap-2">
-          <Badge variant="secondary">Priority placement</Badge>
-          <Badge variant="secondary">Brand spotlight</Badge>
-        </div>
+        {showFooterBadges ? (
+          <div className="mt-auto flex flex-wrap gap-2">
+            <Badge variant="secondary">Priority placement</Badge>
+            <Badge variant="secondary">Brand spotlight</Badge>
+          </div>
+        ) : null}
         <a
           href={href}
-          className={cn(buttonVariants({ variant: "secondary" }), "mt-2 self-start")}
+          className={cn(
+            buttonVariants({ variant: "secondary" }),
+            showFooterBadges ? "mt-2" : "mt-auto",
+            "self-start",
+            ctaClassName,
+          )}
         >
           {ctaLabel}
         </a>

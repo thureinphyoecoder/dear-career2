@@ -73,8 +73,8 @@ export function PublicFooter() {
     <footer className="mt-auto px-4 pb-5 pt-12">
       <div className="w-full">
         <div className="grid w-full gap-4 rounded-[2.2rem] border border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.76)] p-5 shadow-soft backdrop-blur-xl">
-          <div className="grid grid-cols-[minmax(0,1.05fr)_minmax(0,0.88fr)_minmax(0,0.95fr)_minmax(0,0.92fr)] gap-4">
-            <section className="grid min-h-[260px] content-between rounded-[1.8rem] border border-[rgba(160,183,164,0.16)] bg-[linear-gradient(145deg,rgba(255,255,255,0.86),rgba(247,243,238,0.82))] p-6">
+          <div className="grid grid-cols-[minmax(0,1.05fr)_minmax(0,0.88fr)_minmax(0,0.95fr)_minmax(0,0.92fr)] items-start gap-4">
+            <section className="grid min-h-[220px] content-start gap-4 self-start p-6">
               <BrandLogo compact />
               <div className="grid gap-4">
                 <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">
@@ -86,27 +86,19 @@ export function PublicFooter() {
                   <span className="font-semibold text-foreground"> curated links</span> နဲ့စုထားတဲ့ website ပါ။
                 </p>
               </div>
-              <div className="grid gap-2 rounded-[1.4rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(255,247,240,0.74)] px-4 py-3">
-                <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Focus</div>
-                <div className="text-sm leading-6 text-[#727975]">
-                  <span className="font-semibold text-foreground">Cleaner listings</span>,
-                  <span className="font-semibold text-foreground"> direct source links</span>, and
-                  lower-noise browsing for Myanmar job seekers in Thailand.
-                </div>
-              </div>
             </section>
 
-            <section className="grid min-h-[260px] gap-4 rounded-[1.8rem] border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.78)] p-6">
+            <section className="grid min-h-[220px] content-start gap-4 self-start p-6">
               <div>
                 <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Connect</div>
                 <div className="mt-4 grid gap-3">
                   <a
-                    className="inline-flex items-center gap-3 rounded-[1rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(255,255,255,0.82)] px-4 py-3 text-sm text-foreground transition-colors hover:text-[#8da693]"
+                    className="inline-flex items-center gap-3 text-sm text-foreground transition-colors hover:text-[#8da693]"
                     href={facebookPageUrl}
                     target="_blank"
                     rel="noreferrer"
                   >
-                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(160,183,164,0.16)] bg-[rgba(255,247,240,0.9)]">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[rgba(255,247,240,0.9)]">
                       <FacebookIcon />
                     </span>
                     <span className="grid gap-0.5">
@@ -114,8 +106,8 @@ export function PublicFooter() {
                       <span className="text-[#727975]">Updates and new job drops</span>
                     </span>
                   </a>
-                  <div className="inline-flex items-center gap-3 rounded-[1rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(255,255,255,0.82)] px-4 py-3 text-sm text-[#727975]">
-                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[rgba(160,183,164,0.16)] bg-[rgba(255,247,240,0.9)] text-foreground">
+                  <div className="inline-flex items-center gap-3 text-sm text-[#727975]">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[rgba(255,247,240,0.9)] text-foreground">
                       <PinIcon />
                     </span>
                     <span className="grid gap-0.5">
@@ -125,19 +117,11 @@ export function PublicFooter() {
                   </div>
                 </div>
               </div>
-
-              <div className="mt-auto grid gap-2 rounded-[1.4rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(247,243,238,0.82)] px-4 py-3">
-                <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Note</div>
-                <p className="mb-0 text-sm leading-6 text-[#727975]">
-                  Listings are curated from <span className="font-semibold text-foreground">external sources</span>.
-                  Always verify details from the <span className="font-semibold text-foreground">original post</span> before applying.
-                </p>
-              </div>
             </section>
 
-            <section className="grid min-h-[260px] content-between rounded-[1.8rem] border border-[rgba(160,183,164,0.16)] bg-[linear-gradient(135deg,rgba(221,232,223,0.42),rgba(255,247,240,0.94))] p-6">
+            <section className="grid min-h-[220px] content-start gap-4 self-start p-6">
               <div className="flex items-start gap-4">
-                <span className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.82)] text-foreground">
+                <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[rgba(255,255,255,0.82)] text-foreground">
                   <ShieldIcon />
                 </span>
                 <div className="grid gap-2">
@@ -151,52 +135,42 @@ export function PublicFooter() {
                   </p>
                 </div>
               </div>
-
-              <div className="grid gap-2 rounded-[1.4rem] border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.66)] px-4 py-3">
-                <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Reminder</div>
-                <p className="mb-0 text-sm leading-6 text-[#727975]">
-                  No platform can guarantee every listing. Cross-check
-                  <span className="font-semibold text-foreground"> salary</span>,
-                  <span className="font-semibold text-foreground"> visa requirements</span>, and
-                  <span className="font-semibold text-foreground"> employer identity</span>.
-                </p>
-              </div>
             </section>
 
-            <section className="grid min-h-[260px] content-between rounded-[1.8rem] border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.78)] p-6">
+            <section className="grid min-h-[220px] content-start gap-5 self-start p-6">
               <div className="grid gap-3">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[rgba(160,183,164,0.16)] bg-[rgba(255,247,240,0.9)] text-foreground">
-                  <MailIcon />
-                </div>
                 <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Feedback</div>
-                <strong className="text-[1.02rem] text-foreground">
-                  Critique and suggestions
-                </strong>
-                <p className="mb-0 text-sm leading-6 text-[#727975]">
-                  <span className="font-semibold text-foreground">Layout</span>,
-                  <span className="font-semibold text-foreground"> job quality</span>,
-                  <span className="font-semibold text-foreground"> broken links</span>, or
-                  <span className="font-semibold text-foreground"> feature requests</span> ရှိရင်
-                  site ထဲကနေတိုက်ရိုက်ပို့လို့ရပါတယ်။
-                </p>
-              </div>
-              <div className="grid gap-3">
-                <Link
-                  href="/feedback"
-                  className="inline-flex items-center justify-center rounded-full border border-[rgba(160,183,164,0.18)] bg-[rgba(255,247,240,0.88)] px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-[rgba(255,250,245,0.98)]"
-                >
-                  Open feedback form
-                </Link>
-                <div className="rounded-[1.4rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(247,243,238,0.82)] px-4 py-3 text-sm leading-6 text-[#727975]">
-                  <span className="font-semibold text-foreground">External mail app</span> မဖွင့်ဘဲ
-                  <span className="font-semibold text-foreground"> internal flow</span> နဲ့ feedback လက်ခံပါတယ်။
+                <div className="flex items-start gap-4">
+                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[rgba(255,247,240,0.9)] text-foreground">
+                    <MailIcon />
+                  </div>
+                  <div className="grid gap-2">
+                    <strong className="text-[1.02rem] text-foreground">
+                      Critique and suggestions
+                    </strong>
+                    <p className="mb-0 text-sm leading-6 text-[#727975]">
+                      <span className="font-semibold text-foreground">Layout</span>,
+                      <span className="font-semibold text-foreground"> job quality</span>,
+                      <span className="font-semibold text-foreground"> broken links</span>, or
+                      <span className="font-semibold text-foreground"> feature requests</span> ရှိရင်
+                      site ထဲကနေတိုက်ရိုက်ပို့လို့ရပါတယ်။
+                    </p>
+                  </div>
                 </div>
               </div>
+              <Link
+                href="/feedback"
+                className="inline-flex min-h-12 items-center justify-center self-start rounded-full border border-[#748d7a]/30 bg-gradient-to-br from-[#8da693] to-[#748d7a] px-5 py-3 text-sm font-semibold text-[#fffaf3] transition-all hover:-translate-y-0.5 hover:from-[#7d9883] hover:to-[#6d8572]"
+              >
+                Send feedback or report
+              </Link>
             </section>
           </div>
           <div className="flex justify-center border-t border-[rgba(160,183,164,0.14)] px-2 pt-4 text-sm text-[#727975]">
             <span>
-              Copyright {new Date().getFullYear()} Dear Career. Developed by Thurein Phyoe.
+              Copyright {new Date().getFullYear()}{" "}
+              <span className="font-semibold tracking-[0.04em] text-foreground">Dear Career</span>. Developed by{" "}
+              <span className="font-serif text-[1.02rem] italic text-foreground">Thurein Phyoe</span>.
             </span>
           </div>
         </div>
