@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from html import unescape
+import json
+import re
 from typing import Any
 from urllib.parse import urljoin
 from xml.etree import ElementTree
@@ -194,6 +195,9 @@ def _parse_rss_jobs(source: FetchSource, payload: str) -> list[dict[str, Any]]:
 
 
 def _parse_html_jobs(source: FetchSource, payload: str) -> list[dict[str, Any]]:
+    if "jobthai.com" in source.domain:
+        return _parse_jobthai_jobs(source, payload)
+
     BeautifulSoup = _import_bs4()
     soup = BeautifulSoup(payload, "html.parser")
 
@@ -268,6 +272,65 @@ def _parse_html_jobs(source: FetchSource, payload: str) -> list[dict[str, Any]]:
     return records
 
 
+def _parse_jobthai_jobs(source: FetchSource, payload: str) -> list[dict[str, Any]]:
+    next_data_match = re.search(
+        r'<script id="__NEXT_DATA__" type="application/json"[^>]*>(.*?)</script>',
+        payload,
+        flags=re.DOTALL,
+    )
+    if not next_data_match:
+        raise FetchConfigurationError("JobThai listing data was not found in the page payload.")
+
+    next_data = json.loads(next_data_match.group(1))
+    apollo_state = (next_data.get("props") or {}).get("apolloState") or {}
+    root_query = apollo_state.get("ROOT_QUERY") or {}
+    search_jobs = next(
+        (value for key, value in root_query.items() if "searchJobs(" in key),
+        None,
+    )
+    job_items = ((search_jobs or {}).get("data") or {}).get("data") or []
+    if not job_items:
+        return []
+
+    records: list[dict[str, Any]] = []
+    for item in job_items:
+        job_id = str(item.get("id") or "").strip()
+        title = clean_inline_text(item.get("jobTitle"))
+        company = clean_inline_text(item.get("companyName")) or source.label
+        province = clean_inline_text((item.get("province") or {}).get("name"))
+        district = clean_inline_text((item.get("district") or {}).get("name"))
+        work_location = clean_inline_text(item.get("workLocation"))
+        location = ", ".join(part for part in [district, province] if part)
+        if work_location:
+            location = f"{location} - {work_location}" if location else work_location
+
+        if not job_id or not title:
+            continue
+
+        records.append(
+            {
+                "title": title,
+                "company": company,
+                "location": location or "Thailand",
+                "category": source.default_category,
+                "employment_type": Job.EmploymentType.FULL_TIME,
+                "description_mm": normalize_rich_text(
+                    item.get("salary")
+                    or item.get("jobType", {}).get("name")
+                    or _default_description(source, title, company)
+                ),
+                "description_en": normalize_rich_text(
+                    item.get("salary") or item.get("jobType", {}).get("name") or ""
+                ),
+                "source_url": f"https://www.jobthai.com/th/company/job/{job_id}",
+                "source_job_id": f"{source.key}-{job_id}",
+                "salary": clean_inline_text(item.get("salary")),
+            }
+        )
+
+    return records
+
+
 def _parse_records(source: FetchSource, payload: str) -> list[dict[str, Any]]:
     if source.mode == FetchSource.ModeChoices.RSS:
         return _parse_rss_jobs(source, payload)
@@ -278,6 +341,57 @@ def _parse_records(source: FetchSource, payload: str) -> list[dict[str, Any]]:
     raise FetchConfigurationError(
         f"{source.label} is configured for manual intake only."
     )
+
+
+def _enrich_records_from_detail_pages(
+    source: FetchSource, records: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    enrich_domains = ("unjobs.org",)
+    if not any(domain in source.domain for domain in enrich_domains):
+        return records
+
+    requests = _import_requests()
+    from jobs.views.shared import build_scraped_job_payload
+
+    enriched_records: list[dict[str, Any]] = []
+    for record in records[: source.max_jobs_per_run]:
+        source_url = clean_inline_text(record.get("source_url"))
+        if not source_url:
+            enriched_records.append(record)
+            continue
+
+        try:
+            response = requests.get(
+                source_url,
+                headers=_build_request_headers(source),
+                timeout=DEFAULT_TIMEOUT_SECONDS,
+            )
+            response.raise_for_status()
+            detail_payload = build_scraped_job_payload(source_url, response.text)
+        except Exception:
+            enriched_records.append(record)
+            continue
+
+        enriched_record = {**record}
+        for field in [
+            "title",
+            "company",
+            "location",
+            "description_mm",
+            "description_en",
+            "salary",
+            "contact_email",
+            "contact_phone",
+        ]:
+            detail_value = detail_payload.get(field)
+            if detail_value:
+                enriched_record[field] = detail_value
+        enriched_records.append(enriched_record)
+
+    if len(records) > source.max_jobs_per_run:
+        enriched_records.extend(records[source.max_jobs_per_run :])
+
+    return enriched_records
 
 
 def _apply_publish_policy(job: Job, source: FetchSource) -> int:
@@ -376,6 +490,7 @@ def ingest_source(source: FetchSource) -> dict[str, Any]:
     try:
         payload = _fetch_payload(source)
         records = _parse_records(source, payload)
+        records = _enrich_records_from_detail_pages(source, records)
         summary = _persist_records(source, records)
 
         source.last_run_at = timezone.now()

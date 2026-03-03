@@ -2,7 +2,9 @@ from django.test import Client, TestCase
 
 from .admin_api import get_admin_api_key
 from .content import build_facebook_post_message, normalize_rich_text
+from .management.commands.seed_fetch_sources import DEFAULT_SOURCES
 from .models import FetchSource, Job
+from .services.ingest import _parse_jobthai_jobs
 
 
 class JobModelTests(TestCase):
@@ -129,3 +131,60 @@ class JobContentFormattingTests(TestCase):
         self.assertIn("- Capture professional photos and videos.", message)
         self.assertIn("Requirements", message)
         self.assertIn("Apply: https://example.com/jobs/photo-video", message)
+
+
+class FetchParserTests(TestCase):
+    def test_jobthai_parser_reads_next_data_jobs(self):
+        source = FetchSource(
+            key="jobthai",
+            label="JobThai",
+            domain="jobthai.com",
+            feed_url="https://www.jobthai.com/th/jobs?orderBy=UPDATED_AT_DESC",
+            mode=FetchSource.ModeChoices.HTML,
+            default_category=Job.CategoryChoices.WHITE_COLLAR,
+        )
+        payload = """
+        <script id="__NEXT_DATA__" type="application/json">
+        {
+          "props": {
+            "apolloState": {
+              "ROOT_QUERY": {
+                "searchJobs({\\"filter\\":{\\"l\\":\\"th\\",\\"page\\":1},\\"orderBy\\":\\"UPDATED_AT_DESC\\",\\"staticDataVersion\\":{}})": {
+                  "data": {
+                    "data": [
+                      {
+                        "id": 12345,
+                        "jobTitle": "Project Coordinator",
+                        "companyName": "Acme Foundation",
+                        "province": {"name": "Bangkok"},
+                        "district": {"name": "Pathum Wan"},
+                        "workLocation": "BTS Siam",
+                        "salary": "THB 40,000",
+                        "jobType": {"name": "Operations"}
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+        </script>
+        """
+
+        records = _parse_jobthai_jobs(source, payload)
+
+        self.assertEqual(len(records), 1)
+        self.assertEqual(records[0]["title"], "Project Coordinator")
+        self.assertEqual(records[0]["company"], "Acme Foundation")
+        self.assertEqual(records[0]["source_url"], "https://www.jobthai.com/th/company/job/12345")
+        self.assertIn("Bangkok", records[0]["location"])
+
+
+class SeedSourceConfigTests(TestCase):
+    def test_jobthai_and_unjobs_default_sources_are_auto_fetchable(self):
+        keyed = {source["key"]: source for source in DEFAULT_SOURCES}
+
+        self.assertEqual(keyed["jobthai"]["mode"], FetchSource.ModeChoices.HTML)
+        self.assertFalse(keyed["jobthai"]["requires_manual_url"])
+        self.assertEqual(keyed["unjobs-thailand"]["selectors"]["entry"], "a[href*='vacancies/']")
