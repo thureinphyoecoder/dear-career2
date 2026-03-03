@@ -1,5 +1,6 @@
 from django.test import Client, TestCase
 
+from .admin_api import get_admin_api_key
 from .content import build_facebook_post_message, normalize_rich_text
 from .models import FetchSource, Job
 
@@ -21,6 +22,7 @@ class JobModelTests(TestCase):
 class JobApiTests(TestCase):
     def setUp(self):
         self.client = Client()
+        self.admin_headers = {"HTTP_X_ADMIN_API_KEY": get_admin_api_key()}
 
     def test_job_list_hides_inactive_jobs_by_default(self):
         Job.objects.create(
@@ -55,7 +57,7 @@ class JobApiTests(TestCase):
             status=Job.WorkflowStatus.PENDING_REVIEW,
         )
 
-        response = self.client.get("/api/jobs/?include_inactive=1")
+        response = self.client.get("/api/jobs/?include_inactive=1", **self.admin_headers)
         payload = response.json()
 
         self.assertEqual(response.status_code, 200)
@@ -66,6 +68,7 @@ class JobApiTests(TestCase):
 class FetchSourceApiTests(TestCase):
     def setUp(self):
         self.client = Client()
+        self.admin_headers = {"HTTP_X_ADMIN_API_KEY": get_admin_api_key()}
 
     def test_fetch_source_list_returns_configured_sources(self):
         FetchSource.objects.create(
@@ -77,7 +80,7 @@ class FetchSourceApiTests(TestCase):
             enabled=True,
         )
 
-        response = self.client.get("/api/jobs/admin/sources/")
+        response = self.client.get("/api/jobs/admin/sources/", **self.admin_headers)
         payload = response.json()
 
         self.assertEqual(response.status_code, 200)
