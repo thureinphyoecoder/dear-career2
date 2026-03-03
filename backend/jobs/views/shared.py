@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from django.http import HttpRequest
 from django.utils.text import slugify
 
+from ..content import clean_inline_text, normalize_rich_text
 from ..models import AdminNotification, FetchRun, FetchSource, Job
 
 
@@ -19,9 +20,7 @@ def load_json_body(request: HttpRequest) -> dict:
 
 
 def clean_text(value: object | None) -> str:
-    if value is None:
-        return ""
-    return " ".join(str(value).split())
+    return clean_inline_text(value)
 
 
 def create_admin_notification(
@@ -58,6 +57,14 @@ def pick_first_text(soup, selectors: list[str]) -> str:
         node = soup.select_one(selector)
         if node:
             return clean_text(node.get_text(" ", strip=True))
+    return ""
+
+
+def pick_first_rich_text(soup, selectors: list[str]) -> str:
+    for selector in selectors:
+        node = soup.select_one(selector)
+        if node:
+            return normalize_rich_text(str(node))
     return ""
 
 
@@ -202,7 +209,7 @@ def extract_job_posting_json_ld(soup) -> dict:
             or pick_nested_text(item, "jobLocation", "address", "addressRegion")
             or pick_nested_text(item, "jobLocation", "address", "addressCountry")
         )
-        description = clean_text(item.get("description"))
+        description = normalize_rich_text(item.get("description"))
         salary = (
             pick_nested_text(item, "baseSalary", "value", "value")
             or pick_nested_text(item, "baseSalary", "value", "minValue")
@@ -236,7 +243,7 @@ def extract_linkedin_fields(soup) -> dict:
             soup,
             [".topcard__flavor--bullet", ".topcard__flavor.topcard__flavor--bullet"],
         ),
-        "description": pick_first_text(
+        "description": pick_first_rich_text(
             soup,
             [".show-more-less-html__markup", ".description__text"],
         ),
@@ -251,7 +258,7 @@ def extract_jobsdb_fields(soup) -> dict:
             ['[data-automation="advertiser-name"]', '[data-automation="company-link"]'],
         ),
         "location": pick_first_text(soup, ['[data-automation="job-detail-location"]']),
-        "description": pick_first_text(
+        "description": pick_first_rich_text(
             soup,
             ['[data-automation="jobAdDetails"]', '[data-automation="jobDescription"]'],
         ),
@@ -263,7 +270,7 @@ def extract_jobthai_fields(soup) -> dict:
         "title": pick_first_text(soup, ["h1", ".css-1w2awul", ".job-title"]),
         "company": pick_first_text(soup, [".job-company a", ".company-name", ".css-19n2x38"]),
         "location": pick_first_text(soup, [".job-location", ".location", ".css-129m7dg"]),
-        "description": pick_first_text(soup, [".job-description", ".job-highlight", ".css-1id5vzh"]),
+        "description": pick_first_rich_text(soup, [".job-description", ".job-highlight", ".css-1id5vzh"]),
     }
 
 
@@ -278,7 +285,7 @@ def extract_thaingo_fields(soup) -> dict:
             soup,
             [".field-name-field-location", ".job-location", ".location"],
         ),
-        "description": pick_first_text(
+        "description": pick_first_rich_text(
             soup,
             [".field-name-body", ".job-description", ".content"],
         ),
@@ -319,7 +326,7 @@ def build_scraped_job_payload(url: str, html: str) -> dict:
     )
     if not description:
         paragraph = soup.find("p")
-        description = clean_text(paragraph.get_text(" ", strip=True) if paragraph else "")
+        description = normalize_rich_text(str(paragraph) if paragraph else "")
 
     body_text = clean_text(" ".join(islice(soup.stripped_strings, 120))) if soup else ""
     combined_text = " ".join(filter(None, [raw_title, description, body_text]))
@@ -354,8 +361,8 @@ def build_scraped_job_payload(url: str, html: str) -> dict:
         "category": category,
         "source": Job.SourceChoices.MANUAL,
         "source_url": url,
-        "description_en": description,
-        "description_mm": description,
+        "description_en": normalize_rich_text(description),
+        "description_mm": normalize_rich_text(description),
         "salary": salary,
         "contact_email": contact_email,
         "contact_phone": contact_phone,

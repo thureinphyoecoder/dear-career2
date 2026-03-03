@@ -11,6 +11,7 @@ from xml.etree import ElementTree
 from django.db import transaction
 from django.utils import timezone
 
+from jobs.content import clean_inline_text, normalize_rich_text
 from jobs.models import FetchRun, FetchSource, Job
 from jobs.services.dedupe import dedupe_jobs
 from jobs.services.publish import publish_job
@@ -53,9 +54,7 @@ def _import_bs4():
 
 
 def _clean_text(value: Any) -> str:
-    if value is None:
-        return ""
-    return " ".join(unescape(str(value)).split())
+    return clean_inline_text(value)
 
 
 def _pick_selector_text(node, selector: str | None) -> str:
@@ -66,6 +65,16 @@ def _pick_selector_text(node, selector: str | None) -> str:
     if target is None:
         return ""
     return _clean_text(target.get_text(" ", strip=True))
+
+
+def _pick_selector_rich_text(node, selector: str | None) -> str:
+    if not selector:
+        return ""
+
+    target = node.select_one(selector)
+    if target is None:
+        return ""
+    return normalize_rich_text(str(target))
 
 
 def _pick_selector_attr(node, selector: str | None, attribute: str) -> str:
@@ -215,7 +224,7 @@ def _parse_html_jobs(source: FetchSource, payload: str) -> list[dict[str, Any]]:
         location = (
             _pick_selector_text(entry, _get_selector(source, "location")) or "Thailand"
         )
-        description = _pick_selector_text(entry, _get_selector(source, "description"))
+        description = _pick_selector_rich_text(entry, _get_selector(source, "description"))
         salary = _pick_selector_text(entry, _get_selector(source, "salary"))
 
         employment_type = _normalize_employment_type(

@@ -15,6 +15,7 @@ import {
   type JobEditorFieldErrors,
 } from "@/lib/admin-form-validation";
 import { normalizeServerError } from "@/lib/form-validation";
+import { buildFacebookPostMessage, parseJobDescription } from "@/lib/job-content";
 import { cn } from "@/lib/utils";
 import type { Job, JobCategory, JobStatus } from "@/lib/types";
 
@@ -106,6 +107,27 @@ export function JobEditor({
   });
   const canFetchFromUrl = jobIntakeUrlSchema.safeParse(intakeUrl.trim()).success;
   const canSaveJob = Object.keys(liveJobErrors).length === 0;
+  const previewJob = useMemo<Partial<Job>>(
+    () => ({
+      title: title.trim() || "Job title preview",
+      company: company.trim() || "Company name",
+      location: location.trim() || "Location",
+      employment_type: employmentType,
+      salary: salary.trim(),
+      source_url: sourceUrl.trim(),
+      description_mm: descriptionMm.trim(),
+      description_en: descriptionEn.trim(),
+    }),
+    [company, descriptionEn, descriptionMm, employmentType, location, salary, sourceUrl, title],
+  );
+  const previewSections = useMemo(
+    () => parseJobDescription(descriptionMm.trim() || descriptionEn.trim()),
+    [descriptionEn, descriptionMm],
+  );
+  const facebookPreview = useMemo(
+    () => buildFacebookPostMessage(previewJob as Job),
+    [previewJob],
+  );
 
   const fieldLabelClass = "grid gap-2";
   const eyebrowClass = "text-xs uppercase tracking-[0.16em] text-[#8da693]";
@@ -680,6 +702,57 @@ export function JobEditor({
                 placeholder="English copy..."
               />
             </label>
+          </div>
+          <div className="grid gap-4 xl:grid-cols-2">
+            <section className="grid gap-3 rounded-md border border-[rgba(160,183,164,0.12)] bg-[rgba(247,243,236,0.52)] p-4">
+              <div>
+                <div className={eyebrowClass}>Website preview</div>
+                <h3 className="mt-1 text-[0.96rem] font-semibold text-foreground">
+                  Structured job content
+                </h3>
+              </div>
+              <div className="grid gap-4 text-sm leading-7 text-[#5e6662]">
+                {previewSections.length > 0 ? (
+                  previewSections.map((section, index) => (
+                    <section key={`${section.heading || "section"}-${index}`} className="grid gap-2">
+                      {section.heading ? (
+                        <h4 className="m-0 text-[0.72rem] uppercase tracking-[0.14em] text-[#4f6354]">
+                          {section.heading}
+                        </h4>
+                      ) : null}
+                      {section.paragraphs.map((paragraph) => (
+                        <p key={paragraph} className="mb-0">
+                          {paragraph}
+                        </p>
+                      ))}
+                      {section.bullets.length > 0 ? (
+                        <ul className="m-0 grid gap-1.5 pl-5">
+                          {section.bullets.map((bullet) => (
+                            <li key={bullet}>{bullet.replace(/^- /, "")}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </section>
+                  ))
+                ) : (
+                  <p className="mb-0 text-[#727975]">
+                    Add headings like `Responsibilities` and bullet points to preview the final public layout.
+                  </p>
+                )}
+              </div>
+            </section>
+
+            <section className="grid gap-3 rounded-md border border-[rgba(160,183,164,0.12)] bg-[rgba(255,255,255,0.8)] p-4">
+              <div>
+                <div className={eyebrowClass}>Facebook preview</div>
+                <h3 className="mt-1 text-[0.96rem] font-semibold text-foreground">
+                  Default caption
+                </h3>
+              </div>
+              <pre className="m-0 whitespace-pre-wrap break-words rounded-md bg-[rgba(255,255,255,0.86)] p-3 text-sm leading-7 text-[#334039]">
+                {facebookPreview || "The default Facebook caption will appear here."}
+              </pre>
+            </section>
           </div>
         </div>
 

@@ -2,17 +2,8 @@
 
 from django.conf import settings
 
+from jobs.content import build_facebook_post_message
 from jobs.models import ChannelCredential, Job
-
-
-def _build_facebook_post_message(job: Job) -> str:
-    lines = [f"{job.title}", f"{job.company} · {job.location}"]
-    summary = (job.description_en or job.description_mm or "").strip()
-    if summary:
-        lines.append(summary[:280].strip())
-    if job.source_url:
-        lines.append(job.source_url)
-    return "\n\n".join(line for line in lines if line)
 
 
 def publish_job(job: Job, *, channel: str = "website", message: str = "") -> dict:
@@ -51,7 +42,7 @@ def publish_job(job: Job, *, channel: str = "website", message: str = "") -> dic
                 "reason": "facebook credentials missing",
             }
 
-        post_message = message.strip() or _build_facebook_post_message(job)
+        post_message = message.strip() or build_facebook_post_message(job)
         if not post_message:
             return {
                 "job_id": job.id,

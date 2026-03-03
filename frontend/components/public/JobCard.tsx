@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { extractJobSummary } from "@/lib/job-content";
 import { cn } from "@/lib/utils";
 import type { Job } from "@/lib/types";
 
@@ -34,13 +35,7 @@ function formatRelativeTime(value?: string) {
 }
 
 export function JobCard({ job }: { job: Job }) {
-  const summary = useMemo(
-    () =>
-      job.description_en ||
-      job.description_mm ||
-      "Curated opening with direct source details and a cleaner application path.",
-    [job.description_en, job.description_mm],
-  );
+  const summary = extractJobSummary(job);
   const sourceLabel =
     job.source && job.source.toLowerCase() !== "manual" ? job.source : null;
   const [isViewed, setIsViewed] = useState(false);

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { AdCard } from "@/components/public/AdCard";
 import { Badge } from "@/components/ui/badge";
 import { getJobBySlug, getPublicAds } from "@/lib/api-public";
+import { extractJobSummary, getJobDescription, parseJobDescription } from "@/lib/job-content";
 
 const categoryLabelMap = {
   ngo: "NGO",
@@ -43,6 +44,10 @@ export default async function PublicJobDetailPage({
     notFound();
   }
 
+  const description = getJobDescription(job);
+  const descriptionSections = parseJobDescription(description);
+  const descriptionSummary = extractJobSummary(job, 320);
+
   return (
     <main className="mx-auto max-w-6xl px-4 pb-20 pt-28 md:pt-32">
       <Link href="/jobs" className="inline-flex items-center gap-2 text-sm text-[#8da693] transition-colors hover:text-foreground">
@@ -71,9 +76,7 @@ export default async function PublicJobDetailPage({
               </span>
             </div>
             <p className="mb-0 max-w-[68ch] text-[0.98rem] leading-7 text-[#727975]">
-              {job.description_mm ||
-                job.description_en ||
-                "Detailed job content will appear here once connected to Django."}
+              {descriptionSummary || "Detailed job content will appear here once connected to Django."}
             </p>
           </div>
 
@@ -82,15 +85,41 @@ export default async function PublicJobDetailPage({
               <div className="text-[0.72rem] uppercase tracking-[0.16em] text-[#8da693]">
                 Description
               </div>
-              <div className="grid gap-3 text-sm leading-7 text-[#5e6662]">
-                <p className="mb-0">
+              <div className="grid gap-5 text-sm leading-7 text-[#5e6662]">
+                {descriptionSections.length > 0 ? (
+                  descriptionSections.map((section, index) => (
+                    <section key={`${section.heading || "section"}-${index}`} className="grid gap-3">
+                      {section.heading ? (
+                        <h2 className="m-0 text-[0.82rem] uppercase tracking-[0.14em] text-[#4f6354]">
+                          {section.heading}
+                        </h2>
+                      ) : null}
+                      {section.paragraphs.map((paragraph) => (
+                        <p key={paragraph} className="mb-0">
+                          {paragraph}
+                        </p>
+                      ))}
+                      {section.bullets.length > 0 ? (
+                        <ul className="m-0 grid gap-2 pl-5">
+                          {section.bullets.map((bullet) => (
+                            <li key={bullet}>{bullet.replace(/^- /, "")}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </section>
+                  ))
+                ) : (
+                  <p className="mb-0">
+                    Detailed job content will appear here once connected to Django.
+                  </p>
+                )}
+                <p className="mb-0 text-[#727975]">
                   Review the source posting carefully and confirm responsibilities,
                   eligibility, and application steps before applying.
                 </p>
-                <p className="mb-0">
-                  Dear Career lists the role in a cleaner format so you can scan
-                  the essentials first, then move to the original source for final
-                  verification.
+                <p className="mb-0 text-[#727975]">
+                  Dear Career restructures the posting for readability, but the original
+                  source should still be treated as the final reference.
                 </p>
               </div>
             </div>

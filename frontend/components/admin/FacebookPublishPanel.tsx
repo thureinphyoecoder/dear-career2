@@ -12,27 +12,16 @@ import {
   validateFacebookPublishFields,
   type FacebookPublishFieldErrors,
 } from "@/lib/admin-form-validation";
+import { buildFacebookPostMessage } from "@/lib/job-content";
 import { adminQueryKeys } from "@/lib/admin-query-keys";
 import type { Job } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-function buildDefaultMessage(job: Job) {
-  const lines = [job.title, `${job.company} · ${job.location}`];
-  const summary = (job.description_en || job.description_mm || "").trim();
-  if (summary) {
-    lines.push(summary.slice(0, 280).trim());
-  }
-  if (job.source_url) {
-    lines.push(job.source_url);
-  }
-  return lines.filter(Boolean).join("\n\n");
-}
 
 export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [selectedJobId, setSelectedJobId] = useState<string>(jobs[0] ? String(jobs[0].id) : "");
-  const [message, setMessage] = useState<string>(jobs[0] ? buildDefaultMessage(jobs[0]) : "");
+  const [message, setMessage] = useState<string>(jobs[0] ? buildFacebookPostMessage(jobs[0]) : "");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -81,7 +70,7 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
     setSelectedJobId(nextId);
     const nextJob = jobs.find((job) => String(job.id) === nextId);
     if (nextJob) {
-      setMessage(buildDefaultMessage(nextJob));
+      setMessage(buildFacebookPostMessage(nextJob));
     }
     setError("");
     setSuccess("");
