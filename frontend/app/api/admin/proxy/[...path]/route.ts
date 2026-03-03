@@ -35,7 +35,10 @@ async function proxyRequest(
 
   try {
     const headers = getAdminApiHeaders();
-    headers.set("content-type", request.headers.get("content-type") ?? "application/json");
+    const requestContentType = request.headers.get("content-type");
+    if (requestContentType) {
+      headers.set("content-type", requestContentType);
+    }
 
     const accept = request.headers.get("accept");
     if (accept) {
@@ -52,15 +55,17 @@ async function proxyRequest(
       normalizedPath.endsWith("notifications/stream");
     const timeoutMs = getProxyTimeoutMs(request, normalizedPath);
 
+    const requestBody =
+      request.method === "GET" || request.method === "HEAD"
+        ? undefined
+        : Buffer.from(await request.arrayBuffer());
+
     const response = await fetch(target, {
       method: request.method,
       cache: "no-store",
       signal: wantsEventStream ? undefined : AbortSignal.timeout(timeoutMs),
       headers,
-      body:
-        request.method === "GET" || request.method === "HEAD"
-          ? undefined
-          : await request.text(),
+      body: requestBody,
     });
     const contentType = response.headers.get("content-type") ?? "application/json";
 

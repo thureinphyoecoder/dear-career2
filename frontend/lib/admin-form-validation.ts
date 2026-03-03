@@ -10,6 +10,14 @@ const optionalEmailField = z
   .trim()
   .refine((value) => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), "Enter a valid contact email.");
 
+const optionalImageUrlField = z
+  .string()
+  .trim()
+  .refine((value) => !value || /^https?:\/\/.+/i.test(value), "Enter a valid image URL.");
+
+const ALLOWED_IMAGE_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
+const MAX_IMAGE_UPLOAD_BYTES = 10 * 1024 * 1024;
+
 export const jobIntakeUrlSchema = z
   .string()
   .trim()
@@ -22,6 +30,7 @@ export const jobEditorSchema = z.object({
   location: z.string().trim().min(1, "Enter a location."),
   descriptionMm: z.string().trim().min(1, "Enter a Myanmar description."),
   sourceUrl: optionalUrlField,
+  imageUrl: optionalImageUrlField,
   contactEmail: optionalEmailField,
 });
 
@@ -44,8 +53,22 @@ export function validateJobEditorFields(fields: JobEditorFields): JobEditorField
     location: flattened.location?.[0],
     descriptionMm: flattened.descriptionMm?.[0],
     sourceUrl: flattened.sourceUrl?.[0],
+    imageUrl: flattened.imageUrl?.[0],
     contactEmail: flattened.contactEmail?.[0],
   };
+}
+
+export function validateJobImageFile(file: File | null): string {
+  if (!file) {
+    return "";
+  }
+  if (!ALLOWED_IMAGE_MIME_TYPES.includes(file.type as (typeof ALLOWED_IMAGE_MIME_TYPES)[number])) {
+    return "Upload a JPG, PNG, WEBP, or GIF image.";
+  }
+  if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+    return "Image file must be 10 MB or smaller.";
+  }
+  return "";
 }
 
 export const facebookPublishSchema = z.object({

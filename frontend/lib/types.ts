@@ -21,6 +21,9 @@ export type Job = {
   contact_phone?: string;
   source?: string;
   source_url?: string;
+  image_url?: string;
+  image_file_url?: string;
+  display_image_url?: string;
   is_active?: boolean;
   requires_website_approval?: boolean;
   requires_facebook_approval?: boolean;

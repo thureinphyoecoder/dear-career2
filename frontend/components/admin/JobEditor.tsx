@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { AlertCircle, CheckCircle2, Link2, LoaderCircle, Sparkles } from "lucide-react";
+import { AlertCircle, CheckCircle2, Link2, LoaderCircle, Sparkles, Upload, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   jobIntakeUrlSchema,
+  validateJobImageFile,
   validateJobEditorFields,
   type JobEditorFieldErrors,
 } from "@/lib/admin-form-validation";
@@ -40,6 +41,7 @@ const employmentTypeOptions = [
 ];
 
 const FETCH_TIMEOUT_MS = 20000;
+const ACCEPTED_IMAGE_TYPES = "image/jpeg,image/png,image/webp,image/gif";
 
 function normalizeErrorDetail(detail: string) {
   const trimmed = detail.trim();
@@ -75,6 +77,7 @@ export function JobEditor({
   const [category, setCategory] = useState<JobCategory>(initialJob?.category ?? "white-collar");
   const [source, setSource] = useState(initialJob?.source ?? "manual");
   const [sourceUrl, setSourceUrl] = useState(initialJob?.source_url ?? "");
+  const [imageUrl, setImageUrl] = useState(initialJob?.image_url ?? "");
   const [intakeUrl, setIntakeUrl] = useState(initialJob?.source_url ?? "");
   const [descriptionMm, setDescriptionMm] = useState(initialJob?.description_mm ?? "");
   const [descriptionEn, setDescriptionEn] = useState(initialJob?.description_en ?? "");
@@ -96,6 +99,14 @@ export function JobEditor({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<JobEditorFieldErrors>({});
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState(initialJob?.image_file_url ?? "");
+  const [imagePreviewUrl, setImagePreviewUrl] = useState(
+    initialJob?.display_image_url ?? initialJob?.image_file_url ?? initialJob?.image_url ?? "",
+  );
+  const [imageUploadError, setImageUploadError] = useState("");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isRemovingImage, setIsRemovingImage] = useState(false);
   const safeReturnTo = returnTo.startsWith("/admin") && !returnTo.startsWith("//") ? returnTo : "";
   const liveJobErrors = validateJobEditorFields({
     title,
@@ -103,10 +114,12 @@ export function JobEditor({
     location,
     descriptionMm,
     sourceUrl,
+    imageUrl,
     contactEmail,
   });
+  const imageFileError = validateJobImageFile(selectedImageFile);
   const canFetchFromUrl = jobIntakeUrlSchema.safeParse(intakeUrl.trim()).success;
-  const canSaveJob = Object.keys(liveJobErrors).length === 0;
+  const canSaveJob = Object.keys(liveJobErrors).length === 0 && !imageFileError;
   const previewJob = useMemo<Partial<Job>>(
     () => ({
       title: title.trim() || "Job title preview",
@@ -115,10 +128,11 @@ export function JobEditor({
       employment_type: employmentType,
       salary: salary.trim(),
       source_url: sourceUrl.trim(),
+      image_url: imagePreviewUrl || imageUrl.trim(),
       description_mm: descriptionMm.trim(),
       description_en: descriptionEn.trim(),
     }),
-    [company, descriptionEn, descriptionMm, employmentType, location, salary, sourceUrl, title],
+    [company, descriptionEn, descriptionMm, employmentType, imagePreviewUrl, imageUrl, location, salary, sourceUrl, title],
   );
   const previewSections = useMemo(
     () => parseJobDescription(descriptionMm.trim() || descriptionEn.trim()),
@@ -154,6 +168,115 @@ export function JobEditor({
 
     return "border-[rgba(160,183,164,0.14)] bg-[rgba(255,255,255,0.74)] text-[#5c645f]";
   }, [fetchError, fetchMessage, isFetchingFromUrl]);
+
+  function replaceImagePreview(nextUrl: string) {
+    setImagePreviewUrl((current) => {
+      if (current.startsWith("blob:")) {
+        URL.revokeObjectURL(current);
+      }
+      return nextUrl;
+    });
+  }
+
+  function applyJobImageState(job: Partial<Job>) {
+    const nextImageUrl = job.image_url?.trim() ?? "";
+    const nextUploadedImageUrl = job.image_file_url?.trim() ?? "";
+    const nextDisplayImageUrl =
+      job.display_image_url?.trim() || nextUploadedImageUrl || nextImageUrl;
+    setImageUrl(nextImageUrl);
+    setUploadedImageUrl(nextUploadedImageUrl);
+    replaceImagePreview(nextDisplayImageUrl);
+  }
+
+  function handleImageFileChange(file: File | null) {
+    setImageUploadError("");
+    setSelectedImageFile(file);
+    if (!file) {
+      replaceImagePreview(uploadedImageUrl || imageUrl.trim());
+      return;
+    }
+
+    const nextError = validateJobImageFile(file);
+    if (nextError) {
+      setImageUploadError(nextError);
+      toast.error(nextError);
+      return;
+    }
+
+    replaceImagePreview(URL.createObjectURL(file));
+  }
+
+  async function uploadSelectedImage(jobId: number) {
+    if (!selectedImageFile) {
+      return null;
+    }
+
+    const nextError = validateJobImageFile(selectedImageFile);
+    if (nextError) {
+      setImageUploadError(nextError);
+      throw new Error(nextError);
+    }
+
+    setIsUploadingImage(true);
+    setImageUploadError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("image", selectedImageFile);
+
+      const response = await fetch(`/api/admin/proxy/jobs/admin/jobs/${jobId}/image`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(normalizeServerError(detail, "Unable to upload image."));
+      }
+
+      const result = (await response.json()) as Job;
+      applyJobImageState(result);
+      setSelectedImageFile(null);
+      return result;
+    } finally {
+      setIsUploadingImage(false);
+    }
+  }
+
+  async function removeUploadedImage() {
+    if (!initialJob?.id) {
+      setSelectedImageFile(null);
+      setImageUploadError("");
+      replaceImagePreview(imageUrl.trim());
+      return;
+    }
+
+    setIsRemovingImage(true);
+    setImageUploadError("");
+
+    try {
+      const response = await fetch(`/api/admin/proxy/jobs/admin/jobs/${initialJob.id}/image`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(normalizeServerError(detail, "Unable to remove image."));
+      }
+
+      const result = (await response.json()) as Job;
+      setSelectedImageFile(null);
+      applyJobImageState(result);
+      toast.success("Uploaded image removed.");
+    } catch (removeError) {
+      const nextError =
+        removeError instanceof Error ? removeError.message : "Unable to remove image.";
+      setImageUploadError(nextError);
+      toast.error(nextError);
+    } finally {
+      setIsRemovingImage(false);
+    }
+  }
 
   async function fetchFromUrl() {
     const url = intakeUrl.trim();
@@ -270,6 +393,15 @@ export function JobEditor({
         setDescriptionMm(nextDescriptionMm);
       }
 
+      const nextImageUrl = scraped.image_url?.trim();
+      if (nextImageUrl) {
+        nextFetchedFields.push("image");
+        setImageUrl(nextImageUrl);
+        if (!selectedImageFile && !uploadedImageUrl) {
+          replaceImagePreview(nextImageUrl);
+        }
+      }
+
       setFetchedFields(nextFetchedFields);
       const nextMessage =
         nextFetchedFields.length > 0
@@ -302,10 +434,14 @@ export function JobEditor({
       location,
       descriptionMm,
       sourceUrl,
+      imageUrl,
       contactEmail,
     });
     setFieldErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) {
+    if (Object.keys(nextErrors).length > 0 || imageFileError) {
+      if (imageFileError) {
+        setImageUploadError(imageFileError);
+      }
       const nextError = "Please fix the highlighted job fields.";
       setError(nextError);
       setMessage("");
@@ -329,6 +465,7 @@ export function JobEditor({
       category,
       source: source.trim() || "manual",
       source_url: sourceUrl.trim(),
+      image_url: imageUrl.trim(),
       description_mm: descriptionMm.trim(),
       description_en: descriptionEn.trim(),
       is_active: isActive,
@@ -356,7 +493,12 @@ export function JobEditor({
         throw new Error(normalizeServerError(detail, "Unable to save job."));
       }
 
-      const result = (await response.json()) as Job;
+      let result = (await response.json()) as Job;
+      if (selectedImageFile) {
+        result = (await uploadSelectedImage(result.id)) ?? result;
+      } else {
+        applyJobImageState(result);
+      }
       const nextMessage = isEdit ? "Job updated." : "Job created.";
       setMessage(nextMessage);
       toast.success(nextMessage);
@@ -664,6 +806,60 @@ export function JobEditor({
             />
             {fieldErrors.sourceUrl ? <span className="text-sm text-[#8e4a4a]">{fieldErrors.sourceUrl}</span> : null}
           </label>
+          <label className={`${fieldLabelClass} md:col-span-2`}>
+            <span className={eyebrowClass}>Image URL</span>
+            <Input
+              className={cn(inputClassName, fieldErrors.imageUrl && inputErrorClass)}
+              value={imageUrl}
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                setImageUrl(nextValue);
+                clearFieldError("imageUrl");
+                if (!selectedImageFile) {
+                  replaceImagePreview(nextValue.trim());
+                }
+              }}
+              placeholder="https://example.com/job-cover.jpg"
+              aria-invalid={Boolean(fieldErrors.imageUrl)}
+            />
+            {fieldErrors.imageUrl ? <span className="text-sm text-[#8e4a4a]">{fieldErrors.imageUrl}</span> : null}
+          </label>
+          <div className={`${fieldLabelClass} md:col-span-2`}>
+            <span className={eyebrowClass}>Image upload</span>
+            <label className="grid gap-3 rounded-md border border-dashed border-[rgba(160,183,164,0.22)] bg-[rgba(255,255,255,0.82)] px-4 py-4">
+              <div className="flex items-start gap-3 text-sm text-[#5c645f]">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-[rgba(160,183,164,0.16)] bg-[rgba(247,243,236,0.66)] text-[#748d7a]">
+                  <Upload className="h-4 w-4" />
+                </span>
+                <div className="grid gap-1">
+                  <strong className="font-medium text-[#334039]">Upload a verified image</strong>
+                  <span>Allowed: JPG, PNG, WEBP, GIF. Max size 10 MB. The backend rechecks the file bytes before saving.</span>
+                </div>
+              </div>
+              <Input
+                className="h-auto rounded-md border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.9)] px-3 py-3 file:mr-3"
+                type="file"
+                accept={ACCEPTED_IMAGE_TYPES}
+                onChange={(event) => handleImageFileChange(event.target.files?.[0] ?? null)}
+              />
+              {selectedImageFile ? (
+                <div className="flex items-center justify-between gap-3 rounded-md bg-[rgba(247,243,236,0.62)] px-3 py-2 text-sm text-[#4f6354]">
+                  <span className="truncate">{selectedImageFile.name}</span>
+                  <button
+                    className="inline-flex items-center gap-1 text-[#8e4a4a]"
+                    type="button"
+                    onClick={() => handleImageFileChange(null)}
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Clear
+                  </button>
+                </div>
+              ) : null}
+              {imageUploadError || imageFileError ? (
+                <span className="text-sm text-[#8e4a4a]">{imageUploadError || imageFileError}</span>
+              ) : null}
+            </label>
+          </div>
         </div>
       </section>
 
@@ -759,6 +955,46 @@ export function JobEditor({
         <aside className="grid gap-4">
           <div className={panelClass}>
             <div>
+              <div className={eyebrowClass}>Image preview</div>
+              <h2 className="mt-1 text-[1.02rem] font-semibold tracking-[-0.02em] text-foreground">
+                Listing image
+              </h2>
+            </div>
+            <div className="grid gap-3">
+              <div className="overflow-hidden rounded-md border border-[rgba(160,183,164,0.14)] bg-[rgba(247,243,236,0.48)]">
+                {imagePreviewUrl ? (
+                  <img
+                    src={imagePreviewUrl}
+                    alt={title.trim() || "Job image preview"}
+                    className="aspect-[16/10] w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex aspect-[16/10] items-center justify-center px-6 text-center text-sm leading-6 text-[#727975]">
+                    Add an external image URL or upload a local image to preview the listing artwork.
+                  </div>
+                )}
+              </div>
+              <div className="grid gap-2 text-sm text-[#5c645f]">
+                <span>
+                  Priority: uploaded image first, scraped/external image URL second.
+                </span>
+                {initialJob?.id && uploadedImageUrl ? (
+                  <button
+                    className="inline-flex items-center gap-2 text-left text-[#8e4a4a]"
+                    type="button"
+                    disabled={isRemovingImage}
+                    onClick={() => void removeUploadedImage()}
+                  >
+                    <XCircle className="h-4 w-4" />
+                    {isRemovingImage ? "Removing uploaded image..." : "Remove uploaded image"}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          </div>
+
+          <div className={panelClass}>
+            <div>
               <div className={eyebrowClass}>Publishing</div>
               <h2 className="mt-1 text-[1.02rem] font-semibold tracking-[-0.02em] text-foreground">
                 Workflow
@@ -808,16 +1044,18 @@ export function JobEditor({
             </label>
           </div>
 
-          {(error || message || Object.values(fieldErrors).some(Boolean)) && (
+          {(error || message || imageUploadError || imageFileError || Object.values(fieldErrors).some(Boolean)) && (
             <div
               className={cn(
                 "rounded-md border px-4 py-3 text-sm",
-                error || Object.values(fieldErrors).some(Boolean)
+                error || Object.values(fieldErrors).some(Boolean) || imageUploadError || imageFileError
                   ? "border-[rgba(169,97,111,0.22)] bg-[rgba(169,97,111,0.08)] text-[#8e4a4a]"
                   : "border-[rgba(116,141,122,0.2)] bg-[rgba(144,168,147,0.1)] text-[#4f6354]",
               )}
             >
               {error ||
+                imageUploadError ||
+                imageFileError ||
                 (Object.values(fieldErrors).some(Boolean)
                   ? "Please complete the required job fields before creating this listing."
                   : message)}
@@ -829,12 +1067,18 @@ export function JobEditor({
               className={cn(
                 buttonVariants(),
                 "rounded-md",
-                (isSaving || !canSaveJob) && "cursor-not-allowed opacity-60",
+                (isSaving || isUploadingImage || !canSaveJob) && "cursor-not-allowed opacity-60",
               )}
               type="submit"
-              disabled={isSaving || !canSaveJob}
+              disabled={isSaving || isUploadingImage || !canSaveJob}
             >
-              {isSaving ? "Saving..." : initialJob?.id ? "Update job" : "Create job"}
+              {isSaving || isUploadingImage
+                ? selectedImageFile && !isSaving
+                  ? "Uploading image..."
+                  : "Saving..."
+                : initialJob?.id
+                  ? "Update job"
+                  : "Create job"}
             </button>
             {initialJob?.id ? (
               <button

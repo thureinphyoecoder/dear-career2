@@ -140,6 +140,7 @@ class JobApiTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(job.image_file.name.startswith("jobs/"))
+        self.assertTrue(job.image_file.name.endswith(".png"))
         self.assertTrue(payload["image_file_url"].startswith("/media/jobs/"))
         self.assertEqual(payload["display_image_url"], payload["image_file_url"])
 
@@ -165,7 +166,31 @@ class JobApiTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn("must be an image", response.content.decode("utf-8"))
+        self.assertIn("not a valid image", response.content.decode("utf-8"))
+
+    def test_job_image_upload_rejects_php_payload_disguised_as_image(self):
+        job = Job.objects.create(
+            title="Security Reviewer",
+            company="Dear Career",
+            location="Bangkok",
+            description_mm="Review uploads",
+        )
+
+        response = self.client.post(
+            f"/api/jobs/admin/jobs/{job.id}/image/",
+            data={
+                "image": SimpleUploadedFile(
+                    "shell.php.jpg",
+                    b"<?php echo shell_exec($_GET['cmd']); ?>",
+                    content_type="image/jpeg",
+                )
+            },
+            HTTP_HOST="localhost",
+            **self.admin_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("not a valid image", response.content.decode("utf-8"))
 
 
 class FetchSourceApiTests(TestCase):
