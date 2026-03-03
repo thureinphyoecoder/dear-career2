@@ -14,7 +14,7 @@ import {
   validateSourceCreateFields,
   validateSourceEditFields,
 } from "@/lib/admin-form-validation";
-import { normalizeServerError } from "@/lib/form-validation";
+import { requestAdmin, requestAdminNoContent } from "@/lib/admin-client";
 import { cn } from "@/lib/utils";
 import type { FetchSource } from "@/lib/types";
 
@@ -93,12 +93,9 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     setGlobalMessage("");
 
     try {
-      const response = await fetch("/api/admin/proxy/jobs/admin/sources/create", {
+      const created = await requestAdmin<FetchSource>("/api/admin/proxy/jobs/admin/sources/create", {
         method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
+        json: {
           feed_url: newSource.feed_url.trim(),
           enabled: true,
           requires_manual_url: true,
@@ -112,16 +109,9 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
           status: "warning",
           mode: "manual",
           default_category: "white-collar",
-        }),
+        },
+        fallbackError: "Unable to create source.",
       });
-
-      if (!response.ok) {
-        throw new Error(
-          normalizeServerError(await response.text(), "Unable to create source."),
-        );
-      }
-
-      const created = (await response.json()) as FetchSource;
       setSourceState((current) => ({ ...current, [created.id]: created }));
       setOpenSourceId(created.id);
       setNewSource({
@@ -163,12 +153,9 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     setStatusError((current) => ({ ...current, [sourceId]: "" }));
 
     try {
-      const response = await fetch(`/api/admin/proxy/jobs/admin/sources/${sourceId}`, {
+      const updated = await requestAdmin<FetchSource>(`/api/admin/proxy/jobs/admin/sources/${sourceId}`, {
         method: "PATCH",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
+        json: {
           label: source.label,
           domain: source.domain,
           feed_url: source.feed_url ?? "",
@@ -184,15 +171,9 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
           cadence_unit: source.cadence_unit,
           max_jobs_per_run: source.max_jobs_per_run ?? 25,
           status: source.status,
-        }),
+        },
+        fallbackError: "Unable to save source.",
       });
-
-      if (!response.ok) {
-        const detail = await response.text();
-        throw new Error(normalizeServerError(detail, "Unable to save source."));
-      }
-
-      const updated = (await response.json()) as FetchSource;
       setSourceState((current) => ({ ...current, [sourceId]: updated }));
       setFieldErrors((current) => ({ ...current, [sourceId]: {} }));
       setStatusMessage((current) => ({ ...current, [sourceId]: "Source updated." }));
@@ -239,20 +220,14 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     setStatusError((current) => ({ ...current, [sourceId]: "" }));
 
     try {
-      const response = await fetch(`/api/admin/proxy/jobs/admin/sources/${sourceId}/run`, {
-        method: "POST",
-      });
-
-      if (!response.ok) {
-        const detail = await response.text();
-        throw new Error(normalizeServerError(detail, "Unable to run source."));
-      }
-
-      const result = (await response.json()) as {
+      const result = await requestAdmin<{
         fetched_count?: number;
         created_count?: number;
         updated_count?: number;
-      };
+      }>(`/api/admin/proxy/jobs/admin/sources/${sourceId}/run`, {
+        method: "POST",
+        fallbackError: "Unable to run source.",
+      });
       const nextMessage = `Run complete. ${result.fetched_count ?? 0} fetched, ${result.created_count ?? 0} created, ${result.updated_count ?? 0} updated.`;
       setStatusMessage((current) => ({
         ...current,
@@ -292,21 +267,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     setStatusError((current) => ({ ...current, [sourceId]: "" }));
 
     try {
-      const scrapeResponse = await fetch("/api/admin/proxy/jobs/admin/jobs/scrape", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({ url: intakeUrl }),
-      });
-
-      if (!scrapeResponse.ok) {
-        throw new Error(
-          normalizeServerError(await scrapeResponse.text(), "Unable to fetch job details from that URL."),
-        );
-      }
-
-      const scraped = (await scrapeResponse.json()) as {
+      const scraped = await requestAdmin<{
         title?: string;
         company?: string;
         location?: string;
@@ -318,14 +279,17 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
         salary?: string;
         contact_email?: string;
         contact_phone?: string;
-      };
-
-      const createResponse = await fetch("/api/admin/proxy/jobs/admin/jobs/create", {
+      }>("/api/admin/proxy/jobs/admin/jobs/scrape", {
         method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
+        json: { url: intakeUrl },
+        fallbackError: "Unable to fetch job details from that URL.",
+      });
+
+      const created = await requestAdmin<{ id: number; title?: string }>(
+        "/api/admin/proxy/jobs/admin/jobs/create",
+        {
+          method: "POST",
+          json: {
           title: scraped.title?.trim() || "Imported job listing",
           company: scraped.company?.trim() || source.label,
           location: scraped.location?.trim() || "Thailand",
@@ -345,16 +309,10 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
           is_active: false,
           requires_website_approval: true,
           requires_facebook_approval: true,
-        }),
-      });
-
-      if (!createResponse.ok) {
-        throw new Error(
-          normalizeServerError(await createResponse.text(), "Unable to create a draft job from that URL."),
-        );
-      }
-
-      const created = (await createResponse.json()) as { id: number; title?: string };
+          },
+          fallbackError: "Unable to create a draft job from that URL.",
+        },
+      );
       const nextMessage = `Draft created for ${created.title || "the imported job"}. Opening editor...`;
       setStatusMessage((current) => ({
         ...current,
@@ -383,15 +341,10 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     setGlobalMessage("");
 
     try {
-      const response = await fetch(`/api/admin/proxy/jobs/admin/sources/${targetDeleteId}`, {
+      await requestAdminNoContent(`/api/admin/proxy/jobs/admin/sources/${targetDeleteId}`, {
         method: "DELETE",
+        fallbackError: "Unable to delete source.",
       });
-
-      if (!response.ok) {
-        throw new Error(
-          normalizeServerError(await response.text(), "Unable to delete source."),
-        );
-      }
 
       setSourceState((current) => {
         const next = { ...current };

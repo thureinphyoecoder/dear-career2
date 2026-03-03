@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { normalizeServerError } from "@/lib/form-validation";
+import { requestAdmin } from "@/lib/admin-client";
 import type { Job } from "@/lib/types";
 
 type UseJobImageManagerOptions = {
@@ -106,17 +106,14 @@ export function useJobImageManager({
       const formData = new FormData();
       formData.append("image", selectedImageFile);
 
-      const response = await fetch(`/api/admin/proxy/jobs/admin/jobs/${jobId}/image`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const detail = await response.text();
-        throw new Error(normalizeServerError(detail, "Unable to upload image."));
-      }
-
-      const result = (await response.json()) as Job;
+      const result = await requestAdmin<Job>(
+        `/api/admin/proxy/jobs/admin/jobs/${jobId}/image`,
+        {
+          method: "POST",
+          body: formData,
+          fallbackError: "Unable to upload image.",
+        },
+      );
       applyJobImageState(result);
       setSelectedImageFile(null);
       return result;
@@ -135,16 +132,13 @@ export function useJobImageManager({
     setImageUploadError("");
 
     try {
-      const response = await fetch(`/api/admin/proxy/jobs/admin/jobs/${jobId}/image`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const detail = await response.text();
-        throw new Error(normalizeServerError(detail, "Unable to remove image."));
-      }
-
-      const result = (await response.json()) as Job;
+      const result = await requestAdmin<Job>(
+        `/api/admin/proxy/jobs/admin/jobs/${jobId}/image`,
+        {
+          method: "DELETE",
+          fallbackError: "Unable to remove image.",
+        },
+      );
       setSelectedImageFile(null);
       applyJobImageState(result);
       onSuccess("Uploaded image removed.");

@@ -15,7 +15,7 @@ import {
   validateJobEditorFields,
   type JobEditorFieldErrors,
 } from "@/lib/admin-form-validation";
-import { normalizeServerError } from "@/lib/form-validation";
+import { requestAdmin, requestAdminNoContent } from "@/lib/admin-client";
 import { buildFacebookPostMessage, parseJobDescription } from "@/lib/job-content";
 import { cn } from "@/lib/utils";
 import type { Job, JobCategory, JobStatus } from "@/lib/types";
@@ -375,25 +375,16 @@ export function JobEditor({
 
     try {
       const isEdit = Boolean(initialJob?.id);
-      const response = await fetch(
+      let result = await requestAdmin<Job>(
         isEdit
           ? `/api/admin/proxy/jobs/admin/jobs/${initialJob?.id}`
           : "/api/admin/proxy/jobs/admin/jobs/create",
         {
           method: isEdit ? "PATCH" : "POST",
-          headers: {
-            "content-type": "application/json",
-          },
-          body: JSON.stringify(payload),
+          json: payload,
+          fallbackError: "Unable to save job.",
         },
       );
-
-      if (!response.ok) {
-        const detail = await response.text();
-        throw new Error(normalizeServerError(detail, "Unable to save job."));
-      }
-
-      let result = (await response.json()) as Job;
       if (selectedImageFile) {
         result = (await uploadSelectedImage(result.id)) ?? result;
       } else {
@@ -432,14 +423,10 @@ export function JobEditor({
     setMessage("");
 
     try {
-      const response = await fetch(`/api/admin/proxy/jobs/admin/jobs/${initialJob.id}`, {
+      await requestAdminNoContent(`/api/admin/proxy/jobs/admin/jobs/${initialJob.id}`, {
         method: "DELETE",
+        fallbackError: "Unable to delete job.",
       });
-
-      if (!response.ok) {
-        const detail = await response.text();
-        throw new Error(normalizeServerError(detail, "Unable to delete job."));
-      }
 
       toast.success("Job deleted.");
       router.push(safeReturnTo || "/admin/jobs");
