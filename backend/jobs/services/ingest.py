@@ -92,6 +92,21 @@ def _pick_selector_attr(node, selector: str | None, attribute: str) -> str:
     return _clean_text(target.get(attribute, ""))
 
 
+def _pick_selector_image_url(node, selector: str | None) -> str:
+    if not selector:
+        return ""
+
+    target = node.select_one(selector)
+    if target is None:
+        return ""
+
+    for attribute in ("src", "data-src", "data-original", "data-lazy-src"):
+        value = _clean_text(target.get(attribute, ""))
+        if value:
+            return value
+    return ""
+
+
 def _pick_custom_identifier(node, source: FetchSource) -> str:
     selector = _get_selector(source, "source_job_id")
     if not selector:
@@ -129,6 +144,15 @@ def _default_description(source: FetchSource, title: str, company: str) -> str:
         f"{title} at {company}. Imported automatically from {source.label}. "
         "Open the source URL for full job details."
     )
+
+
+def _extract_jobthai_image_url(item: dict[str, Any]) -> str:
+    company_logo = item.get("companyLogo")
+    if isinstance(company_logo, dict):
+        return clean_inline_text(
+            company_logo.get("original") or company_logo.get("thumbnail")
+        )
+    return clean_inline_text(item.get("logo") or company_logo)
 
 
 def _get_selector(source: FetchSource, key: str, default: str = "") -> str:
@@ -294,6 +318,7 @@ def _parse_html_jobs(source: FetchSource, payload: str) -> list[dict[str, Any]]:
         )
         description = _pick_selector_rich_text(entry, _get_selector(source, "description"))
         salary = _pick_selector_text(entry, _get_selector(source, "salary"))
+        image_url = _pick_selector_image_url(entry, _get_selector(source, "image"))
 
         employment_type = _normalize_employment_type(
             _pick_selector_text(entry, _get_selector(source, "employment_type"))
@@ -307,6 +332,7 @@ def _parse_html_jobs(source: FetchSource, payload: str) -> list[dict[str, Any]]:
             link = _clean_text(entry.get("href", ""))
 
         link = urljoin(source.feed_url, link) if link else source.feed_url
+        image_url = urljoin(source.feed_url, image_url) if image_url else ""
 
         # --- Source job id ---
         source_job_id = (
@@ -328,6 +354,7 @@ def _parse_html_jobs(source: FetchSource, payload: str) -> list[dict[str, Any]]:
                 or _default_description(source, title, company),
                 "description_en": description,
                 "source_url": link,
+                "image_url": image_url,
                 "source_job_id": source_job_id,
                 "salary": salary,
             }
@@ -371,6 +398,14 @@ def _parse_jobthai_jobs(source: FetchSource, payload: str) -> list[dict[str, Any
         if not job_id or not title:
             continue
 
+        image_path = _extract_jobthai_image_url(item)
+        image_url = ""
+        if image_path:
+            if image_path.startswith(("http://", "https://")):
+                image_url = image_path
+            else:
+                image_url = urljoin(source.feed_url, f"/{image_path.lstrip('/')}")
+
         records.append(
             {
                 "title": title,
@@ -387,6 +422,7 @@ def _parse_jobthai_jobs(source: FetchSource, payload: str) -> list[dict[str, Any
                     item.get("salary") or item.get("jobType", {}).get("name") or ""
                 ),
                 "source_url": f"https://www.jobthai.com/th/company/job/{job_id}",
+                "image_url": image_url,
                 "source_job_id": f"{source.key}-{job_id}",
                 "salary": clean_inline_text(item.get("salary")),
             }
@@ -441,6 +477,7 @@ def _enrich_records_from_detail_pages(
             "title",
             "company",
             "location",
+            "image_url",
             "description_mm",
             "description_en",
             "salary",
@@ -514,6 +551,7 @@ def _persist_records(
                 "description_en": record.get("description_en", ""),
                 "source": Job.SourceChoices.SCRAPER,
                 "source_url": source_url,
+                "image_url": record.get("image_url", ""),
                 "employment_type": record.get("employment_type")
                 or Job.EmploymentType.FULL_TIME,
                 "salary": record.get("salary", ""),

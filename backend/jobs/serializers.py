@@ -1,7 +1,19 @@
 """Serialization helpers for the jobs app."""
 
 
+def _job_uploaded_image_url(job):
+    image_file = getattr(job, "image_file", None)
+    if not image_file:
+        return ""
+
+    try:
+        return image_file.url
+    except ValueError:
+        return ""
+
+
 def serialize_job(job):
+    uploaded_image_url = _job_uploaded_image_url(job)
     return {
         "id": job.id,
         "title": job.title,
@@ -15,6 +27,9 @@ def serialize_job(job):
         "contact_phone": job.contact_phone,
         "source": job.source,
         "source_url": job.source_url,
+        "image_url": job.image_url,
+        "image_file_url": uploaded_image_url,
+        "display_image_url": uploaded_image_url or job.image_url,
         "status": job.status,
         "is_active": job.is_active,
         "is_fb_posted": job.is_fb_posted,

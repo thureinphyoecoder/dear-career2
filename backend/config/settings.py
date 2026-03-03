@@ -41,7 +41,7 @@ DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() == "true"
 
 ALLOWED_HOSTS = [
     host.strip()
-    for host in split_env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+    for host in split_env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver")
 ]
 
 CORS_ALLOWED_ORIGINS = split_env_list(
@@ -150,6 +150,8 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"

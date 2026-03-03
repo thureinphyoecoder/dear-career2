@@ -1,10 +1,17 @@
+import json
+import shutil
+import tempfile
+
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
+from django.test.utils import override_settings
 
 from .admin_api import get_admin_api_key
 from .content import build_facebook_post_message, normalize_rich_text
 from .management.commands.seed_fetch_sources import DEFAULT_SOURCES
 from .models import FetchSource, Job
 from .services.ingest import _parse_jobthai_jobs, _source_uses_browser_fetch
+from .views.shared import build_scraped_job_payload
 
 
 class JobModelTests(TestCase):
@@ -22,6 +29,19 @@ class JobModelTests(TestCase):
 
 
 class JobApiTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls._temp_media_dir = tempfile.mkdtemp()
+        cls._override = override_settings(MEDIA_ROOT=cls._temp_media_dir)
+        cls._override.enable()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._override.disable()
+        shutil.rmtree(cls._temp_media_dir, ignore_errors=True)
+        super().tearDownClass()
+
     def setUp(self):
         self.client = Client()
         self.admin_headers = {"HTTP_X_ADMIN_API_KEY": get_admin_api_key()}
@@ -65,6 +85,87 @@ class JobApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(payload["count"], 1)
         self.assertEqual(payload["results"][0]["status"], Job.WorkflowStatus.PENDING_REVIEW)
+
+    def test_job_create_accepts_image_url(self):
+        response = self.client.post(
+            "/api/jobs/admin/jobs/create/",
+            data=json.dumps(
+                {
+                    "title": "Visual Designer",
+                    "company": "Dear Career",
+                    "location": "Bangkok",
+                    "description_mm": "Visual design role",
+                    "image_url": "https://example.com/logo.png",
+                }
+            ),
+            content_type="application/json",
+            HTTP_HOST="localhost",
+            **self.admin_headers,
+        )
+
+        payload = response.json()
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(payload["image_url"], "https://example.com/logo.png")
+        self.assertEqual(payload["display_image_url"], "https://example.com/logo.png")
+
+    def test_job_image_upload_attaches_file(self):
+        job = Job.objects.create(
+            title="Content Creator",
+            company="Dear Career",
+            location="Bangkok",
+            description_mm="Create content",
+        )
+
+        response = self.client.post(
+            f"/api/jobs/admin/jobs/{job.id}/image/",
+            data={
+                "image": SimpleUploadedFile(
+                    "job.png",
+                    (
+                        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
+                        b"\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde"
+                        b"\x00\x00\x00\x0cIDATx\x9cc\xf8\xcf\xc0\x00\x00\x03"
+                        b"\x01\x01\x00\xc9\xfe\x92\xef\x00\x00\x00\x00IEND\xaeB`\x82"
+                    ),
+                    content_type="image/png",
+                )
+            },
+            HTTP_HOST="localhost",
+            **self.admin_headers,
+        )
+
+        payload = response.json()
+        job.refresh_from_db()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(job.image_file.name.startswith("jobs/"))
+        self.assertTrue(payload["image_file_url"].startswith("/media/jobs/"))
+        self.assertEqual(payload["display_image_url"], payload["image_file_url"])
+
+    def test_job_image_upload_rejects_non_image_file(self):
+        job = Job.objects.create(
+            title="Writer",
+            company="Dear Career",
+            location="Bangkok",
+            description_mm="Write content",
+        )
+
+        response = self.client.post(
+            f"/api/jobs/admin/jobs/{job.id}/image/",
+            data={
+                "image": SimpleUploadedFile(
+                    "notes.txt",
+                    b"plain text",
+                    content_type="text/plain",
+                )
+            },
+            HTTP_HOST="localhost",
+            **self.admin_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("must be an image", response.content.decode("utf-8"))
 
 
 class FetchSourceApiTests(TestCase):
@@ -132,6 +233,23 @@ class JobContentFormattingTests(TestCase):
         self.assertIn("Requirements", message)
         self.assertIn("Apply: https://example.com/jobs/photo-video", message)
 
+    def test_build_scraped_job_payload_extracts_image_url(self):
+        payload = build_scraped_job_payload(
+            "https://example.com/jobs/creative-producer",
+            """
+            <html>
+              <head>
+                <meta property="og:title" content="Creative Producer" />
+                <meta property="og:image" content="/media/creative.png" />
+                <meta property="og:description" content="Lead creative production." />
+              </head>
+              <body></body>
+            </html>
+            """,
+        )
+
+        self.assertEqual(payload["image_url"], "https://example.com/media/creative.png")
+
 
 class FetchParserTests(TestCase):
     def test_jobthai_parser_reads_next_data_jobs(self):
@@ -156,6 +274,7 @@ class FetchParserTests(TestCase):
                         "id": 12345,
                         "jobTitle": "Project Coordinator",
                         "companyName": "Acme Foundation",
+                        "companyLogo": "https://cdn.example.com/logo.png",
                         "province": {"name": "Bangkok"},
                         "district": {"name": "Pathum Wan"},
                         "workLocation": "BTS Siam",
@@ -178,6 +297,7 @@ class FetchParserTests(TestCase):
         self.assertEqual(records[0]["title"], "Project Coordinator")
         self.assertEqual(records[0]["company"], "Acme Foundation")
         self.assertEqual(records[0]["source_url"], "https://www.jobthai.com/th/company/job/12345")
+        self.assertEqual(records[0]["image_url"], "https://cdn.example.com/logo.png")
         self.assertIn("Bangkok", records[0]["location"])
 
 

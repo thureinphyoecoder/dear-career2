@@ -1,8 +1,10 @@
+import uuid
 from django.core.exceptions import ValidationError
 from urllib.parse import urlparse
 
 from django.http import HttpRequest, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404
+from django.utils.text import slugify
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods
 
@@ -12,6 +14,13 @@ from ..models import AdminNotification, Job
 from ..serializers import serialize_job
 from ..validation import clean_text_input, clean_url_input, format_validation_error, validate_instance
 from .shared import build_scraped_job_payload, create_admin_notification, load_json_body
+
+MAX_IMAGE_UPLOAD_BYTES = 10 * 1024 * 1024
+
+
+def _build_generated_slug(title: str) -> str:
+    base_slug = slugify(title) or "job"
+    return f"{base_slug}-{uuid.uuid4().hex[:6]}"
 
 
 @require_GET
@@ -39,7 +48,7 @@ def job_create(request: HttpRequest):
     slug = clean_text_input(payload.get("slug", ""))
     job = Job(
         title=clean_text_input(payload["title"]),
-        slug=slug or "",
+        slug=slug or _build_generated_slug(clean_text_input(payload["title"])),
         company=clean_text_input(payload["company"]),
         location=clean_text_input(payload["location"]),
         category=payload.get("category", Job.CategoryChoices.WHITE_COLLAR),
@@ -47,6 +56,7 @@ def job_create(request: HttpRequest):
         description_en=clean_text_input(payload.get("description_en", "")),
         source=payload.get("source", Job.SourceChoices.MANUAL),
         source_url=clean_url_input(payload.get("source_url", "")) or None,
+        image_url=clean_url_input(payload.get("image_url", "")),
         employment_type=payload.get("employment_type", Job.EmploymentType.FULL_TIME),
         salary=clean_text_input(payload.get("salary", "")),
         contact_email=clean_text_input(payload.get("contact_email", "")),
@@ -112,12 +122,18 @@ def job_detail(request: HttpRequest, job_id: int):
 
     if "source_url" in payload:
         job.source_url = clean_url_input(payload.get("source_url", "")) or None
+    if "image_url" in payload:
+        job.image_url = clean_url_input(payload.get("image_url", ""))
     if "is_active" in payload:
         job.is_active = bool(payload["is_active"])
     if "requires_website_approval" in payload:
         job.requires_website_approval = bool(payload["requires_website_approval"])
     if "requires_facebook_approval" in payload:
         job.requires_facebook_approval = bool(payload["requires_facebook_approval"])
+    if payload.get("remove_image_file"):
+        if job.image_file:
+            job.image_file.delete(save=False)
+        job.image_file = ""
 
     required = {
         "title": clean_text_input(job.title),
@@ -125,6 +141,8 @@ def job_detail(request: HttpRequest, job_id: int):
         "location": clean_text_input(job.location),
         "description_mm": clean_text_input(job.description_mm),
     }
+    if not clean_text_input(job.slug):
+        job.slug = _build_generated_slug(job.title)
     missing = [field for field, value in required.items() if not value]
     if missing:
         return HttpResponseBadRequest(f"Missing required fields: {', '.join(missing)}")
@@ -151,6 +169,36 @@ def job_detail(request: HttpRequest, job_id: int):
             target_url=f"/admin/jobs/{job.id}",
         )
 
+    return JsonResponse(serialize_job(job))
+
+
+@csrf_exempt
+@require_admin_api_auth
+@require_http_methods(["POST", "DELETE"])
+def job_image_upload(request: HttpRequest, job_id: int):
+    job = get_object_or_404(Job, pk=job_id)
+
+    if request.method == "DELETE":
+        if job.image_file:
+            job.image_file.delete(save=False)
+            job.image_file = ""
+            job.save(update_fields=["image_file", "updated_at"])
+        return JsonResponse(serialize_job(job))
+
+    uploaded_file = request.FILES.get("image")
+    if uploaded_file is None:
+        return HttpResponseBadRequest("Missing uploaded file: image")
+    if uploaded_file.size > MAX_IMAGE_UPLOAD_BYTES:
+        return HttpResponseBadRequest("Image upload exceeds 10 MB limit.")
+
+    content_type = clean_text_input(getattr(uploaded_file, "content_type", ""))
+    if not content_type.startswith("image/"):
+        return HttpResponseBadRequest("Uploaded file must be an image.")
+
+    if job.image_file:
+        job.image_file.delete(save=False)
+    job.image_file.save(uploaded_file.name, uploaded_file, save=False)
+    job.save(update_fields=["image_file", "updated_at"])
     return JsonResponse(serialize_job(job))
 
 

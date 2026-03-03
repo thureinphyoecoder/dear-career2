@@ -1,7 +1,7 @@
 import json
 import re
 from itertools import islice
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 from django.http import HttpRequest
 from django.utils.text import slugify
@@ -66,6 +66,34 @@ def pick_first_rich_text(soup, selectors: list[str]) -> str:
         if node:
             return normalize_rich_text(str(node))
     return ""
+
+
+def pick_first_attr(soup, selectors: list[str], *attributes: str) -> str:
+    for selector in selectors:
+        node = soup.select_one(selector)
+        if not node:
+            continue
+        for attribute in attributes:
+            value = clean_text(node.get(attribute))
+            if value:
+                return value
+    return ""
+
+
+def pick_image_url(soup, page_url: str, selectors: list[str] | None = None) -> str:
+    direct_url = (
+        pick_meta_content(soup, "og:image", "twitter:image", "twitter:image:src")
+        or pick_first_attr(
+            soup,
+            selectors or ["img[src]", "img[data-src]", "img[data-lazy-src]"],
+            "src",
+            "data-src",
+            "data-lazy-src",
+        )
+    )
+    if not direct_url:
+        return ""
+    return urljoin(page_url, direct_url)
 
 
 def derive_company(hostname: str, title: str) -> str:
@@ -247,6 +275,12 @@ def extract_linkedin_fields(soup) -> dict:
             soup,
             [".show-more-less-html__markup", ".description__text"],
         ),
+        "image_url": pick_first_attr(
+            soup,
+            [".artdeco-entity-image img", ".top-card-layout__entity-image img"],
+            "src",
+            "data-delayed-url",
+        ),
     }
 
 
@@ -262,6 +296,12 @@ def extract_jobsdb_fields(soup) -> dict:
             soup,
             ['[data-automation="jobAdDetails"]', '[data-automation="jobDescription"]'],
         ),
+        "image_url": pick_first_attr(
+            soup,
+            ['img[data-automation="advertiser-logo"]', '[data-automation="company-overview"] img', "img"],
+            "src",
+            "data-src",
+        ),
     }
 
 
@@ -271,6 +311,12 @@ def extract_jobthai_fields(soup) -> dict:
         "company": pick_first_text(soup, [".job-company a", ".company-name", ".css-19n2x38"]),
         "location": pick_first_text(soup, [".job-location", ".location", ".css-129m7dg"]),
         "description": pick_first_rich_text(soup, [".job-description", ".job-highlight", ".css-1id5vzh"]),
+        "image_url": pick_first_attr(
+            soup,
+            [".job-company img", ".company-logo img", "img"],
+            "src",
+            "data-src",
+        ),
     }
 
 
@@ -288,6 +334,12 @@ def extract_thaingo_fields(soup) -> dict:
         "description": pick_first_rich_text(
             soup,
             [".field-name-body", ".job-description", ".content"],
+        ),
+        "image_url": pick_first_attr(
+            soup,
+            [".field-name-field-logo img", ".content img", "img"],
+            "src",
+            "data-src",
         ),
     }
 
@@ -349,6 +401,8 @@ def build_scraped_job_payload(url: str, html: str) -> dict:
     salary = clean_text(domain_fields.get("salary") or json_ld_fields.get("salary") or "")
     contact_email = extract_contact_email(combined_text)
     contact_phone = extract_contact_phone(combined_text)
+    raw_image_url = domain_fields.get("image_url") or pick_image_url(soup, url)
+    image_url = urljoin(url, raw_image_url) if raw_image_url else ""
 
     if not description:
         description = f"{title} at {company or 'Manual source'}. Open the source URL for the full posting."
@@ -361,6 +415,7 @@ def build_scraped_job_payload(url: str, html: str) -> dict:
         "category": category,
         "source": Job.SourceChoices.MANUAL,
         "source_url": url,
+        "image_url": image_url,
         "description_en": normalize_rich_text(description),
         "description_mm": normalize_rich_text(description),
         "salary": salary,

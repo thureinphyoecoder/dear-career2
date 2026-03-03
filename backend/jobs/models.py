@@ -46,6 +46,8 @@ class Job(models.Model):
         max_length=50, choices=SourceChoices.choices, default=SourceChoices.MANUAL
     )
     source_url = models.URLField(blank=True, null=True)
+    image_url = models.URLField(blank=True)
+    image_file = models.FileField(upload_to="jobs/", blank=True)
     source_job_id = models.CharField(
         max_length=255,
         unique=True,
