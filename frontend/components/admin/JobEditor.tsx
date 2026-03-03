@@ -19,6 +19,7 @@ import { normalizeServerError } from "@/lib/form-validation";
 import { buildFacebookPostMessage, parseJobDescription } from "@/lib/job-content";
 import { cn } from "@/lib/utils";
 import type { Job, JobCategory, JobStatus } from "@/lib/types";
+import { useJobImageManager } from "@/components/admin/useJobImageManager";
 
 const categoryOptions: Array<{ value: JobCategory; label: string }> = [
   { value: "ngo", label: "NGO" },
@@ -42,7 +43,6 @@ const employmentTypeOptions = [
 
 const FETCH_TIMEOUT_MS = 20000;
 const ACCEPTED_IMAGE_TYPES = "image/jpeg,image/png,image/webp,image/gif";
-
 function normalizeErrorDetail(detail: string) {
   const trimmed = detail.trim();
 
@@ -77,7 +77,6 @@ export function JobEditor({
   const [category, setCategory] = useState<JobCategory>(initialJob?.category ?? "white-collar");
   const [source, setSource] = useState(initialJob?.source ?? "manual");
   const [sourceUrl, setSourceUrl] = useState(initialJob?.source_url ?? "");
-  const [imageUrl, setImageUrl] = useState(initialJob?.image_url ?? "");
   const [intakeUrl, setIntakeUrl] = useState(initialJob?.source_url ?? "");
   const [descriptionMm, setDescriptionMm] = useState(initialJob?.description_mm ?? "");
   const [descriptionEn, setDescriptionEn] = useState(initialJob?.description_en ?? "");
@@ -99,15 +98,28 @@ export function JobEditor({
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<JobEditorFieldErrors>({});
-  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
-  const [uploadedImageUrl, setUploadedImageUrl] = useState(initialJob?.image_file_url ?? "");
-  const [imagePreviewUrl, setImagePreviewUrl] = useState(
-    initialJob?.display_image_url ?? initialJob?.image_file_url ?? initialJob?.image_url ?? "",
-  );
-  const [imageUploadError, setImageUploadError] = useState("");
-  const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [isRemovingImage, setIsRemovingImage] = useState(false);
   const safeReturnTo = returnTo.startsWith("/admin") && !returnTo.startsWith("//") ? returnTo : "";
+  const {
+    imageUrl,
+    setImageUrl,
+    selectedImageFile,
+    uploadedImageUrl,
+    imagePreviewUrl,
+    imageUploadError,
+    setImageUploadError,
+    isUploadingImage,
+    isRemovingImage,
+    applyJobImageState,
+    clearSelectedImageFile,
+    handleImageFileChange,
+    uploadSelectedImage,
+    removeUploadedImage,
+  } = useJobImageManager({
+    initialJob,
+    validateJobImageFile,
+    onError: (nextError) => toast.error(nextError),
+    onSuccess: (nextMessage) => toast.success(nextMessage),
+  });
   const liveJobErrors = validateJobEditorFields({
     title,
     company,
@@ -168,115 +180,6 @@ export function JobEditor({
 
     return "border-[rgba(160,183,164,0.14)] bg-[rgba(255,255,255,0.74)] text-[#5c645f]";
   }, [fetchError, fetchMessage, isFetchingFromUrl]);
-
-  function replaceImagePreview(nextUrl: string) {
-    setImagePreviewUrl((current) => {
-      if (current.startsWith("blob:")) {
-        URL.revokeObjectURL(current);
-      }
-      return nextUrl;
-    });
-  }
-
-  function applyJobImageState(job: Partial<Job>) {
-    const nextImageUrl = job.image_url?.trim() ?? "";
-    const nextUploadedImageUrl = job.image_file_url?.trim() ?? "";
-    const nextDisplayImageUrl =
-      job.display_image_url?.trim() || nextUploadedImageUrl || nextImageUrl;
-    setImageUrl(nextImageUrl);
-    setUploadedImageUrl(nextUploadedImageUrl);
-    replaceImagePreview(nextDisplayImageUrl);
-  }
-
-  function handleImageFileChange(file: File | null) {
-    setImageUploadError("");
-    setSelectedImageFile(file);
-    if (!file) {
-      replaceImagePreview(uploadedImageUrl || imageUrl.trim());
-      return;
-    }
-
-    const nextError = validateJobImageFile(file);
-    if (nextError) {
-      setImageUploadError(nextError);
-      toast.error(nextError);
-      return;
-    }
-
-    replaceImagePreview(URL.createObjectURL(file));
-  }
-
-  async function uploadSelectedImage(jobId: number) {
-    if (!selectedImageFile) {
-      return null;
-    }
-
-    const nextError = validateJobImageFile(selectedImageFile);
-    if (nextError) {
-      setImageUploadError(nextError);
-      throw new Error(nextError);
-    }
-
-    setIsUploadingImage(true);
-    setImageUploadError("");
-
-    try {
-      const formData = new FormData();
-      formData.append("image", selectedImageFile);
-
-      const response = await fetch(`/api/admin/proxy/jobs/admin/jobs/${jobId}/image`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const detail = await response.text();
-        throw new Error(normalizeServerError(detail, "Unable to upload image."));
-      }
-
-      const result = (await response.json()) as Job;
-      applyJobImageState(result);
-      setSelectedImageFile(null);
-      return result;
-    } finally {
-      setIsUploadingImage(false);
-    }
-  }
-
-  async function removeUploadedImage() {
-    if (!initialJob?.id) {
-      setSelectedImageFile(null);
-      setImageUploadError("");
-      replaceImagePreview(imageUrl.trim());
-      return;
-    }
-
-    setIsRemovingImage(true);
-    setImageUploadError("");
-
-    try {
-      const response = await fetch(`/api/admin/proxy/jobs/admin/jobs/${initialJob.id}/image`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const detail = await response.text();
-        throw new Error(normalizeServerError(detail, "Unable to remove image."));
-      }
-
-      const result = (await response.json()) as Job;
-      setSelectedImageFile(null);
-      applyJobImageState(result);
-      toast.success("Uploaded image removed.");
-    } catch (removeError) {
-      const nextError =
-        removeError instanceof Error ? removeError.message : "Unable to remove image.";
-      setImageUploadError(nextError);
-      toast.error(nextError);
-    } finally {
-      setIsRemovingImage(false);
-    }
-  }
 
   async function fetchFromUrl() {
     const url = intakeUrl.trim();
@@ -396,10 +299,7 @@ export function JobEditor({
       const nextImageUrl = scraped.image_url?.trim();
       if (nextImageUrl) {
         nextFetchedFields.push("image");
-        setImageUrl(nextImageUrl);
-        if (!selectedImageFile && !uploadedImageUrl) {
-          replaceImagePreview(nextImageUrl);
-        }
+        setImageUrl(nextImageUrl, { syncPreview: !selectedImageFile && !uploadedImageUrl });
       }
 
       setFetchedFields(nextFetchedFields);
@@ -813,11 +713,8 @@ export function JobEditor({
               value={imageUrl}
               onChange={(event) => {
                 const nextValue = event.target.value;
-                setImageUrl(nextValue);
+                setImageUrl(nextValue, { syncPreview: !selectedImageFile });
                 clearFieldError("imageUrl");
-                if (!selectedImageFile) {
-                  replaceImagePreview(nextValue.trim());
-                }
               }}
               placeholder="https://example.com/job-cover.jpg"
               aria-invalid={Boolean(fieldErrors.imageUrl)}
@@ -848,7 +745,7 @@ export function JobEditor({
                   <button
                     className="inline-flex items-center gap-1 text-[#8e4a4a]"
                     type="button"
-                    onClick={() => handleImageFileChange(null)}
+                    onClick={clearSelectedImageFile}
                   >
                     <XCircle className="h-4 w-4" />
                     Clear
@@ -983,7 +880,7 @@ export function JobEditor({
                     className="inline-flex items-center gap-2 text-left text-[#8e4a4a]"
                     type="button"
                     disabled={isRemovingImage}
-                    onClick={() => void removeUploadedImage()}
+                    onClick={() => void removeUploadedImage(initialJob?.id)}
                   >
                     <XCircle className="h-4 w-4" />
                     {isRemovingImage ? "Removing uploaded image..." : "Remove uploaded image"}
