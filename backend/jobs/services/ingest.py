@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+from pathlib import Path
 import re
+import shutil
+import subprocess
 from typing import Any
 from urllib.parse import urljoin
 from xml.etree import ElementTree
@@ -18,6 +21,8 @@ from jobs.services.dedupe import dedupe_jobs
 from jobs.services.publish import publish_job
 
 DEFAULT_TIMEOUT_SECONDS = 20
+BROWSER_TIMEOUT_SECONDS = 90
+BROWSER_FETCH_SCRIPT = Path("/opt/dear-career-browser/fetch.mjs")
 
 
 class FetchConfigurationError(ValueError):
@@ -152,6 +157,9 @@ def _fetch_payload(source: FetchSource) -> str:
     if not source.feed_url:
         raise FetchConfigurationError(f"{source.label} has no feed URL configured.")
 
+    if _source_uses_browser_fetch(source):
+        return _fetch_browser_payload(source)
+
     requests = _import_requests()
     response = requests.get(
         source.feed_url,
@@ -160,6 +168,62 @@ def _fetch_payload(source: FetchSource) -> str:
     )
     response.raise_for_status()
     return response.text
+
+
+def _source_uses_browser_fetch(source: FetchSource) -> bool:
+    selectors = source.selectors or {}
+    return clean_inline_text(selectors.get("__fetch_strategy")).lower() == "browser"
+
+
+def _find_browser_executable() -> str:
+    for candidate in ("chromium", "chromium-browser", "google-chrome", "google-chrome-stable"):
+        path = shutil.which(candidate)
+        if path:
+            return path
+    raise FetchConfigurationError("Browser fetch requires Chromium or Chrome, but no executable was found.")
+
+
+def _fetch_browser_payload(source: FetchSource) -> str:
+    node_path = shutil.which("node")
+    if not node_path:
+        raise FetchConfigurationError("Browser fetch requires Node.js, but `node` was not found.")
+
+    wait_selector = _get_selector(source, "__wait_for", _get_selector(source, "entry"))
+    executable_path = _find_browser_executable()
+    command = [
+        node_path,
+        str(BROWSER_FETCH_SCRIPT),
+        "--url",
+        source.feed_url,
+        "--wait-selector",
+        wait_selector,
+        "--executable-path",
+        executable_path,
+        "--timeout-ms",
+        str(BROWSER_TIMEOUT_SECONDS * 1000),
+    ]
+    try:
+        result = subprocess.run(
+            command,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=BROWSER_TIMEOUT_SECONDS + 10,
+        )
+    except subprocess.CalledProcessError as exc:
+        detail = clean_inline_text(exc.stderr or exc.stdout or str(exc))
+        raise FetchConfigurationError(
+            f"{source.label} browser fetch failed. {detail or 'Unknown browser error.'}"
+        ) from exc
+    except subprocess.TimeoutExpired as exc:
+        raise FetchConfigurationError(
+            f"{source.label} browser fetch timed out after {BROWSER_TIMEOUT_SECONDS} seconds."
+        ) from exc
+
+    if not result.stdout.strip():
+        raise FetchConfigurationError(f"{source.label} browser fetch returned empty content.")
+
+    return result.stdout
 
 
 def _parse_rss_jobs(source: FetchSource, payload: str) -> list[dict[str, Any]]:
@@ -346,7 +410,7 @@ def _parse_records(source: FetchSource, payload: str) -> list[dict[str, Any]]:
 def _enrich_records_from_detail_pages(
     source: FetchSource, records: list[dict[str, Any]]
 ) -> list[dict[str, Any]]:
-    enrich_domains = ("unjobs.org",)
+    enrich_domains = ("unjobs.org", "thaingo.org")
     if not any(domain in source.domain for domain in enrich_domains):
         return records
 

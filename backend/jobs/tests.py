@@ -4,7 +4,7 @@ from .admin_api import get_admin_api_key
 from .content import build_facebook_post_message, normalize_rich_text
 from .management.commands.seed_fetch_sources import DEFAULT_SOURCES
 from .models import FetchSource, Job
-from .services.ingest import _parse_jobthai_jobs
+from .services.ingest import _parse_jobthai_jobs, _source_uses_browser_fetch
 
 
 class JobModelTests(TestCase):
@@ -188,3 +188,23 @@ class SeedSourceConfigTests(TestCase):
         self.assertEqual(keyed["jobthai"]["mode"], FetchSource.ModeChoices.HTML)
         self.assertFalse(keyed["jobthai"]["requires_manual_url"])
         self.assertEqual(keyed["unjobs-thailand"]["selectors"]["entry"], "a[href*='vacancies/']")
+
+    def test_jobsdb_and_thaingo_default_sources_use_browser_fetch(self):
+        keyed = {source["key"]: source for source in DEFAULT_SOURCES}
+
+        self.assertEqual(keyed["jobsdb-th"]["mode"], FetchSource.ModeChoices.HTML)
+        self.assertFalse(keyed["jobsdb-th"]["requires_manual_url"])
+        self.assertEqual(keyed["jobsdb-th"]["selectors"]["__fetch_strategy"], "browser")
+        self.assertEqual(keyed["thaingo"]["mode"], FetchSource.ModeChoices.HTML)
+        self.assertFalse(keyed["thaingo"]["requires_manual_url"])
+        self.assertEqual(keyed["thaingo"]["selectors"]["__fetch_strategy"], "browser")
+
+
+class BrowserFetchStrategyTests(TestCase):
+    def test_source_uses_browser_fetch_when_configured(self):
+        source = FetchSource(selectors={"__fetch_strategy": "browser"})
+        self.assertTrue(_source_uses_browser_fetch(source))
+
+    def test_source_does_not_use_browser_fetch_by_default(self):
+        source = FetchSource(selectors={})
+        self.assertFalse(_source_uses_browser_fetch(source))
