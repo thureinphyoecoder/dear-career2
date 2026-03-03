@@ -1,8 +1,5 @@
-from io import BytesIO
 import uuid
-from pathlib import Path
 from django.core.exceptions import ValidationError
-from django.core.files.base import ContentFile
 from urllib.parse import urlparse
 
 from django.http import HttpRequest, HttpResponseBadRequest, JsonResponse
@@ -10,50 +7,18 @@ from django.shortcuts import get_object_or_404
 from django.utils.text import slugify
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_http_methods
-from PIL import Image, UnidentifiedImageError
 
 from ..admin_api import has_valid_admin_api_key, require_admin_api_auth
 from ..fetch_security import UnsafeFetchTargetError, validate_public_fetch_url
 from ..models import AdminNotification, Job
+from ..services.images import mirror_remote_job_image, normalize_uploaded_image
 from ..serializers import serialize_job
 from ..validation import clean_text_input, clean_url_input, format_validation_error, validate_instance
 from .shared import build_scraped_job_payload, create_admin_notification, load_json_body
 
-MAX_IMAGE_UPLOAD_BYTES = 10 * 1024 * 1024
-ALLOWED_IMAGE_FORMATS = {
-    "JPEG": "jpg",
-    "PNG": "png",
-    "WEBP": "webp",
-    "GIF": "gif",
-}
-
-
 def _build_generated_slug(title: str) -> str:
     base_slug = slugify(title) or "job"
     return f"{base_slug}-{uuid.uuid4().hex[:6]}"
-
-
-def _normalize_uploaded_image(uploaded_file) -> tuple[str, ContentFile]:
-    raw_bytes = uploaded_file.read()
-    if len(raw_bytes) > MAX_IMAGE_UPLOAD_BYTES:
-        raise ValueError("Image upload exceeds 10 MB limit.")
-
-    try:
-        with Image.open(BytesIO(raw_bytes)) as image:
-            image.verify()
-        with Image.open(BytesIO(raw_bytes)) as image:
-            image_format = (image.format or "").upper()
-    except (UnidentifiedImageError, OSError, SyntaxError) as exc:
-        raise ValueError("Uploaded file is not a valid image.") from exc
-
-    extension = ALLOWED_IMAGE_FORMATS.get(image_format)
-    if not extension:
-        allowed_formats = ", ".join(sorted(ALLOWED_IMAGE_FORMATS.values()))
-        raise ValueError(f"Unsupported image format. Allowed formats: {allowed_formats}.")
-
-    sanitized_stem = slugify(Path(uploaded_file.name).stem) or "job-image"
-    filename = f"{sanitized_stem}-{uuid.uuid4().hex[:8]}.{extension}"
-    return filename, ContentFile(raw_bytes)
 
 
 @require_GET
@@ -104,6 +69,11 @@ def job_create(request: HttpRequest):
     except ValidationError as exc:
         return HttpResponseBadRequest(format_validation_error(exc, "Invalid job payload."))
     job.save()
+    if job.image_url and not job.image_file:
+        try:
+            mirror_remote_job_image(job, job.image_url)
+        except Exception:
+            pass
     return JsonResponse(serialize_job(job), status=201)
 
 
@@ -185,6 +155,11 @@ def job_detail(request: HttpRequest, job_id: int):
     except ValidationError as exc:
         return HttpResponseBadRequest(format_validation_error(exc, "Invalid job payload."))
     job.save()
+    if job.image_url and not job.image_file:
+        try:
+            mirror_remote_job_image(job, job.image_url)
+        except Exception:
+            pass
 
     approval_cleared = (
         (previous_requires_website_approval and not job.requires_website_approval)
@@ -223,7 +198,7 @@ def job_image_upload(request: HttpRequest, job_id: int):
         return HttpResponseBadRequest("Missing uploaded file: image")
 
     try:
-        filename, content = _normalize_uploaded_image(uploaded_file)
+        filename, content = normalize_uploaded_image(uploaded_file)
     except ValueError as exc:
         return HttpResponseBadRequest(str(exc))
 

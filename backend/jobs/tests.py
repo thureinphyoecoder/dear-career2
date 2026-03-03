@@ -1,6 +1,7 @@
 import json
 import shutil
 import tempfile
+from unittest.mock import Mock, patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
@@ -10,8 +11,17 @@ from .admin_api import get_admin_api_key
 from .content import build_facebook_post_message, normalize_rich_text
 from .management.commands.seed_fetch_sources import DEFAULT_SOURCES
 from .models import FetchSource, Job
+from .services.images import mirror_remote_job_image
 from .services.ingest import _parse_jobthai_jobs, _source_uses_browser_fetch
 from .views.shared import build_scraped_job_payload
+
+
+PNG_PIXEL_BYTES = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
+    b"\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde"
+    b"\x00\x00\x00\x0cIDATx\x9cc\xf8\xcf\xc0\x00\x00\x03"
+    b"\x01\x01\x00\xc9\xfe\x92\xef\x00\x00\x00\x00IEND\xaeB`\x82"
+)
 
 
 class JobModelTests(TestCase):
@@ -122,12 +132,7 @@ class JobApiTests(TestCase):
             data={
                 "image": SimpleUploadedFile(
                     "job.png",
-                    (
-                        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01"
-                        b"\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde"
-                        b"\x00\x00\x00\x0cIDATx\x9cc\xf8\xcf\xc0\x00\x00\x03"
-                        b"\x01\x01\x00\xc9\xfe\x92\xef\x00\x00\x00\x00IEND\xaeB`\x82"
-                    ),
+                    PNG_PIXEL_BYTES,
                     content_type="image/png",
                 )
             },
@@ -274,6 +279,44 @@ class JobContentFormattingTests(TestCase):
         )
 
         self.assertEqual(payload["image_url"], "https://example.com/media/creative.png")
+
+
+class JobImageMirrorTests(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls._temp_media_dir = tempfile.mkdtemp()
+        cls._override = override_settings(MEDIA_ROOT=cls._temp_media_dir)
+        cls._override.enable()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._override.disable()
+        shutil.rmtree(cls._temp_media_dir, ignore_errors=True)
+        super().tearDownClass()
+
+    @patch("jobs.services.images.requests.get")
+    def test_mirror_remote_job_image_saves_verified_local_file(self, mock_get):
+        response = Mock()
+        response.headers = {"content-type": "image/png"}
+        response.iter_content.return_value = [PNG_PIXEL_BYTES]
+        response.raise_for_status.return_value = None
+        mock_get.return_value = response
+
+        job = Job.objects.create(
+            title="Remote image job",
+            company="Dear Career",
+            location="Bangkok",
+            description_mm="Remote image test",
+            image_url="https://example.com/logo.png",
+        )
+
+        mirrored = mirror_remote_job_image(job, job.image_url)
+        job.refresh_from_db()
+
+        self.assertTrue(mirrored)
+        self.assertTrue(job.image_file.name.startswith("jobs/logo-"))
+        self.assertTrue(job.image_file.name.endswith(".png"))
 
 
 class FetchParserTests(TestCase):

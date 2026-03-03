@@ -36,6 +36,7 @@ function formatRelativeTime(value?: string) {
 
 export function JobCard({ job }: { job: Job }) {
   const summary = extractJobSummary(job);
+  const displayImageUrl = job.display_image_url || job.image_file_url || job.image_url || "";
   const sourceLabel =
     job.source && job.source.toLowerCase() !== "manual" ? job.source : null;
   const [isViewed, setIsViewed] = useState(false);
@@ -54,6 +55,16 @@ export function JobCard({ job }: { job: Job }) {
   return (
     <Card className="h-full rounded-[1.75rem] border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.8)] shadow-none backdrop-blur-0 transition-colors hover:border-[rgba(160,183,164,0.28)]">
       <CardContent className="grid h-full gap-4 p-5 pt-5">
+        {displayImageUrl ? (
+          <div className="overflow-hidden rounded-[1.35rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(247,243,236,0.4)]">
+            <img
+              src={displayImageUrl}
+              alt={job.title}
+              className="aspect-[16/10] w-full object-cover"
+              loading="lazy"
+            />
+          </div>
+        ) : null}
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">{categoryLabelMap[job.category]}</Badge>
           <Badge variant="secondary">{job.employment_type}</Badge>

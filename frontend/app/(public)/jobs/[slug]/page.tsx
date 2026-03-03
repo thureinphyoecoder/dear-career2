@@ -47,6 +47,7 @@ export default async function PublicJobDetailPage({
   const description = getJobDescription(job);
   const descriptionSections = parseJobDescription(description);
   const descriptionSummary = extractJobSummary(job, 320);
+  const displayImageUrl = job.display_image_url || job.image_file_url || job.image_url || "";
 
   return (
     <main className="mx-auto max-w-6xl px-4 pb-20 pt-28 md:pt-32">
@@ -78,6 +79,15 @@ export default async function PublicJobDetailPage({
             <p className="mb-0 max-w-[68ch] text-[0.98rem] leading-7 text-[#727975]">
               {descriptionSummary || "Detailed job content will appear here once connected to Django."}
             </p>
+            {displayImageUrl ? (
+              <div className="overflow-hidden rounded-[1.6rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(247,243,236,0.46)]">
+                <img
+                  src={displayImageUrl}
+                  alt={job.title}
+                  className="aspect-[16/9] w-full object-cover"
+                />
+              </div>
+            ) : null}
           </div>
 
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px]">

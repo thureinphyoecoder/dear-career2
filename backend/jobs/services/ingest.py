@@ -18,6 +18,7 @@ from django.utils import timezone
 from jobs.content import clean_inline_text, normalize_rich_text
 from jobs.models import FetchRun, FetchSource, Job
 from jobs.services.dedupe import dedupe_jobs
+from jobs.services.images import mirror_remote_job_image
 from jobs.services.publish import publish_job
 
 DEFAULT_TIMEOUT_SECONDS = 20
@@ -575,6 +576,16 @@ def _persist_records(
                 existing_job.save()
                 job = existing_job
                 updated_count += 1
+
+            if job.image_url and not job.image_file:
+                try:
+                    mirror_remote_job_image(
+                        job,
+                        job.image_url,
+                        headers=_build_request_headers(source),
+                    )
+                except Exception:
+                    pass
 
             published_count += _apply_publish_policy(job, source)
 
