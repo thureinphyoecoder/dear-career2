@@ -2,7 +2,14 @@ from .ads import managed_ad_create, managed_ad_detail, managed_ad_list, public_a
 from .analytics import admin_dashboard_snapshot, visitor_summary, visitor_track
 from .channels import facebook_channel_credential, facebook_page_posts, facebook_publish_job
 from .feedback import feedback_create
-from .jobs import job_create, job_detail, job_image_upload, job_list, job_scrape_preview
+from .jobs import (
+    job_create,
+    job_detail,
+    job_image_ocr_preview,
+    job_image_upload,
+    job_list,
+    job_scrape_preview,
+)
 from .notifications import (
     admin_notification_list,
     admin_notification_mark_read,
@@ -32,6 +39,7 @@ __all__ = [
     "fetch_source_update",
     "job_create",
     "job_detail",
+    "job_image_ocr_preview",
     "job_image_upload",
     "job_list",
     "job_scrape_preview",

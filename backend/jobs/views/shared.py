@@ -193,6 +193,100 @@ def normalize_employment_type(value: str) -> str:
     return mapping.get(normalized, Job.EmploymentType.FULL_TIME)
 
 
+def derive_salary(text: str) -> str:
+    match = re.search(
+        r"((?:THB|MMK|USD|Ks\.?|Baht|\$)\s?[\d,]+(?:\s?(?:-|–|to)\s?(?:THB|MMK|USD|Ks\.?|Baht|\$)?\s?[\d,]+)?)",
+        text,
+        flags=re.IGNORECASE,
+    )
+    return clean_text(match.group(1)) if match else ""
+
+
+def compact_text_lines(text: str) -> list[str]:
+    seen: set[str] = set()
+    lines: list[str] = []
+    for raw_line in re.split(r"[\r\n]+", text):
+        line = clean_text(raw_line)
+        if len(line) < 2:
+            continue
+        normalized_key = line.casefold()
+        if normalized_key in seen:
+            continue
+        seen.add(normalized_key)
+        lines.append(line)
+    return lines
+
+
+def pick_labeled_line(lines: list[str], *labels: str) -> str:
+    for line in lines:
+        lowered = line.lower()
+        for label in labels:
+            prefix = f"{label.lower()}:"
+            if lowered.startswith(prefix):
+                return clean_text(line.split(":", 1)[1])
+    return ""
+
+
+def derive_title_from_text_lines(lines: list[str]) -> str:
+    for line in lines:
+        lowered = line.lower()
+        if any(token in lowered for token in ("apply now", "send cv", "@", "http://", "https://")):
+            continue
+        if 3 <= len(line) <= 120:
+            return line
+    return "Imported job listing"
+
+
+def derive_company_from_text_lines(lines: list[str], title: str) -> str:
+    labeled = pick_labeled_line(lines, "company", "organisation", "organization", "employer")
+    if labeled:
+        return labeled
+
+    for line in lines:
+        if line == title:
+            continue
+        lowered = line.lower()
+        if any(token in lowered for token in ("position", "salary", "location", "responsibilities")):
+            continue
+        if "@" in lowered or lowered.startswith(("http://", "https://")):
+            continue
+        if 3 <= len(line) <= 80:
+            return line
+    return "Manual source"
+
+
+def build_image_text_job_payload(extracted_text: str) -> dict:
+    lines = compact_text_lines(extracted_text)
+    combined_text = "\n".join(lines)
+    title = derive_title_from_text_lines(lines)
+    company = derive_company_from_text_lines(lines, title)
+    location = pick_labeled_line(lines, "location") or derive_location(combined_text)
+    employment_type = normalize_employment_type(
+        pick_labeled_line(lines, "employment type", "job type", "type") or combined_text
+    )
+    salary = pick_labeled_line(lines, "salary", "compensation") or derive_salary(combined_text)
+    contact_email = extract_contact_email(combined_text)
+    contact_phone = extract_contact_phone(combined_text)
+    category = derive_category(company, combined_text)
+    description = normalize_rich_text("\n".join(lines) or extracted_text)
+
+    return {
+        "title": title,
+        "company": company,
+        "location": location or "Thailand",
+        "employment_type": employment_type,
+        "category": category,
+        "source": Job.SourceChoices.MANUAL,
+        "source_url": "",
+        "image_url": "",
+        "description_en": description,
+        "description_mm": description,
+        "salary": salary,
+        "contact_email": contact_email,
+        "contact_phone": contact_phone,
+    }
+
+
 def collect_json_ld_objects(soup) -> list[dict]:
     objects: list[dict] = []
     for script in soup.find_all("script", attrs={"type": "application/ld+json"}):

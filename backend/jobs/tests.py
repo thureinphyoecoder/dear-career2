@@ -13,7 +13,7 @@ from .management.commands.seed_fetch_sources import DEFAULT_SOURCES
 from .models import FetchSource, Job
 from .services.images import mirror_remote_job_image
 from .services.ingest import _parse_jobthai_jobs, _source_uses_browser_fetch
-from .views.shared import build_scraped_job_payload
+from .views.shared import build_image_text_job_payload, build_scraped_job_payload
 
 
 PNG_PIXEL_BYTES = (
@@ -197,6 +197,50 @@ class JobApiTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("not a valid image", response.content.decode("utf-8"))
 
+    @patch("jobs.views.jobs.extract_text_from_image_bytes")
+    def test_job_image_ocr_preview_extracts_job_fields(self, mock_extract_text):
+        mock_extract_text.return_value = (
+            "Senior Accountant\n"
+            "Bright Lotus Co., Ltd.\n"
+            "Bangkok, Thailand\n"
+            "Salary: THB 45,000 - THB 60,000\n"
+            "Apply: hr@brightlotus.com"
+        )
+
+        response = self.client.post(
+            "/api/jobs/admin/jobs/ocr/",
+            data={
+                "image": SimpleUploadedFile(
+                    "poster.png",
+                    PNG_PIXEL_BYTES,
+                    content_type="image/png",
+                )
+            },
+            HTTP_HOST="localhost",
+            **self.admin_headers,
+        )
+
+        payload = response.json()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payload["title"], "Senior Accountant")
+        self.assertEqual(payload["company"], "Bright Lotus Co., Ltd.")
+        self.assertEqual(payload["location"], "Bangkok")
+        self.assertEqual(payload["salary"], "THB 45,000 - THB 60,000")
+        self.assertEqual(payload["contact_email"], "hr@brightlotus.com")
+        self.assertEqual(payload["source"], Job.SourceChoices.MANUAL)
+
+    def test_job_image_ocr_preview_requires_image(self):
+        response = self.client.post(
+            "/api/jobs/admin/jobs/ocr/",
+            data={},
+            HTTP_HOST="localhost",
+            **self.admin_headers,
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("Missing uploaded file: image", response.content.decode("utf-8"))
+
 
 class FetchSourceApiTests(TestCase):
     def setUp(self):
@@ -279,6 +323,23 @@ class JobContentFormattingTests(TestCase):
         )
 
         self.assertEqual(payload["image_url"], "https://example.com/media/creative.png")
+
+    def test_build_image_text_job_payload_extracts_text_fields(self):
+        payload = build_image_text_job_payload(
+            "Warehouse Supervisor\n"
+            "Company: Northern Logistics\n"
+            "Location: Chiang Mai\n"
+            "Salary: THB 32,000\n"
+            "Contact: ops@northernlogistics.com\n"
+            "Manage shift roster and loading operations."
+        )
+
+        self.assertEqual(payload["title"], "Warehouse Supervisor")
+        self.assertEqual(payload["company"], "Northern Logistics")
+        self.assertEqual(payload["location"], "Chiang Mai")
+        self.assertEqual(payload["salary"], "THB 32,000")
+        self.assertEqual(payload["contact_email"], "ops@northernlogistics.com")
+        self.assertEqual(payload["category"], Job.CategoryChoices.BLUE_COLLAR)
 
 
 class JobImageMirrorTests(TestCase):

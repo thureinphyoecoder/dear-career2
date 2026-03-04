@@ -9,6 +9,11 @@ from ..admin_api import has_valid_admin_api_key, require_admin_api_auth
 from ..fetch_security import UnsafeFetchTargetError, validate_public_fetch_url
 from ..models import AdminNotification, Job
 from ..services.images import normalize_uploaded_image
+from ..services.ocr import (
+    OCREngineUnavailableError,
+    OCRExtractionError,
+    extract_text_from_image_bytes,
+)
 from ..services.job_admin import (
     apply_job_payload,
     build_job_from_payload,
@@ -17,7 +22,12 @@ from ..services.job_admin import (
     persist_job,
 )
 from ..serializers import serialize_job
-from .shared import build_scraped_job_payload, create_admin_notification, load_json_body
+from .shared import (
+    build_image_text_job_payload,
+    build_scraped_job_payload,
+    create_admin_notification,
+    load_json_body,
+)
 
 
 @require_GET
@@ -168,6 +178,38 @@ def job_scrape_preview(request: HttpRequest):
     create_admin_notification(
         "Manual scrape ready",
         f"{result['title']} from {result['company']} was fetched and is ready for review.",
+        tone=AdminNotification.ToneChoices.SUCCESS,
+        target_url="/admin/jobs/new",
+    )
+    return JsonResponse(result)
+
+
+@csrf_exempt
+@require_admin_api_auth
+@require_http_methods(["POST"])
+def job_image_ocr_preview(request: HttpRequest):
+    uploaded_file = request.FILES.get("image")
+    if uploaded_file is None:
+        return HttpResponseBadRequest("Missing uploaded file: image")
+
+    try:
+        extracted_text = extract_text_from_image_bytes(
+            uploaded_file.name,
+            uploaded_file.read(),
+        )
+    except (ValueError, OCRExtractionError, OCREngineUnavailableError) as exc:
+        create_admin_notification(
+            "Image OCR failed",
+            str(exc),
+            tone=AdminNotification.ToneChoices.WARNING,
+            target_url="/admin/jobs/new",
+        )
+        return HttpResponseBadRequest(str(exc))
+
+    result = build_image_text_job_payload(extracted_text)
+    create_admin_notification(
+        "Image OCR ready",
+        f"{result['title']} from {result['company']} was extracted from an uploaded image.",
         tone=AdminNotification.ToneChoices.SUCCESS,
         target_url="/admin/jobs/new",
     )
