@@ -1,8 +1,7 @@
 "use client";
 
-import { startTransition, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +18,6 @@ export function AdminLoginForm({
   redirectTo: string;
   error?: string;
 }) {
-  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -104,9 +102,8 @@ export function AdminLoginForm({
         return;
       }
 
-      startTransition(() => {
-        router.push(payload.redirectTo || redirectTo);
-      });
+      const nextLocation = payload.redirectTo || redirectTo;
+      window.location.assign(nextLocation);
     } catch {
       setFormError(ADMIN_LOGIN_MESSAGES.generic);
     } finally {

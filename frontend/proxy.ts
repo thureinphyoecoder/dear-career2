@@ -8,6 +8,14 @@ import {
 } from "@/lib/admin-auth";
 
 function applySecurityHeaders(response: NextResponse) {
+  const isProduction = process.env.NODE_ENV === "production";
+  const scriptSrc = isProduction
+    ? "script-src 'self' 'unsafe-inline';"
+    : "script-src 'self' 'unsafe-inline' 'unsafe-eval';";
+  const connectSrc = isProduction
+    ? "connect-src 'self' https:;"
+    : "connect-src 'self' http: https: ws: wss:;";
+
   response.headers.set("x-frame-options", "DENY");
   response.headers.set("x-content-type-options", "nosniff");
   response.headers.set("referrer-policy", "strict-origin-when-cross-origin");
@@ -17,9 +25,9 @@ function applySecurityHeaders(response: NextResponse) {
   response.headers.set("cache-control", "no-store");
   response.headers.set(
     "content-security-policy",
-    "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none';",
+    `default-src 'self'; img-src 'self' data: https: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; ${scriptSrc} ${connectSrc} frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none';`,
   );
-  if (process.env.NODE_ENV === "production") {
+  if (isProduction) {
     response.headers.set(
       "strict-transport-security",
       "max-age=31536000; includeSubDomains; preload",

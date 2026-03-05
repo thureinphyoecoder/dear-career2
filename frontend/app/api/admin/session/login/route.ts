@@ -29,14 +29,44 @@ function wantsJsonResponse(request: NextRequest) {
   return request.headers.get("x-admin-auth-mode") === "json";
 }
 
-function hasTrustedOrigin(request: NextRequest) {
-  const origin = request.headers.get("origin");
+function parseOrigin(value: string | null) {
+  if (!value) return "";
+  try {
+    return new URL(value).origin;
+  } catch {
+    return "";
+  }
+}
 
-  if (!origin) {
-    return false;
+function buildTrustedOrigins(request: NextRequest) {
+  const trusted = new Set<string>([request.nextUrl.origin]);
+  const appUrlOrigin = parseOrigin(process.env.NEXT_PUBLIC_APP_URL ?? "");
+  if (appUrlOrigin) {
+    trusted.add(appUrlOrigin);
   }
 
-  return origin === request.nextUrl.origin;
+  if (process.env.NODE_ENV !== "production") {
+    trusted.add("http://localhost:3000");
+    trusted.add("http://127.0.0.1:3000");
+  }
+
+  return trusted;
+}
+
+function hasTrustedOrigin(request: NextRequest) {
+  const trustedOrigins = buildTrustedOrigins(request);
+  const origin = parseOrigin(request.headers.get("origin"));
+  const referer = parseOrigin(request.headers.get("referer"));
+
+  if (origin) {
+    return trustedOrigins.has(origin);
+  }
+
+  if (referer) {
+    return trustedOrigins.has(referer);
+  }
+
+  return process.env.NODE_ENV !== "production";
 }
 
 function getClientIp(request: NextRequest) {
