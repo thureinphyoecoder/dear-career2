@@ -97,6 +97,10 @@ def facebook_page_posts(request: HttpRequest):
             return HttpResponseBadRequest(
                 "Facebook post history cannot be loaded yet. Reconnect the page with the pages_read_engagement permission."
             )
+        if "cannot call api for app" in message.lower():
+            return HttpResponseBadRequest(
+                "Facebook post history cannot be loaded with the current page token. Reconnect the page from Admin > Facebook to refresh access."
+            )
         return HttpResponseBadRequest(f"Unable to load Facebook posts: {message}")
 
     posts = [

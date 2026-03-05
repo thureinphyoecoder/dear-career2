@@ -1,5 +1,7 @@
 """Publishing helpers for downstream channels."""
 
+import json
+
 from django.conf import settings
 
 from jobs.content import build_facebook_post_message
@@ -63,11 +65,27 @@ def publish_job(job: Job, *, channel: str = "website", message: str = "") -> dic
             response.raise_for_status()
             payload = response.json()
         except requests.RequestException as exc:
+            api_message = ""
+            if getattr(exc, "response", None) is not None:
+                try:
+                    error_payload = exc.response.json()
+                    api_message = str(error_payload.get("error", {}).get("message", "")).strip()
+                except (ValueError, json.JSONDecodeError, AttributeError):
+                    api_message = str(exc.response.text).strip()
+            message = api_message or str(exc)
+            if "cannot call api for app" in message.lower():
+                message = (
+                    "Facebook token does not match the current app. Reconnect page from Admin > Facebook."
+                )
+            elif "pages_manage_posts" in message:
+                message = (
+                    "Facebook permission pages_manage_posts is missing. Reconnect page and grant permissions."
+                )
             return {
                 "job_id": job.id,
                 "published": False,
                 "channel": channel,
-                "reason": f"facebook publish failed: {exc}",
+                "reason": f"facebook publish failed: {message}",
             }
 
         post_id = str(payload.get("id", "")).strip()
