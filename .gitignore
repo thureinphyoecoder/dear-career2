@@ -17,3 +17,5 @@ frontend/.next/
 
 # Build outputs
 backend/staticfiles/
+backend/media/
+frontend/tsconfig.tsbuildinfo
