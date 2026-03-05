@@ -1,7 +1,6 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { AlertCircle, CheckCircle2, Send } from "lucide-react";
 import { toast } from "sonner";
@@ -14,17 +13,18 @@ import {
 } from "@/lib/admin-form-validation";
 import { buildFacebookPostMessage } from "@/lib/job-content";
 import { adminQueryKeys } from "@/lib/admin-query-keys";
+import { normalizeServerError } from "@/lib/form-validation";
 import type { Job } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
-  const router = useRouter();
   const queryClient = useQueryClient();
   const [selectedJobId, setSelectedJobId] = useState<string>(jobs[0] ? String(jobs[0].id) : "");
   const [message, setMessage] = useState<string>(jobs[0] ? buildFacebookPostMessage(jobs[0]) : "");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [lastAttemptAt, setLastAttemptAt] = useState<string>("");
   const [fieldErrors, setFieldErrors] = useState<FacebookPublishFieldErrors>({});
 
   const selectedJob = useMemo(
@@ -41,27 +41,48 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
           message,
         }),
       });
-
-      const text = await response.text();
-      if (!response.ok) {
-        throw new Error(text || "Facebook publish failed.");
+      if (response.redirected || response.url.includes("/admin/login")) {
+        throw new Error("Admin session expired. Please sign in again.");
       }
 
-      return text;
+      const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
+      const text = await response.text();
+      if (!response.ok) {
+        throw new Error(normalizeServerError(text, "Facebook publish failed."));
+      }
+      if (!contentType.includes("application/json")) {
+        throw new Error("Unexpected server response while posting to Facebook. Please try again.");
+      }
+
+      try {
+        return JSON.parse(text) as { post_id?: string; permalink_url?: string; published?: boolean };
+      } catch {
+        throw new Error("Unable to read Facebook publish response.");
+      }
     },
-    onSuccess: () => {
-      const nextSuccess = "Post published to the connected Facebook page.";
+    onSuccess: (result) => {
+      if (!result?.published) {
+        throw new Error("Facebook publish did not complete.");
+      }
+      const postId = String(result?.post_id ?? "").trim();
+      const permalinkUrl = String(result?.permalink_url ?? "").trim();
+      const nextSuccess = permalinkUrl
+        ? `Post published successfully. Open: ${permalinkUrl}`
+        : postId
+          ? `Post published successfully. Post ID: ${postId}`
+          : "Post published to the connected Facebook page.";
       setSuccess(nextSuccess);
+      setLastAttemptAt(new Date().toLocaleTimeString());
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.jobs });
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.dashboard });
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.notifications });
       void queryClient.invalidateQueries({ queryKey: adminQueryKeys.facebookCredential });
-      router.refresh();
       toast.success(nextSuccess);
     },
     onError: (error) => {
       const nextError = error instanceof Error ? error.message : "Facebook publish failed. Try again.";
       setError(nextError);
+      setLastAttemptAt(new Date().toLocaleTimeString());
       toast.error(nextError);
     },
   });
@@ -97,6 +118,7 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
     setFieldErrors({});
 
     setSubmitting(true);
+    setLastAttemptAt(new Date().toLocaleTimeString());
     try {
       await publishMutation.mutateAsync();
     } finally {
@@ -171,6 +193,16 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{success}</span>
             </div>
+          ) : null}
+
+          {submitting ? (
+            <div className="rounded-md border border-[rgba(124,141,130,0.24)] bg-[rgba(244,248,245,0.88)] px-3 py-2 text-sm text-[#59665e]">
+              Posting to Facebook...
+            </div>
+          ) : null}
+
+          {lastAttemptAt ? (
+            <div className="text-xs text-[#7a847e]">Last attempt: {lastAttemptAt}</div>
           ) : null}
 
           <div className="flex justify-end">

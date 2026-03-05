@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -36,6 +37,8 @@ export function FacebookCredentialForm({
   const hasConnectedPage = Boolean(initialCredential.connected || initialCredential.page_id);
   const oauthReady = missingConfig.length === 0;
   const buttonLabel = hasConnectedPage ? "Reconnect page" : "Connect page";
+  const [profileImageFailed, setProfileImageFailed] = useState(false);
+  const [brokenPostImages, setBrokenPostImages] = useState<Record<string, true>>({});
 
   function formatOauthError(value?: string) {
     if (!value) return "";
@@ -73,11 +76,12 @@ export function FacebookCredentialForm({
         <CardContent className="grid gap-4 p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              {initialCredential.profile_image_url ? (
+              {initialCredential.profile_image_url && !profileImageFailed ? (
                 <img
                   src={initialCredential.profile_image_url}
                   alt={initialCredential.profile_name || initialCredential.account_name || "Facebook profile"}
                   className="h-12 w-12 rounded-full object-cover"
+                  onError={() => setProfileImageFailed(true)}
                 />
               ) : (
                 <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[rgba(141,166,147,0.12)] text-[#6f7b73]">
@@ -185,11 +189,17 @@ export function FacebookCredentialForm({
                     </a>
                   ) : null}
                 </div>
-                {post.full_picture ? (
+                {post.full_picture && !brokenPostImages[post.id] ? (
                   <img
                     src={post.full_picture}
                     alt="Facebook post"
                     className="max-h-[320px] w-full rounded-xl border border-[rgba(160,183,164,0.16)] object-cover"
+                    onError={() =>
+                      setBrokenPostImages((current) => ({
+                        ...current,
+                        [post.id]: true,
+                      }))
+                    }
                   />
                 ) : null}
                 <div className="flex flex-wrap items-center gap-3 text-[0.82rem] text-[#66726b]">
