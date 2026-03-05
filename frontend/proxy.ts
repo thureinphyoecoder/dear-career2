@@ -38,6 +38,13 @@ function applySecurityHeaders(response: NextResponse) {
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+  const isDev = process.env.NODE_ENV !== "production";
+  if (isDev && request.nextUrl.hostname === "0.0.0.0") {
+    const redirectedUrl = new URL(request.url);
+    redirectedUrl.hostname = "localhost";
+    return applySecurityHeaders(NextResponse.redirect(redirectedUrl));
+  }
+
   const isLoginPage = pathname === "/admin/login";
   const isSessionLogin = pathname === "/api/admin/session/login";
   const isSessionLogout = pathname === "/api/admin/session/logout";

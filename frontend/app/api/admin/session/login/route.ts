@@ -48,6 +48,7 @@ function buildTrustedOrigins(request: NextRequest) {
   if (process.env.NODE_ENV !== "production") {
     trusted.add("http://localhost:3000");
     trusted.add("http://127.0.0.1:3000");
+    trusted.add("http://0.0.0.0:3000");
   }
 
   return trusted;
