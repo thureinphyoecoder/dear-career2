@@ -117,6 +117,12 @@ export function useJobImageManager({
       applyJobImageState(result);
       setSelectedImageFile(null);
       return result;
+    } catch (uploadError) {
+      const nextError =
+        uploadError instanceof Error ? uploadError.message : "Unable to upload image.";
+      setImageUploadError(nextError);
+      onError(nextError);
+      throw uploadError;
     } finally {
       setIsUploadingImage(false);
     }

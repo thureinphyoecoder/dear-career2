@@ -212,3 +212,78 @@ export function validateAdFields(fields: AdFields): AdFieldErrors {
     sort_order: flattened.sort_order?.[0],
   };
 }
+
+function collectServerFieldErrors(detail: string) {
+  const fieldMessages: Record<string, string> = {};
+  const pattern = /([a-zA-Z_][a-zA-Z0-9_]*):\s([^:]+?)(?=(?:\s+[a-zA-Z_][a-zA-Z0-9_]*:\s)|$)/g;
+
+  let match = pattern.exec(detail);
+  while (match) {
+    const field = match[1]?.trim().toLowerCase();
+    const message = match[2]?.trim();
+    if (field && message && !fieldMessages[field]) {
+      fieldMessages[field] = message;
+    }
+    match = pattern.exec(detail);
+  }
+
+  const missingRequiredPrefix = "missing required fields:";
+  const lowered = detail.toLowerCase();
+  const prefixIndex = lowered.indexOf(missingRequiredPrefix);
+  if (prefixIndex >= 0) {
+    const fieldsPart = detail.slice(prefixIndex + missingRequiredPrefix.length).trim();
+    fieldsPart
+      .split(",")
+      .map((field) => field.trim().toLowerCase())
+      .filter(Boolean)
+      .forEach((field) => {
+        if (!fieldMessages[field]) {
+          fieldMessages[field] = "This field is required.";
+        }
+      });
+  }
+
+  return fieldMessages;
+}
+
+export function mapJobEditorServerErrors(detail: string): JobEditorFieldErrors {
+  const serverFieldMessages = collectServerFieldErrors(detail);
+  const mapped: JobEditorFieldErrors = {};
+  const mapping: Array<[string, keyof JobEditorFieldErrors]> = [
+    ["title", "title"],
+    ["company", "company"],
+    ["location", "location"],
+    ["description_mm", "descriptionMm"],
+    ["source_url", "sourceUrl"],
+    ["image_url", "imageUrl"],
+    ["contact_email", "contactEmail"],
+  ];
+
+  for (const [serverField, clientField] of mapping) {
+    if (serverFieldMessages[serverField]) {
+      mapped[clientField] = serverFieldMessages[serverField];
+    }
+  }
+
+  return mapped;
+}
+
+export function mapSourceServerErrors(detail: string): SourceEditFieldErrors {
+  const serverFieldMessages = collectServerFieldErrors(detail);
+  const mapped: SourceEditFieldErrors = {};
+  const mapping: Array<[string, keyof SourceEditFieldErrors]> = [
+    ["label", "label"],
+    ["domain", "domain"],
+    ["feed_url", "feed_url"],
+    ["cadence_value", "cadence_value"],
+    ["max_jobs_per_run", "max_jobs_per_run"],
+  ];
+
+  for (const [serverField, clientField] of mapping) {
+    if (serverFieldMessages[serverField]) {
+      mapped[clientField] = serverFieldMessages[serverField];
+    }
+  }
+
+  return mapped;
+}

@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Input } from "@/components/ui/input";
 import {
+  mapSourceServerErrors,
   validateManualSourceIntakeFields,
   validateSourceCreateFields,
   validateSourceEditFields,
@@ -53,6 +54,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
   const [fieldErrors, setFieldErrors] = useState<Record<number, Record<string, string>>>({});
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
   const [manualIntakeUrls, setManualIntakeUrls] = useState<Record<number, string>>({});
+  const [manualIntakeErrors, setManualIntakeErrors] = useState<Record<number, string>>({});
 
   const orderedSources = useMemo(
     () => Object.values(sourceState).sort((left, right) => left.label.localeCompare(right.label)),
@@ -74,6 +76,11 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     setManualIntakeUrls((current) => ({
       ...current,
       [sourceId]: value,
+    }));
+    const nextError = validateManualSourceIntakeFields({ url: value.trim() }).url ?? "";
+    setManualIntakeErrors((current) => ({
+      ...current,
+      [sourceId]: nextError,
     }));
   }
 
@@ -123,6 +130,13 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
       toast.success(nextMessage);
     } catch (error) {
       const nextError = error instanceof Error ? error.message : "Unable to create source.";
+      const mappedFieldErrors = mapSourceServerErrors(nextError);
+      if (mappedFieldErrors.feed_url) {
+        setCreateErrors((current) => ({
+          ...current,
+          feed_url: mappedFieldErrors.feed_url ?? current.feed_url ?? "",
+        }));
+      }
       setGlobalError(nextError);
       toast.error(nextError);
     } finally {
@@ -180,6 +194,16 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
       toast.success("Source updated.");
     } catch (error) {
       const nextError = error instanceof Error ? error.message : "Unable to save source.";
+      const mappedFieldErrors = mapSourceServerErrors(nextError);
+      if (Object.keys(mappedFieldErrors).length > 0) {
+        setFieldErrors((current) => ({
+          ...current,
+          [sourceId]: {
+            ...(current[sourceId] ?? {}),
+            ...mappedFieldErrors,
+          },
+        }));
+      }
       setStatusError((current) => ({
         ...current,
         [sourceId]: nextError,
@@ -253,6 +277,10 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     if (!source) return;
     const intakeErrors = validateManualSourceIntakeFields({ url: intakeUrl });
     if (intakeErrors.url) {
+      setManualIntakeErrors((current) => ({
+        ...current,
+        [sourceId]: intakeErrors.url ?? "",
+      }));
       toast.error(intakeErrors.url);
       setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
       setStatusError((current) => ({
@@ -263,6 +291,10 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     }
 
     setIntakingId(sourceId);
+    setManualIntakeErrors((current) => ({
+      ...current,
+      [sourceId]: "",
+    }));
     setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
     setStatusError((current) => ({ ...current, [sourceId]: "" }));
 
@@ -378,7 +410,12 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
               <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Source URL</span>
               <Input
                 value={newSource.feed_url}
-                onChange={(event) => setNewSource({ feed_url: event.target.value })}
+                onChange={(event) => {
+                  setNewSource({ feed_url: event.target.value });
+                  if (createErrors.feed_url) {
+                    setCreateErrors((current) => ({ ...current, feed_url: "" }));
+                  }
+                }}
                 placeholder="https://example.com/jobs or RSS feed"
               />
               {createErrors.feed_url ? <span className="text-sm text-[#8e4a4a]">{createErrors.feed_url}</span> : null}
@@ -417,6 +454,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
             const isIntaking = intakingId === source.id;
             const currentFieldErrors = fieldErrors[source.id] ?? {};
             const intakeUrl = manualIntakeUrls[source.id] ?? "";
+            const manualIntakeError = manualIntakeErrors[source.id] ?? "";
             const canCreateDraft = Object.keys(validateManualSourceIntakeFields({ url: intakeUrl.trim() })).length === 0;
             const canRunSource =
               !current.requires_manual_url && current.mode !== "manual" && Boolean(current.feed_url?.trim());
@@ -524,8 +562,15 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
                               value={intakeUrl}
                               onChange={(event) => updateManualIntakeUrl(source.id, event.target.value)}
                               placeholder="https://example.com/job-post"
+                              aria-invalid={Boolean(manualIntakeError)}
+                              aria-describedby={manualIntakeError ? `manual-intake-error-${source.id}` : undefined}
                             />
                           </div>
+                          {manualIntakeError ? (
+                            <span id={`manual-intake-error-${source.id}`} className="text-sm text-[#8e4a4a]">
+                              {manualIntakeError}
+                            </span>
+                          ) : null}
                         </label>
                         <div className="flex justify-end">
                           <button

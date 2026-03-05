@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   jobIntakeUrlSchema,
+  mapJobEditorServerErrors,
   validateJobImageFile,
   validateJobEditorFields,
   type JobEditorFieldErrors,
@@ -161,14 +162,14 @@ export function JobEditor({
   );
 
   const fieldLabelClass = "grid gap-2";
-  const eyebrowClass = "text-xs uppercase tracking-[0.16em] text-[#8da693]";
+  const eyebrowClass = "text-xs uppercase tracking-[0.16em] text-[#6f8676]";
   const inputClassName =
-    "h-11 rounded-md border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.9)] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0";
+    "h-11 rounded-md border-[rgba(150,174,157,0.28)] bg-white shadow-none text-[#2f3d35] placeholder:text-[#829189] focus-visible:border-[rgba(116,141,122,0.45)] focus-visible:ring-0 focus-visible:ring-offset-0";
   const inputErrorClass = "border-[rgba(169,97,111,0.34)] shadow-[0_0_0_3px_rgba(169,97,111,0.1)]";
   const selectClass =
-    "h-11 w-full rounded-md border border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.9)] px-3 text-sm text-foreground outline-none transition focus:border-[rgba(116,141,122,0.3)]";
+    "h-11 w-full rounded-md border border-[rgba(150,174,157,0.28)] bg-white px-3 text-sm text-[#2f3d35] outline-none transition focus:border-[rgba(116,141,122,0.45)]";
   const panelClass =
-    "grid gap-4 rounded-md border border-[rgba(160,183,164,0.14)] bg-[rgba(255,255,255,0.62)] px-4 py-4";
+    "grid gap-4 rounded-md border border-[rgba(150,174,157,0.26)] bg-white px-4 py-4";
 
   const intakeStatusTone = useMemo(() => {
     if (isProcessingIntake) {
@@ -468,8 +469,19 @@ export function JobEditor({
       router.push(`/admin/jobs/${result.id}`);
     } catch (saveError) {
       const nextError = saveError instanceof Error ? saveError.message : "Unable to save job.";
-      setError(nextError);
-      toast.error(nextError);
+      const mappedFieldErrors = mapJobEditorServerErrors(nextError);
+      if (Object.keys(mappedFieldErrors).length > 0) {
+        setFieldErrors((current) => ({
+          ...current,
+          ...mappedFieldErrors,
+        }));
+        const nextMessage = "Please fix the highlighted job fields.";
+        setError(nextMessage);
+        toast.error(nextMessage);
+      } else {
+        setError(nextError);
+        toast.error(nextError);
+      }
     } finally {
       setIsSaving(false);
     }
@@ -521,7 +533,7 @@ export function JobEditor({
           <div>
             <div className={eyebrowClass}>Manual intake</div>
           </div>
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.74)] text-[#748d7a]">
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[rgba(150,174,157,0.28)] bg-[#f8fbf9] text-[#5f7867]">
             <Sparkles className="h-4 w-4" />
           </span>
         </div>
@@ -530,7 +542,7 @@ export function JobEditor({
             <label className={fieldLabelClass}>
               <span className={eyebrowClass}>Job URL</span>
               <div className="relative">
-                <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8da693]" />
+                <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6f8676]" />
                 <Input
                   className={cn(
                     inputClassName,
@@ -560,7 +572,7 @@ export function JobEditor({
             <button
               className={cn(
                 buttonVariants(),
-                "w-full rounded-md",
+                "w-full rounded-md border-[#6f8a75] from-[#7f9884] to-[#6f8775] text-[#fffaf3] hover:from-[#708b77] hover:to-[#617a68]",
                 (isProcessingIntake || !canFetchFromUrl) && "cursor-not-allowed opacity-60",
               )}
               type="button"
@@ -576,7 +588,7 @@ export function JobEditor({
             <label className={fieldLabelClass}>
               <span className={eyebrowClass}>Job image OCR</span>
               <Input
-                className="h-auto rounded-md border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.9)] px-3 py-3 file:mr-3"
+                className="h-auto rounded-md border-[rgba(150,174,157,0.28)] bg-white px-3 py-3 text-[#2f3d35] file:mr-3 file:rounded-md file:border-0 file:bg-[#edf3ee] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[#33443b] hover:file:bg-[#e1ebe4]"
                 type="file"
                 accept={ACCEPTED_IMAGE_TYPES}
                 onChange={(event) => {
@@ -585,11 +597,11 @@ export function JobEditor({
                   setOcrImageError(nextFile ? validateJobImageFile(nextFile) : "");
                 }}
               />
-              <span className="text-sm leading-6 text-[#5c645f]">
+              <span className="text-sm leading-6 text-[#4f5d56]">
                 Upload a screenshot, poster, or scan and extract text into the form.
               </span>
               {ocrImageFile ? (
-                <div className="flex items-center justify-between gap-3 rounded-md bg-[rgba(247,243,236,0.62)] px-3 py-2 text-sm text-[#4f6354]">
+                <div className="flex items-center justify-between gap-3 rounded-md bg-[#edf3ee] px-3 py-2 text-sm text-[#3f5148]">
                   <span className="truncate">{ocrImageFile.name}</span>
                   <button
                     className="inline-flex items-center gap-1 text-[#8e4a4a]"
@@ -611,7 +623,7 @@ export function JobEditor({
             <button
               className={cn(
                 buttonVariants({ variant: "secondary" }),
-                "w-full rounded-md",
+                "w-full rounded-md border-[rgba(150,174,157,0.3)] bg-[#f8fbf9] text-[#33443b] hover:bg-[#edf3ee]",
                 (isProcessingIntake || !canExtractFromImage) && "cursor-not-allowed opacity-60",
               )}
               type="button"

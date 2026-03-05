@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { normalizeServerError } from "@/lib/form-validation";
 import {
+  mapFeedbackServerErrors,
   validateFeedbackFormFields,
   type FeedbackFormFieldErrors,
 } from "@/lib/public-form-validation";
@@ -72,7 +73,15 @@ export function FeedbackForm() {
 
       if (!response.ok) {
         setStatus("error");
-        const nextMessage = normalizeServerError(payload.detail ?? "", "Unable to send feedback right now.");
+        const detail = payload.detail ?? "";
+        const mappedServerErrors = mapFeedbackServerErrors(detail);
+        if (Object.keys(mappedServerErrors).length > 0) {
+          setFieldErrors((current) => ({
+            ...current,
+            ...mappedServerErrors,
+          }));
+        }
+        const nextMessage = normalizeServerError(detail, "Unable to send feedback right now.");
         setMessage(nextMessage);
         toast.error(nextMessage);
         return;
