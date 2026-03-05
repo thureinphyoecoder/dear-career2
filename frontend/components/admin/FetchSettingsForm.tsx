@@ -106,13 +106,19 @@ export function FetchSettingsForm({
     setError("");
 
     try {
-      const firstEnabledSource = initialSettings.sources.find((source) => source.enabled);
-      if (!firstEnabledSource) {
-        throw new Error("No enabled source is available to run right now.");
+      const firstRunnableSource = initialSettings.sources.find(
+        (source) =>
+          source.enabled &&
+          !source.requires_manual_url &&
+          source.mode !== "manual" &&
+          Boolean(source.feed_url?.trim()),
+      );
+      if (!firstRunnableSource) {
+        throw new Error("No auto-fetch source is enabled right now. Configure at least one HTML/RSS source.");
       }
 
       const response = await fetch(
-        `/api/admin/proxy/jobs/admin/sources/${firstEnabledSource.id}/run`,
+        `/api/admin/proxy/jobs/admin/sources/${firstRunnableSource.id}/run`,
         {
           method: "POST",
         },
