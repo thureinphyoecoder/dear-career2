@@ -178,7 +178,7 @@ export function AdminNotificationBell({
         type="button"
         aria-label="Notifications"
         aria-expanded={isOpen}
-        className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-[#fafbfa] text-[#6f7b73] transition-colors hover:bg-[#f0f4f1] hover:text-[#465049]"
+        className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[#cfdbd2] bg-[#f8fbf9] text-[#5d6a63] transition-colors hover:bg-[#edf3ee] hover:text-[#2f3d35]"
         onClick={() => setIsOpen((current) => !current)}
       >
         {hasFreshItem ? <BellDot size={17} strokeWidth={1.9} /> : <Bell size={17} strokeWidth={1.9} />}
@@ -190,7 +190,7 @@ export function AdminNotificationBell({
       </button>
 
       {isOpen ? (
-        <div className="absolute right-0 z-30 mt-2 grid w-[360px] gap-3 rounded-2xl border border-border/70 bg-white p-3 shadow-[0_20px_50px_rgba(44,56,48,0.08)]">
+        <div className="absolute right-0 z-30 mt-2 grid w-[min(92vw,360px)] gap-3 rounded-2xl border border-border/70 bg-white p-3 shadow-[0_20px_50px_rgba(44,56,48,0.08)]">
           <div className="flex items-center justify-between px-1">
             <div className="text-sm font-medium text-[#334039]">Notifications</div>
             {notificationsQuery.isLoading ? (

@@ -80,7 +80,7 @@ export function JobsSearchForm({
                 setError("");
               }
             }}
-            className={cn("pl-14", inputClassName)}
+            className={cn(inputClassName, "!pl-14")}
             placeholder="Search jobs in Thailand"
             autoComplete="off"
             aria-invalid={Boolean(error)}

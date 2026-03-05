@@ -187,7 +187,7 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
 
       <div className="rounded-2xl border border-border/70 bg-white shadow-none">
         {orderedJobs.length === 0 ? (
-          <p className="m-0 px-6 py-6 text-[0.92rem] text-[#727975]">No approvals waiting.</p>
+          <p className="m-0 px-4 py-6 text-[0.92rem] text-[#727975] sm:px-6">No approvals waiting.</p>
         ) : (
           <>
             {paginatedJobs.map((job, index) => {
@@ -198,6 +198,7 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
                   key={job.id}
                   className={cn(
                     "grid gap-4 px-6 py-4 xl:grid-cols-[minmax(0,680px)_minmax(188px,220px)] xl:items-center xl:justify-between xl:gap-8",
+                    "px-4 sm:px-6",
                     index > 0 && "border-t border-border/60",
                     isViewed
                       ? "bg-white"
@@ -235,7 +236,7 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
                       </Link>
                     </div>
                   </div>
-                  <div className="relative z-10 flex items-center justify-start gap-2 pointer-events-auto xl:justify-end">
+                  <div className="relative z-10 flex w-full flex-wrap items-center justify-start gap-2 pointer-events-auto xl:w-auto xl:justify-end">
                     <Link
                       href={reviewHrefFor(job.id)}
                       onClick={() => markViewed(job.id)}
@@ -250,7 +251,7 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
                     </Link>
                     <button
                       type="button"
-                      className={cn(buttonVariants(), "min-w-[188px] rounded-xl")}
+                      className={cn(buttonVariants(), "w-full rounded-xl sm:w-auto sm:min-w-[188px]")}
                       disabled={workingId === job.id}
                       onClick={() => void approveJob(job)}
                     >
@@ -267,7 +268,7 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
             })}
 
             {orderedJobs.length > PAGE_SIZE ? (
-              <div className="flex flex-col gap-3 border-t border-border/60 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 border-t border-border/60 px-4 py-4 sm:px-6 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-sm text-[#727975]">
                   Page {safePage} of {totalPages}
                 </span>

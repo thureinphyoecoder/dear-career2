@@ -14,7 +14,7 @@ import {
   Shield,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { AdminNotificationBell } from "@/components/admin/AdminNotificationBell";
 import { BrandLogo } from "@/components/public/BrandLogo";
@@ -23,6 +23,14 @@ import { useAdminDashboardQuery, useFacebookCredentialQuery } from "@/lib/admin-
 import { useAdminShellStore } from "@/lib/admin-store";
 import type { AdminDashboardSnapshot, AdminNotification, FacebookPageCredential } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+function normalizeFacebookProfile(profile?: FacebookPageCredential | null) {
+  if (!profile) return null;
+  if (profile.profile_name || profile.account_name || profile.profile_image_url) {
+    return profile;
+  }
+  return null;
+}
 
 export function AdminShell({
   children,
@@ -54,11 +62,16 @@ export function AdminShell({
   const sidebarCollapsed = useAdminShellStore((state) => state.sidebarCollapsed);
   const setSidebarCollapsed = useAdminShellStore((state) => state.setSidebarCollapsed);
   const sidebarCounts = useAdminShellStore((state) => state.sidebarCounts);
-  const facebookProfile = useAdminShellStore((state) => state.facebookProfile);
+  const facebookProfileFromStore = useAdminShellStore((state) => state.facebookProfile);
   const hydrateFromSnapshot = useAdminShellStore((state) => state.hydrateFromSnapshot);
   const setFacebookProfile = useAdminShellStore((state) => state.setFacebookProfile);
   const dashboardQuery = useAdminDashboardQuery(initialDashboardSnapshot);
   const facebookCredentialQuery = useFacebookCredentialQuery(initialFacebookProfile);
+  const facebookProfile =
+    normalizeFacebookProfile(facebookCredentialQuery.data) ??
+    normalizeFacebookProfile(facebookProfileFromStore) ??
+    normalizeFacebookProfile(initialFacebookProfile);
+  const [headerImageFailed, setHeaderImageFailed] = useState(false);
 
   useEffect(() => {
     if (dashboardQuery.data) {
@@ -71,6 +84,10 @@ export function AdminShell({
       setFacebookProfile(facebookCredentialQuery.data);
     }
   }, [facebookCredentialQuery.data, setFacebookProfile]);
+
+  useEffect(() => {
+    setHeaderImageFailed(false);
+  }, [facebookProfile?.profile_image_url]);
 
   const navGroups = [
     {
@@ -156,7 +173,7 @@ export function AdminShell({
     >
       <aside
         className={cn(
-          "border-b border-border/60 bg-[#f5f7f5] px-5 py-5 transition-all lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r",
+          "border-b border-border/60 bg-[#f5f7f5] px-4 py-4 transition-all sm:px-5 sm:py-5 lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r",
           sidebarCollapsed && "lg:px-3",
         )}
       >
@@ -249,13 +266,13 @@ export function AdminShell({
         </div>
       </aside>
 
-      <main className="min-w-0 px-5 py-5 lg:px-8 lg:py-8">
-        <div className="mb-6 flex items-center justify-between rounded-2xl border border-border/70 bg-white px-4 py-3 shadow-none">
-          <div className="flex min-w-0 items-center gap-2 overflow-x-auto text-sm text-[#5d6861]">
+      <main className="min-w-0 px-4 py-4 sm:px-5 sm:py-5 lg:px-8 lg:py-8">
+        <div className="mb-6 grid gap-3 rounded-2xl border border-[#cfdbd2] bg-white px-3 py-3 shadow-[0_10px_30px_rgba(44,56,48,0.06)] sm:px-4">
+          <div className="flex min-w-0 items-center gap-2 overflow-x-auto text-sm text-[#4b5851]">
             <button
               type="button"
               aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-[#fafbfa] text-[#6f7b73] transition-colors hover:bg-[#f0f4f1] hover:text-[#465049]"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#cdd9d0] bg-white text-[#5d6a63] transition-colors hover:bg-[#f2f6f3] hover:text-[#2f3b35]"
               onClick={() => setSidebarCollapsed((current) => !current)}
             >
               {sidebarCollapsed ? (
@@ -266,20 +283,21 @@ export function AdminShell({
             </button>
             <Link
               href="/admin"
-              className="shrink-0 rounded-lg px-1 py-1 font-medium text-[#334039] transition-colors hover:text-[#1f2a24]"
+              className="shrink-0 rounded-lg px-1 py-1 font-medium text-[#26342d] transition-colors hover:text-[#1c2722]"
             >
               {title}
             </Link>
-            {breadcrumbSegments.map((segment) => (
+            {breadcrumbSegments.map((segment, index) => (
               <div key={segment.href} className="flex shrink-0 items-center gap-2">
-                <ChevronRight size={14} strokeWidth={1.9} className="text-[#9aa59d]" />
+                <ChevronRight size={14} strokeWidth={1.9} className="text-[#8b9890]" />
                 <Link
                   href={segment.href}
                   className={cn(
                     "rounded-lg px-2.5 py-1 text-[0.88rem] transition-colors",
+                    index > 1 && "hidden sm:inline-flex",
                     segment.isLast
-                      ? "bg-[#f5f7f5] text-[#4d5a53]"
-                      : "bg-[#fafbfa] text-[#66726b] hover:bg-[#f1f5f2] hover:text-[#30423a]",
+                      ? "bg-[#edf3ee] text-[#2f3d35]"
+                      : "bg-[#f7faf8] text-[#58655e] hover:bg-[#edf3ee] hover:text-[#2e3d35]",
                   )}
                 >
                   {segment.label}
@@ -287,21 +305,22 @@ export function AdminShell({
               </div>
             ))}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             {facebookProfile ? (
-              <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-[#fafbfa] px-3 py-1.5">
-                {facebookProfile.profile_image_url ? (
+              <div className="hidden items-center gap-2 rounded-xl border border-[#cfdbd2] bg-[#f8fbf9] px-3 py-1.5 sm:flex">
+                {facebookProfile.profile_image_url && !headerImageFailed ? (
                   <img
                     src={facebookProfile.profile_image_url}
                     alt={facebookProfile.profile_name || facebookProfile.account_name || "Facebook profile"}
                     className="h-7 w-7 rounded-full object-cover"
+                    onError={() => setHeaderImageFailed(true)}
                   />
                 ) : (
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#eef3ef] text-[#6f7b73]">
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#e7efe9] text-[#5f6d66]">
                     <CircleUserRound size={15} strokeWidth={1.9} />
                   </span>
                 )}
-                <span className="text-[0.82rem] font-medium text-[#334039]">
+                <span className="text-[0.82rem] font-medium text-[#2c3a33]">
                   {facebookProfile.profile_name || facebookProfile.account_name}
                 </span>
               </div>
@@ -312,12 +331,12 @@ export function AdminShell({
               <button
                 className={cn(
                   buttonVariants({ variant: "secondary" }),
-                  "h-10 rounded-xl bg-[#fafbfa] px-4",
+                  "h-10 rounded-xl border-[#cfdbd2] bg-[#f8fbf9] px-4 text-[#34423b] hover:bg-[#edf3ee]",
                 )}
                 type="submit"
               >
                 <LogOut size={16} strokeWidth={1.9} />
-                Sign out
+                <span className="hidden sm:inline">Sign out</span>
               </button>
             </form>
           </div>

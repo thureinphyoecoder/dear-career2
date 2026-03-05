@@ -59,7 +59,7 @@ export function AdminJobsFilterForm({
           aria-invalid={Boolean(error)}
         />
         <select
-          className="h-11 min-w-[180px] rounded-xl border border-border/70 bg-white px-4 text-sm text-foreground shadow-none outline-none focus:border-[#8da693]"
+          className="h-11 w-full rounded-xl border border-border/70 bg-white px-4 text-sm text-foreground shadow-none outline-none focus:border-[#8da693] md:min-w-[180px]"
           name="status"
           value={status}
           onChange={(event) => {
