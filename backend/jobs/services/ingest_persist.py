@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from django.db import transaction
@@ -16,6 +17,117 @@ from jobs.services.ingest_common import (
 )
 from jobs.services.publish import publish_job
 
+DEFAULT_QUALITY_MAX_PER_RUN = 8
+MIN_QUALITY_SCORE = 5
+SPAM_TERMS = (
+    "crypto",
+    "forex",
+    "พนัน",
+    "บาคาร่า",
+    "พนันออนไลน์",
+    "งานเสริมรายได้",
+    "click here",
+)
+QUALITY_KEYWORDS = (
+    "responsibilit",
+    "requirement",
+    "qualification",
+    "apply",
+    "salary",
+    "location",
+    "benefit",
+    "working hours",
+)
+
+
+def _safe_int(value: Any, fallback: int) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return fallback
+    return parsed if parsed > 0 else fallback
+
+
+def _effective_run_limit(source: FetchSource) -> int:
+    selectors = source.selectors or {}
+    quality_cap = _safe_int(
+        selectors.get("__quality_max_per_run"),
+        DEFAULT_QUALITY_MAX_PER_RUN,
+    )
+    return max(1, min(source.max_jobs_per_run, quality_cap))
+
+
+def _is_default_description(description: str) -> bool:
+    lowered = description.lower()
+    return "imported automatically from" in lowered and "open the source url" in lowered
+
+
+def _looks_spammy(record: dict[str, Any]) -> bool:
+    title = clean_inline_text(record.get("title")).lower()
+    description = clean_inline_text(record.get("description_mm") or record.get("description_en")).lower()
+    searchable = f"{title} {description}"
+    return any(term in searchable for term in SPAM_TERMS)
+
+
+def _quality_score(record: dict[str, Any]) -> int:
+    if _looks_spammy(record):
+        return 0
+
+    title = clean_inline_text(record.get("title"))
+    company = clean_inline_text(record.get("company"))
+    location = clean_inline_text(record.get("location"))
+    source_url = clean_inline_text(record.get("source_url"))
+    salary = clean_inline_text(record.get("salary"))
+    image_url = clean_inline_text(record.get("image_url"))
+    description = clean_inline_text(record.get("description_mm") or record.get("description_en"))
+    lowered_description = description.lower()
+
+    score = 0
+
+    if 12 <= len(title) <= 120:
+        score += 2
+    if company and company.lower() not in {"n/a", "unknown"}:
+        score += 1
+    if location and location.lower() not in {"thailand", "remote"}:
+        score += 1
+    if source_url.startswith("http://") or source_url.startswith("https://"):
+        score += 1
+    if salary:
+        score += 1
+    if image_url:
+        score += 1
+
+    if len(description) >= 280:
+        score += 3
+    elif len(description) >= 120:
+        score += 2
+    elif len(description) >= 60:
+        score += 1
+
+    if description and not _is_default_description(description):
+        score += 1
+
+    keyword_hits = sum(1 for keyword in QUALITY_KEYWORDS if keyword in lowered_description)
+    score += min(keyword_hits, 2)
+
+    if re.search(r"[•●▪◦‣]", description):
+        score += 1
+
+    return score
+
+
+def _select_quality_records(source: FetchSource, records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    limit = _effective_run_limit(source)
+    scored_records: list[tuple[int, dict[str, Any]]] = []
+    for record in records:
+        score = _quality_score(record)
+        if score < MIN_QUALITY_SCORE:
+            continue
+        scored_records.append((score, record))
+
+    scored_records.sort(key=lambda item: item[0], reverse=True)
+    return [record for _, record in scored_records[:limit]]
+
 
 def enrich_records_from_detail_pages(
     source: FetchSource, records: list[dict[str, Any]]
@@ -28,7 +140,8 @@ def enrich_records_from_detail_pages(
     from jobs.views.shared import build_scraped_job_payload
 
     enriched_records: list[dict[str, Any]] = []
-    for record in records[: source.max_jobs_per_run]:
+    limit = _effective_run_limit(source)
+    for record in records[:limit]:
         source_url = clean_inline_text(record.get("source_url"))
         if not source_url:
             enriched_records.append(record)
@@ -63,8 +176,8 @@ def enrich_records_from_detail_pages(
                 enriched_record[field] = detail_value
         enriched_records.append(enriched_record)
 
-    if len(records) > source.max_jobs_per_run:
-        enriched_records.extend(records[source.max_jobs_per_run :])
+    if len(records) > limit:
+        enriched_records.extend(records[limit:])
 
     return enriched_records
 
@@ -73,9 +186,11 @@ def persist_records(source: FetchSource, records: list[dict[str, Any]]) -> Persi
     created_count = 0
     updated_count = 0
     published_count = 0
+    deduped_records = dedupe_jobs(records)
+    quality_records = _select_quality_records(source, deduped_records)
 
     with transaction.atomic():
-        for record in dedupe_jobs(records)[: source.max_jobs_per_run]:
+        for record in quality_records:
             source_job_id = record.get("source_job_id") or None
             source_url = record.get("source_url") or None
             existing_job = find_existing_job(source, record, source_job_id, source_url)
@@ -106,7 +221,7 @@ def persist_records(source: FetchSource, records: list[dict[str, Any]]) -> Persi
             published_count += apply_publish_policy(job, source)
 
     return PersistSummary(
-        fetched_count=len(records),
+        fetched_count=len(quality_records),
         created_count=created_count,
         updated_count=updated_count,
         published_count=published_count,
