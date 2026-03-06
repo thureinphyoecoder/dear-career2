@@ -217,6 +217,52 @@ def compact_text_lines(text: str) -> list[str]:
     return lines
 
 
+ROLE_KEYWORDS = (
+    "developer",
+    "engineer",
+    "manager",
+    "designer",
+    "analyst",
+    "officer",
+    "assistant",
+    "support",
+    "tester",
+    "quality assurance",
+    "qa",
+    "accountant",
+    "coordinator",
+    "architect",
+    "specialist",
+    "executive",
+    "technician",
+    "project",
+)
+
+NON_TITLE_PREFIXES = (
+    "we're hiring",
+    "we are hiring",
+    "job opening",
+    "urgent",
+    "contact us",
+    "employee benefits",
+    "benefits",
+    "how to apply",
+    "apply now",
+)
+
+
+def normalize_candidate_line(line: str) -> str:
+    normalized = clean_text(line)
+    normalized = re.sub(r"^[\-\*\u2022\u25cf\u25aa\u25e6]+\s*", "", normalized)
+    normalized = normalized.strip(" _|•-")
+    return clean_text(normalized)
+
+
+def is_noise_heading(line: str) -> bool:
+    lowered = normalize_candidate_line(line).lower().rstrip(":")
+    return any(lowered.startswith(prefix) for prefix in NON_TITLE_PREFIXES)
+
+
 def pick_labeled_line(lines: list[str], *labels: str) -> str:
     for line in lines:
         lowered = line.lower()
@@ -228,12 +274,43 @@ def pick_labeled_line(lines: list[str], *labels: str) -> str:
 
 
 def derive_title_from_text_lines(lines: list[str]) -> str:
+    labeled = pick_labeled_line(lines, "position", "role", "job title", "title")
+    if labeled:
+        return labeled
+
+    role_candidates: list[str] = []
+    generic_candidates: list[str] = []
+
     for line in lines:
-        lowered = line.lower()
-        if any(token in lowered for token in ("apply now", "send cv", "@", "http://", "https://")):
+        normalized = normalize_candidate_line(line)
+        lowered = normalized.lower()
+
+        if not normalized:
             continue
-        if 3 <= len(line) <= 120:
-            return line
+        if is_noise_heading(normalized):
+            continue
+        if any(
+            token in lowered
+            for token in ("send cv", "@", "http://", "https://", "line id", "email:")
+        ):
+            continue
+        if len(normalized) < 3 or len(normalized) > 120:
+            continue
+
+        if any(keyword in lowered for keyword in ROLE_KEYWORDS) and not re.search(
+            r"\b(benefit|salary|contact|phone|location)\b", lowered
+        ):
+            role_candidates.append(normalized)
+            continue
+
+        if 3 <= len(normalized) <= 120:
+            generic_candidates.append(normalized)
+
+    if role_candidates:
+        return role_candidates[0]
+    if generic_candidates:
+        return generic_candidates[0]
+
     return "Imported job listing"
 
 
@@ -242,16 +319,45 @@ def derive_company_from_text_lines(lines: list[str], title: str) -> str:
     if labeled:
         return labeled
 
+    corporate_suffix_pattern = re.compile(
+        r"\b(co\.?,?\s*ltd\.?|company limited|limited|inc\.?|llc|plc)\b",
+        flags=re.IGNORECASE,
+    )
+
     for line in lines:
-        if line == title:
+        normalized = normalize_candidate_line(line)
+        if not normalized or normalized == title:
             continue
-        lowered = line.lower()
+        lowered = normalized.lower()
+        if any(
+            token in lowered
+            for token in ("position", "salary", "location", "responsibilities")
+        ):
+            continue
+        if "@" in lowered or lowered.startswith(("http://", "https://")):
+            continue
+        if corporate_suffix_pattern.search(lowered) and 3 <= len(normalized) <= 80:
+            return normalized
+
+    email = extract_contact_email("\n".join(lines))
+    if email:
+        domain = email.split("@", 1)[-1].split(".", 1)[0]
+        candidate = clean_text(domain.replace("-", " ").replace("_", " ").title())
+        if len(candidate) >= 3:
+            return candidate
+
+    for line in lines:
+        normalized = normalize_candidate_line(line)
+        if not normalized or normalized == title:
+            continue
+        lowered = normalized.lower()
         if any(token in lowered for token in ("position", "salary", "location", "responsibilities")):
             continue
         if "@" in lowered or lowered.startswith(("http://", "https://")):
             continue
-        if 3 <= len(line) <= 80:
-            return line
+        if 3 <= len(normalized) <= 80:
+            return normalized
+
     return "Manual source"
 
 

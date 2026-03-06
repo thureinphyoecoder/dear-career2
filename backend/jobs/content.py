@@ -56,6 +56,7 @@ def _strip_html_preserving_blocks(value: str) -> str:
 
 def _normalize_line(line: str) -> str:
     line = re.sub(r"[ \t]+", " ", line.strip())
+    line = re.sub(r"^[📍🕓💼💰📧📌📞🗓📅🌐]\s*", "", line)
     line = re.sub(r"^[•●▪◦‣]\s*", "- ", line)
     return line.strip()
 
@@ -138,9 +139,9 @@ def build_facebook_post_message(job) -> str:
     lines = [job.title, f"{job.company} · {job.location}"]
 
     if job.employment_type:
-        lines.append(f"🕓 Status: {job.employment_type.replace('-', ' ').title()}")
+        lines.append(f"Status: {job.employment_type.replace('-', ' ').title()}")
     if job.salary:
-        lines.append(f"💰 Salary: {job.salary}")
+        lines.append(f"Salary: {job.salary}")
 
     summary = extract_summary(description, limit=240)
     if summary:

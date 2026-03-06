@@ -72,6 +72,15 @@ class JobApiTests(TestCase):
             is_active=False,
             status=Job.WorkflowStatus.PENDING_REVIEW,
         )
+        Job.objects.create(
+            title="Waiting approval role",
+            company="Dear Career",
+            location="Bangkok",
+            description_mm="Pending website approval",
+            is_active=True,
+            status=Job.WorkflowStatus.PUBLISHED,
+            requires_website_approval=True,
+        )
 
         response = self.client.get("/api/jobs/")
         payload = response.json()
@@ -269,6 +278,7 @@ class JobContentFormattingTests(TestCase):
     def test_normalize_rich_text_preserves_sections_and_bullets(self):
         raw = """
         <div>Professional Photographers & Videographers</div>
+        <div>📍 Location: Bangkok</div>
         <div>Responsibilities</div>
         <ul><li>Capture professional photos</li><li>Manage lighting</li></ul>
         <div>To Apply:</div>
@@ -278,6 +288,8 @@ class JobContentFormattingTests(TestCase):
         formatted = normalize_rich_text(raw)
 
         self.assertIn("Responsibilities", formatted)
+        self.assertIn("Location: Bangkok", formatted)
+        self.assertNotIn("📍 Location: Bangkok", formatted)
         self.assertIn("- Capture professional photos", formatted)
         self.assertIn("To Apply:", formatted)
         self.assertIn("Email: info@infinitymedianow.com", formatted)
@@ -301,7 +313,7 @@ class JobContentFormattingTests(TestCase):
 
         message = build_facebook_post_message(job)
 
-        self.assertIn("🕓 Status: Freelance", message)
+        self.assertIn("Status: Freelance", message)
         self.assertIn("Responsibilities", message)
         self.assertIn("- Capture professional photos and videos.", message)
         self.assertIn("Requirements", message)
@@ -340,6 +352,23 @@ class JobContentFormattingTests(TestCase):
         self.assertEqual(payload["salary"], "THB 32,000")
         self.assertEqual(payload["contact_email"], "ops@northernlogistics.com")
         self.assertEqual(payload["category"], Job.CategoryChoices.BLUE_COLLAR)
+
+    def test_build_image_text_job_payload_handles_hiring_poster_lines(self):
+        payload = build_image_text_job_payload(
+            "We're Hiring\n"
+            "Job Opening\n"
+            "- Backend Developer\n"
+            "- Frontend Developer\n"
+            "Contact us\n"
+            "092-263-2254\n"
+            "recruit@entronica.co.th\n"
+            "ENTRONICA CO., LTD."
+        )
+
+        self.assertEqual(payload["title"], "Backend Developer")
+        self.assertEqual(payload["company"], "ENTRONICA CO., LTD.")
+        self.assertEqual(payload["contact_phone"], "092-263-2254")
+        self.assertEqual(payload["contact_email"], "recruit@entronica.co.th")
 
 
 class JobImageMirrorTests(TestCase):

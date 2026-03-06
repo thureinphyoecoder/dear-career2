@@ -84,7 +84,9 @@ def admin_dashboard_snapshot(request: HttpRequest):
         total_jobs=Count("id"),
         published_jobs=Count(
             "id",
-            filter=Q(is_active=True) & Q(status=Job.WorkflowStatus.PUBLISHED),
+            filter=Q(is_active=True)
+            & Q(status=Job.WorkflowStatus.PUBLISHED)
+            & Q(requires_website_approval=False),
         ),
         draft_jobs=Count("id", filter=Q(status=Job.WorkflowStatus.DRAFT)),
         pending_count=Count(

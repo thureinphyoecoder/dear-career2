@@ -59,7 +59,11 @@ const FACT_LABEL_ALLOWLIST = new Set([
 ]);
 
 function normalizeLine(line: string) {
-  return line.replace(/\s+/g, " ").replace(/^[•●▪◦‣]\s*/, "- ").trim();
+  return line
+    .replace(/\s+/g, " ")
+    .replace(/^[📍🕓💼💰📧📌📞🗓📅🌐]\s*/u, "")
+    .replace(/^[•●▪◦‣]\s*/, "- ")
+    .trim();
 }
 
 function isBulletLine(line: string) {
@@ -234,10 +238,10 @@ export function buildFacebookPostMessage(job: Job) {
   const lines = [job.title, `${job.company} · ${job.location}`];
 
   if (job.employment_type) {
-    lines.push(`🕓 Status: ${job.employment_type.replace(/-/g, " ")}`);
+    lines.push(`Status: ${job.employment_type.replace(/-/g, " ")}`);
   }
   if (job.salary) {
-    lines.push(`💰 Salary: ${job.salary}`);
+    lines.push(`Salary: ${job.salary}`);
   }
 
   const summary = extractJobSummary(job, 240);
