@@ -23,6 +23,11 @@ const toneClassMap = {
   warning: "border-[rgba(196,149,88,0.3)] bg-[rgba(196,149,88,0.12)] text-[#7a5b2f]",
 } as const;
 
+function getPendingJobId(value: string) {
+  const match = value.match(/(\d+)$/);
+  return match?.[1] ?? "";
+}
+
 export default async function AdminDashboardPage() {
   const snapshot = await getAdminDashboardSnapshot();
   const visitorSummary = snapshot.visitor_summary;
@@ -105,6 +110,22 @@ export default async function AdminDashboardPage() {
                       {formatDateTime(item.requested_at)}
                     </span>
                   </div>
+                  {getPendingJobId(item.id) ? (
+                    <div className="mt-1 flex items-center gap-2">
+                      <Link
+                        href={`/admin/jobs/${getPendingJobId(item.id)}?returnTo=${encodeURIComponent("/admin/approvals")}`}
+                        className={cn(buttonVariants({ variant: "secondary" }), "h-8 rounded-lg px-3 text-xs")}
+                      >
+                        View
+                      </Link>
+                      <Link
+                        href={`/admin/jobs/${getPendingJobId(item.id)}?returnTo=${encodeURIComponent("/admin/approvals")}`}
+                        className={cn(buttonVariants(), "h-8 rounded-lg px-3 text-xs")}
+                      >
+                        Edit
+                      </Link>
+                    </div>
+                  ) : null}
                 </div>
               ))
             )}

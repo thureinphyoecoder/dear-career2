@@ -3,8 +3,9 @@
 import { ArrowUp, BriefcaseBusiness, Clock3, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { AdCard } from "@/components/public/AdCard";
 import { JobCard } from "@/components/public/JobCard";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import type { Job, JobCategory, ManagedAd } from "@/lib/types";
 
 const INITIAL_BATCH = 6;
@@ -32,6 +33,49 @@ function JobCardLoadingSkeleton() {
   );
 }
 
+type SponsoredAdLike = {
+  title: string;
+  description: string;
+  href: string;
+  cta_label: string;
+  eyebrow?: string;
+};
+
+const FALLBACK_INLINE_AD: SponsoredAdLike = {
+  eyebrow: "Sponsored",
+  title: "Need faster hiring results in Thailand?",
+  description:
+    "Place your brand inside curated job cards and reach active candidates every day.",
+  cta_label: "Advertise now",
+  href: "/feedback",
+};
+
+function SponsoredJobLikeCard({ ad }: { ad: SponsoredAdLike }) {
+  return (
+    <Card className="group relative h-full overflow-hidden rounded-[1.65rem] border-[rgba(132,157,138,0.2)] bg-[linear-gradient(150deg,rgba(255,251,244,0.96),rgba(243,248,240,0.82))] shadow-[0_12px_30px_rgba(119,145,125,0.1)] transition-all duration-300 hover:-translate-y-1 hover:border-[rgba(116,141,122,0.34)] hover:shadow-[0_20px_40px_rgba(119,145,125,0.16)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-[linear-gradient(180deg,rgba(160,183,164,0.14),transparent)]" />
+      <CardContent className="relative grid h-full gap-4 p-5 pt-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline">{ad.eyebrow || "Sponsored"}</Badge>
+            <Badge variant="secondary">Ad</Badge>
+          </div>
+        </div>
+        <h3 className="m-0 text-[1.2rem] font-semibold leading-[1.32] text-foreground">{ad.title}</h3>
+        <p className="m-0 line-clamp-3 text-[0.95rem] leading-7 text-[#6c7672]">{ad.description}</p>
+        <div className="mt-auto flex items-end justify-end gap-4 border-t border-[rgba(160,183,164,0.12)] pt-4">
+          <a
+            href={ad.href}
+            className="inline-flex items-center gap-2 rounded-full border border-[rgba(116,141,122,0.24)] bg-[rgba(247,243,236,0.66)] px-4 py-2 text-sm font-medium text-[#3f4b45] transition-all hover:border-[rgba(116,141,122,0.36)] hover:bg-[rgba(160,183,164,0.12)]"
+          >
+            {ad.cta_label || "Learn more"}
+          </a>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function JobsInfiniteResults({
   jobs,
   hasAnyJobs,
@@ -49,6 +93,12 @@ export function JobsInfiniteResults({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [showToTop, setShowToTop] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const sponsoredAd: SponsoredAdLike = inlineAd?.title &&
+    inlineAd?.description &&
+    inlineAd?.href &&
+    inlineAd?.cta_label
+    ? inlineAd
+    : FALLBACK_INLINE_AD;
 
   const scopedSections = useMemo(() => {
     const grouped = categorySections.map((section) => ({
@@ -157,7 +207,7 @@ export function JobsInfiniteResults({
     );
   }
 
-  let hasInsertedInlineAd = false;
+  let cardCount = 0;
 
   return (
     <>
@@ -165,7 +215,8 @@ export function JobsInfiniteResults({
         section.jobs.length > 0 ? (
           <section key={section.key} className="mt-10 grid gap-5">
             <div className="grid gap-4 xl:grid-cols-2">
-              {section.jobs.flatMap((job, index) => {
+              {section.jobs.flatMap((job) => {
+                cardCount += 1;
                 const items = [
                   <div key={job.id}>
                     <JobCard job={job} />
@@ -173,31 +224,14 @@ export function JobsInfiniteResults({
                 ];
 
                 if (
-                  !hasInsertedInlineAd &&
-                  index === 0 &&
-                  inlineAd?.title &&
-                  inlineAd?.description &&
-                  inlineAd?.href &&
-                  inlineAd?.cta_label
+                  cardCount % 3 === 0 &&
+                  sponsoredAd?.title &&
+                  sponsoredAd?.description &&
+                  sponsoredAd?.href
                 ) {
-                  hasInsertedInlineAd = true;
                   items.push(
-                    <div key={`inline-ad-${section.key}`}>
-                      <AdCard
-                        compact
-                        eyebrow={inlineAd.eyebrow || undefined}
-                        title={inlineAd.title}
-                        description={inlineAd.description}
-                        ctaLabel={inlineAd.cta_label}
-                        href={inlineAd.href}
-                        showHeaderBadges={false}
-                        showFooterBadges={false}
-                        className="h-full rounded-[1.5rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(247,243,236,0.72)] shadow-none"
-                        contentClassName="gap-3 p-5"
-                        titleClassName="text-[1rem] font-semibold leading-6 text-foreground"
-                        descriptionClassName="text-sm leading-6 text-[#727975]"
-                        ctaClassName="px-4 py-2 text-sm"
-                      />
+                    <div key={`inline-job-like-ad-${section.key}-${job.id}`}>
+                      <SponsoredJobLikeCard ad={sponsoredAd} />
                     </div>,
                   );
                 }

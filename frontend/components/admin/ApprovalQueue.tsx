@@ -238,6 +238,13 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
                     </div>
                   </div>
                   <div className="relative z-10 flex w-full flex-wrap items-center justify-start gap-2 pointer-events-auto xl:w-auto xl:justify-end">
+                    <Link
+                      href={reviewHrefFor(job.id)}
+                      onClick={() => markViewed(job.id)}
+                      className={cn(buttonVariants({ variant: "secondary" }), "w-full rounded-xl sm:w-auto")}
+                    >
+                      View
+                    </Link>
                     <button
                       type="button"
                       className={cn(buttonVariants(), "w-full rounded-xl sm:w-auto sm:min-w-[188px]")}

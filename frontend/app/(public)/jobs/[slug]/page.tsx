@@ -10,7 +10,9 @@ import {
   Clock3,
   Globe,
   Instagram,
+  Mail,
   MapPin,
+  Phone,
   ShieldCheck,
 } from "lucide-react";
 
@@ -73,6 +75,20 @@ function factIcon(label: string) {
   return CheckCircle2;
 }
 
+function extractContactEmail(description: string, fallback?: string) {
+  const fromField = (fallback || "").trim();
+  if (fromField) return fromField;
+  const match = description.match(/([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i);
+  return match?.[1]?.trim() || "";
+}
+
+function extractContactPhone(description: string, fallback?: string) {
+  const fromField = (fallback || "").trim();
+  if (fromField) return fromField;
+  const match = description.match(/(\+?\d[\d\s().-]{7,}\d)/);
+  return match?.[1]?.trim() || "";
+}
+
 export default async function PublicJobDetailPage({
   params,
 }: {
@@ -90,6 +106,8 @@ export default async function PublicJobDetailPage({
   const descriptionSections = parseJobDescription(description);
   const descriptionSummary = extractJobSummary(job, 320);
   const displayImageUrl = job.display_image_url || job.image_file_url || job.image_url || "";
+  const contactEmail = extractContactEmail(description, job.contact_email);
+  const contactPhone = extractContactPhone(description, job.contact_phone);
 
   return (
     <main className="job-detail-page mx-auto max-w-4xl px-4 pb-20 pt-28 md:pt-32">
@@ -133,6 +151,29 @@ export default async function PublicJobDetailPage({
           {displayImageUrl ? (
             <div className="overflow-hidden rounded-[1.6rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(247,243,236,0.46)] shadow-[0_14px_30px_rgba(132,151,138,0.12)]">
               <img src={displayImageUrl} alt={job.title} className="aspect-[16/9] w-full object-cover" />
+            </div>
+          ) : null}
+
+          {contactEmail || contactPhone ? (
+            <div className="grid gap-2 rounded-2xl border border-[rgba(160,183,164,0.16)] bg-[rgba(247,243,236,0.56)] p-4">
+              <div className="inline-flex items-center gap-2 text-[0.72rem] uppercase tracking-[0.16em] text-[#7f9685]">
+                <CheckCircle2 className="h-4 w-4" />
+                Contact
+              </div>
+              <div className="grid gap-2 text-[0.95rem] text-[#4f5b55]">
+                {contactEmail ? (
+                  <a href={`mailto:${contactEmail}`} className="inline-flex items-center gap-2 hover:text-foreground">
+                    <Mail className="h-4 w-4 text-[#7a8d7f]" />
+                    {contactEmail}
+                  </a>
+                ) : null}
+                {contactPhone ? (
+                  <a href={`tel:${contactPhone.replace(/\s+/g, "")}`} className="inline-flex items-center gap-2 hover:text-foreground">
+                    <Phone className="h-4 w-4 text-[#7a8d7f]" />
+                    {contactPhone}
+                  </a>
+                ) : null}
+              </div>
             </div>
           ) : null}
 
