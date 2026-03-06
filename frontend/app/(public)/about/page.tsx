@@ -7,7 +7,7 @@ export default function PublicAboutPage() {
           A cleaner way to discover jobs in Thailand
         </h1>
         <p className="mb-0 max-w-[58ch] text-[1.08rem] leading-8 text-[#727975]">
-          Dear Career က Thailand jobs opportunities တွေကို တစ်နေရာထဲမှာ စုစည်းပေးထားတဲ့ curated website တစ်ခုပါ။
+          Dear Career က Thailand jobs တွေကို တစ်နေရာထဲမှာ သန့်ရှင်းလွယ်ကူတဲ့ပုံစံနဲ့ကြည့်နိုင်အောင် curated links နဲ့ စုစည်းပေးထားတဲ့ website တစ်ခုပါ။
           Website ထဲကနေတိုက်ရိုက် လျှောက်ရတာမဟုတ်ဘဲ source links, emails, contacts တွေကို
           စနစ်တကျကြည့်နိုင်အောင်ဖန်တီးထားတာပါ။
         </p>
