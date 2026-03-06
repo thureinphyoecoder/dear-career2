@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { PencilLine, Trash2 } from "lucide-react";
+import { PencilLine, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { StatusPill } from "@/components/admin/StatusPill";
@@ -30,6 +30,7 @@ function formatDate(value?: string) {
 export function JobTable({ jobs }: { jobs: Job[] }) {
   const [jobRows, setJobRows] = useState<Job[]>(jobs);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [publishingId, setPublishingId] = useState<number | null>(null);
   const [pendingDeleteJob, setPendingDeleteJob] = useState<Job | null>(null);
   const [actionError, setActionError] = useState("");
 
@@ -57,6 +58,40 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
     } finally {
       setDeletingId(null);
       setPendingDeleteJob(null);
+    }
+  }
+
+  async function publishJob(job: Job) {
+    setPublishingId(job.id);
+    setActionError("");
+    try {
+      const response = await fetch(`/api/admin/proxy/jobs/admin/jobs/${job.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          status: "published",
+          is_active: true,
+          requires_website_approval: false,
+          requires_facebook_approval: false,
+        }),
+      });
+
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(detail || "Unable to publish job.");
+      }
+
+      const updated = (await response.json()) as Job;
+      setJobRows((current) =>
+        current.map((row) => (row.id === updated.id ? updated : row)),
+      );
+      toast.success(`Published + Facebook queued for ${updated.title}.`);
+    } catch (error) {
+      const nextError = error instanceof Error ? error.message : "Unable to publish job.";
+      setActionError(nextError);
+      toast.error(nextError);
+    } finally {
+      setPublishingId(null);
     }
   }
 
@@ -107,6 +142,19 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
                   <td className="border-b border-border/60 px-5 py-4 align-top">{formatDate(job.updated_at ?? job.created_at)}</td>
                   <td className="border-b border-border/60 px-5 py-4 align-top">
                     <div className="flex items-center justify-end gap-2">
+                      {(job.status ?? "published") === "draft" ? (
+                        <button
+                          className="group relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-white text-[#4f6a57] transition-colors hover:border-[#8da693]/40 hover:bg-[#f3f7f4] hover:text-[#334039]"
+                          type="button"
+                          disabled={publishingId === job.id}
+                          onClick={() => void publishJob(job)}
+                        >
+                          <Upload className="h-4 w-4" />
+                          <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-[#334039] px-2 py-1 text-[0.72rem] text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
+                            {publishingId === job.id ? "Publishing" : "Publish + Post"}
+                          </span>
+                        </button>
+                      ) : null}
                       <Link
                         className={cn(
                           "group relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-white text-[#6f7b73] transition-colors hover:border-[#8da693]/40 hover:bg-[#f3f7f4] hover:text-[#334039]",

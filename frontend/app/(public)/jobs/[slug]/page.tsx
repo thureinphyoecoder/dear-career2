@@ -197,16 +197,16 @@ export default async function PublicJobDetailPage({
                         {section.heading}
                       </h2>
                     ) : null}
-                    {section.paragraphs.map((paragraph) =>
+                    {section.paragraphs.map((paragraph, paragraphIndex) =>
                       isApplySection ? (
                         <p
-                          key={paragraph}
+                          key={`paragraph-${index}-${paragraphIndex}`}
                           className="m-0 rounded-xl border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.62)] px-3 py-2"
                         >
                           {paragraph}
                         </p>
                       ) : (
-                        <p key={paragraph} className="m-0">
+                        <p key={`paragraph-${index}-${paragraphIndex}`} className="m-0">
                           {paragraph}
                         </p>
                       ),
@@ -214,11 +214,11 @@ export default async function PublicJobDetailPage({
                     {section.bullets.length > 0 ? (
                       section.heading?.toLowerCase() === "details" ? (
                         <div className="grid gap-2">
-                          {section.bullets.map((bullet) => {
+                          {section.bullets.map((bullet, bulletIndex) => {
                             const fact = parseFactBullet(bullet);
                             if (!fact) {
                               return (
-                                <p key={bullet} className="m-0">
+                                <p key={`details-bullet-${index}-${bulletIndex}`} className="m-0">
                                   {bullet.replace(/^- /, "")}
                                 </p>
                               );
@@ -226,7 +226,7 @@ export default async function PublicJobDetailPage({
                             const Icon = factIcon(fact.label);
                             return (
                               <div
-                                key={bullet}
+                                key={`details-bullet-${index}-${bulletIndex}`}
                                 className="inline-flex items-start gap-2 rounded-xl border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.62)] px-3 py-2"
                               >
                                 <Icon className="mt-1 h-4 w-4 shrink-0 text-[#7a8d7f]" />
@@ -240,9 +240,9 @@ export default async function PublicJobDetailPage({
                         </div>
                       ) : isApplySection ? (
                         <div className="grid gap-2">
-                          {section.bullets.map((bullet) => (
+                          {section.bullets.map((bullet, bulletIndex) => (
                             <p
-                              key={bullet}
+                              key={`apply-bullet-${index}-${bulletIndex}`}
                               className="m-0 rounded-xl border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.62)] px-3 py-2"
                             >
                               {bullet.replace(/^- /, "")}
@@ -251,8 +251,8 @@ export default async function PublicJobDetailPage({
                         </div>
                       ) : (
                         <ul className="m-0 grid gap-2 pl-5">
-                          {section.bullets.map((bullet) => (
-                            <li key={bullet}>{bullet.replace(/^- /, "")}</li>
+                          {section.bullets.map((bullet, bulletIndex) => (
+                            <li key={`bullet-${index}-${bulletIndex}`}>{bullet.replace(/^- /, "")}</li>
                           ))}
                         </ul>
                       )

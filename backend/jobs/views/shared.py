@@ -207,6 +207,27 @@ def normalize_employment_type(value: str) -> str:
 
 
 def derive_salary(text: str) -> str:
+    def pick_salary_fragment(candidate: str, *, allow_plain_numeric: bool) -> str:
+        cleaned = clean_text(candidate)
+        if not cleaned:
+            return ""
+
+        # Prefer explicit range/value tokens and avoid dragging entire sentences.
+        numeric_with_currency = re.search(
+            r"((?:(?:THB|MMK|USD|Ks\.?|Baht|\$)\s*)?[\d,]{3,}(?:\s?(?:-|–|to)\s?(?:(?:THB|MMK|USD|Ks\.?|Baht|\$)\s*)?[\d,]{3,})?\s*(?:บาท|THB|MMK|USD|Ks\.?|Baht)?)",
+            cleaned,
+            flags=re.IGNORECASE,
+        )
+        if numeric_with_currency:
+            return clean_text(numeric_with_currency.group(1))
+
+        if allow_plain_numeric:
+            plain_numeric = re.search(r"(\d[\d,]{2,}(?:\s?(?:-|–|to)\s?\d[\d,]{2,})?)", cleaned)
+            if plain_numeric:
+                return clean_text(plain_numeric.group(1))
+
+        return ""
+
     labeled_match = re.search(
         r"(?:salary|เงินเดือน(?:\(บาท\))?)\s*[:：]?\s*([^\n\r]+)",
         text,
@@ -215,16 +236,11 @@ def derive_salary(text: str) -> str:
     if labeled_match:
         candidate = clean_text(labeled_match.group(1))
         candidate = re.split(r"(?:วันทำงาน|เวลาทำงาน|รูปแบบงาน|ระดับตำแหน่งงาน)", candidate, maxsplit=1)[0]
-        candidate = clean_text(candidate)
-        if candidate:
-            return candidate
+        normalized = pick_salary_fragment(candidate, allow_plain_numeric=True)
+        if normalized:
+            return normalized
 
-    match = re.search(
-        r"((?:(?:THB|MMK|USD|Ks\.?|Baht|\$)\s*)?[\d,]{3,}(?:\s?(?:-|–|to)\s?(?:(?:THB|MMK|USD|Ks\.?|Baht|\$)\s*)?[\d,]{3,})?\s*(?:บาท|THB|MMK|USD|Ks\.?|Baht)?)",
-        text,
-        flags=re.IGNORECASE,
-    )
-    return clean_text(match.group(1)) if match else ""
+    return pick_salary_fragment(text, allow_plain_numeric=False)
 
 
 def normalize_salary_value(value: object | None) -> str:
@@ -239,14 +255,7 @@ def normalize_salary_value(value: object | None) -> str:
     if lowered in {"true", "false", "null", "none", "yes", "no"}:
         return ""
 
-    if re.search(r"(thb|mmk|usd|baht|บาท|ks\.?|\$)", text, flags=re.IGNORECASE):
-        return text[:120]
-
-    numeric = re.search(r"(\d[\d,]{2,}(?:\s?(?:-|–|to)\s?\d[\d,]{2,})?)", text)
-    if numeric:
-        return clean_text(numeric.group(1))
-
-    return ""
+    return derive_salary(text)
 
 
 def compact_text_lines(text: str) -> list[str]:

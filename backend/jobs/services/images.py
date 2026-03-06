@@ -3,6 +3,7 @@ from __future__ import annotations
 from io import BytesIO
 from pathlib import Path
 import uuid
+from urllib.parse import urlparse
 
 import requests
 from django.core.files.base import ContentFile
@@ -16,6 +17,31 @@ ALLOWED_IMAGE_FORMATS = {
     "WEBP": "webp",
     "GIF": "gif",
 }
+
+
+def _build_image_fetch_headers(
+    image_url: str,
+    extra_headers: dict[str, str] | None = None,
+    source_url: str | None = None,
+) -> dict[str, str]:
+    parsed = urlparse(image_url)
+    origin = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else ""
+    referer = source_url or origin
+    headers: dict[str, str] = {
+        "User-Agent": (
+            "Mozilla/5.0 (X11; Linux x86_64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/131.0 Safari/537.36"
+        ),
+        "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+    }
+    if referer:
+        headers["Referer"] = referer
+    if origin:
+        headers["Origin"] = origin
+    if extra_headers:
+        headers.update(extra_headers)
+    return headers
 
 
 def normalize_uploaded_image_bytes(filename: str, raw_bytes: bytes) -> tuple[str, ContentFile]:
@@ -51,14 +77,23 @@ def mirror_remote_job_image(job, image_url: str, headers: dict[str, str] | None 
 
     response = requests.get(
         image_url,
-        headers=headers or {},
+        headers=_build_image_fetch_headers(
+            image_url,
+            headers,
+            getattr(job, "source_url", "") or None,
+        ),
         timeout=20,
         stream=True,
     )
     response.raise_for_status()
 
     content_type = (response.headers.get("content-type") or "").lower()
-    if content_type and not content_type.startswith("image/"):
+    if content_type and (
+        content_type.startswith("text/")
+        or "html" in content_type
+        or "json" in content_type
+        or "xml" in content_type
+    ):
         raise ValueError("Remote file is not served as an image.")
 
     chunks: list[bytes] = []

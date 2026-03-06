@@ -188,7 +188,7 @@ export function JobEditor({
   const [salary, setSalary] = useState(initialJob?.salary ?? "");
   const [contactEmail, setContactEmail] = useState(initialJob?.contact_email ?? "");
   const [contactPhone, setContactPhone] = useState(initialJob?.contact_phone ?? "");
-  const [status, setStatus] = useState<JobStatus>(initialJob?.status ?? "draft");
+  const [status, setStatus] = useState<JobStatus>(initialJob?.status ?? "published");
   const [category, setCategory] = useState<JobCategory>(initialJob?.category ?? "white-collar");
   const [source, setSource] = useState(initialJob?.source ?? "manual");
   const [sourceUrl, setSourceUrl] = useState(initialJob?.source_url ?? "");
@@ -702,16 +702,18 @@ export function JobEditor({
           <div className="grid gap-3">
             <label className={fieldLabelClass}>
               <span className={eyebrowClass}>Job URL</span>
-              <div className="relative">
-                <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6f8676]" />
-                <Input
-                  className={cn(
-                    inputClassName,
-                    "pl-10",
-                    urlIntakeError
-                      ? "border-[rgba(169,97,111,0.34)] shadow-[0_0_0_3px_rgba(169,97,111,0.1)]"
-                      : "",
-                  )}
+              <div
+                className={cn(
+                  "flex h-11 items-center rounded-md border border-[rgba(150,174,157,0.28)] bg-white px-3 text-[#2f3d35] transition",
+                  "focus-within:border-[rgba(116,141,122,0.45)]",
+                  urlIntakeError
+                    ? "border-[rgba(169,97,111,0.34)] shadow-[0_0_0_3px_rgba(169,97,111,0.1)]"
+                    : "",
+                )}
+              >
+                <Link2 className="h-4 w-4 shrink-0 text-[#6f8676]" />
+                <input
+                  className="h-full w-full border-0 bg-transparent px-2 text-sm text-[#2f3d35] outline-none placeholder:text-[#829189]"
                   value={intakeUrl}
                   onChange={(event) => {
                     setIntakeUrl(event.target.value);
@@ -762,7 +764,7 @@ export function JobEditor({
                 Upload a screenshot, poster, or scan and extract text into the form.
               </span>
               <label className="grid gap-1">
-                <span className="text-xs uppercase tracking-[0.12em] text-[#6f8676]">OCR mode</span>
+                <span className="text-xs uppercase tracking-[0.12em] text-[#6f8676]">Mode</span>
                 <select
                   className={selectClass}
                   value={ocrMode}
@@ -1063,7 +1065,7 @@ export function JobEditor({
         </div>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1.75fr)_minmax(320px,0.85fr)]">
+      <section className="grid gap-5 2xl:grid-cols-[minmax(0,1.75fr)_minmax(340px,0.85fr)]">
         <div className={panelClass}>
           <div>
             <div className={eyebrowClass}>Descriptions</div>
@@ -1111,7 +1113,7 @@ export function JobEditor({
               />
             </label>
           </div>
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="grid gap-4 2xl:grid-cols-2">
             <section className="grid gap-3 rounded-md border border-[rgba(160,183,164,0.12)] bg-[rgba(247,243,236,0.52)] p-4">
               <div>
                 <div className={eyebrowClass}>Website preview</div>
@@ -1119,11 +1121,11 @@ export function JobEditor({
                   Structured job content
                 </h3>
               </div>
-              <div className="grid gap-4 text-sm leading-7 text-[#5e6662]">
+              <div className="grid max-h-[520px] gap-4 overflow-auto pr-1 text-sm leading-7 text-[#5e6662]">
                 {previewFacts.length > 0 ? (
                   <div className="grid gap-1 rounded-md border border-[rgba(160,183,164,0.14)] bg-[rgba(255,255,255,0.84)] p-3">
                     {previewFacts.map((fact) => (
-                      <div key={`${fact.label}-${fact.value}`}>
+                      <div key={`${fact.label}-${fact.value}`} className="break-words">
                         <span className="text-[#8a928d]">{fact.label}:</span> {fact.value}
                       </div>
                     ))}
@@ -1133,19 +1135,21 @@ export function JobEditor({
                   previewSections.map((section, index) => (
                     <section key={`${section.heading || "section"}-${index}`} className="grid gap-2">
                       {section.heading ? (
-                        <h4 className="m-0 text-[0.72rem] uppercase tracking-[0.14em] text-[#4f6354]">
+                        <h4 className="m-0 text-[0.78rem] uppercase tracking-[0.14em] text-[#4f6354]">
                           {section.heading}
                         </h4>
                       ) : null}
-                      {section.paragraphs.map((paragraph) => (
-                        <p key={paragraph} className="mb-0">
+                      {section.paragraphs.map((paragraph, paragraphIndex) => (
+                        <p key={`paragraph-${index}-${paragraphIndex}`} className="mb-0 break-words">
                           {paragraph}
                         </p>
                       ))}
                       {section.bullets.length > 0 ? (
                         <ul className="m-0 grid gap-1.5 pl-5">
-                          {section.bullets.map((bullet) => (
-                            <li key={bullet}>{bullet.replace(/^- /, "")}</li>
+                          {section.bullets.map((bullet, bulletIndex) => (
+                            <li key={`bullet-${index}-${bulletIndex}`} className="break-words">
+                              {bullet.replace(/^- /, "")}
+                            </li>
                           ))}
                         </ul>
                       ) : null}
@@ -1166,7 +1170,7 @@ export function JobEditor({
                   Default caption
                 </h3>
               </div>
-              <pre className="m-0 whitespace-pre-wrap break-words rounded-md bg-[rgba(255,255,255,0.86)] p-3 text-sm leading-7 text-[#334039]">
+              <pre className="m-0 max-h-[520px] overflow-auto whitespace-pre-wrap break-words rounded-md bg-[rgba(255,255,255,0.86)] p-3 text-sm leading-7 text-[#334039]">
                 {facebookPreview || "The default Facebook caption will appear here."}
               </pre>
             </section>
@@ -1237,30 +1241,30 @@ export function JobEditor({
             </label>
             <label className="flex items-start justify-between gap-4 border-t border-[rgba(160,183,164,0.12)] pt-4">
               <span className="grid gap-1">
-                <strong className="font-medium text-[#334039]">Website approval</strong>
+                <strong className="font-medium text-[#334039]">Publish to website now</strong>
                 <small className="text-[0.9rem] leading-6 text-[#727975]">
-                  Hold this listing for editorial review before it goes live.
+                  Enable to show immediately on the website. Disable to hold for approval.
                 </small>
               </span>
               <input
                 type="checkbox"
                 className="mt-1 h-[18px] w-[18px] accent-[#8da693]"
-                checked={requiresWebsiteApproval}
-                onChange={(event) => setRequiresWebsiteApproval(event.target.checked)}
+                checked={!requiresWebsiteApproval}
+                onChange={(event) => setRequiresWebsiteApproval(!event.target.checked)}
               />
             </label>
             <label className="flex items-start justify-between gap-4 border-t border-[rgba(160,183,164,0.12)] pt-4">
               <span className="grid gap-1">
-                <strong className="font-medium text-[#334039]">Facebook approval</strong>
+                <strong className="font-medium text-[#334039]">Post to Facebook now</strong>
                 <small className="text-[0.9rem] leading-6 text-[#727975]">
-                  Queue a separate approval step for Facebook publishing.
+                  Enable to auto-post after save. Disable to keep it for Facebook approval queue.
                 </small>
               </span>
               <input
                 type="checkbox"
                 className="mt-1 h-[18px] w-[18px] accent-[#8da693]"
-                checked={requiresFacebookApproval}
-                onChange={(event) => setRequiresFacebookApproval(event.target.checked)}
+                checked={!requiresFacebookApproval}
+                onChange={(event) => setRequiresFacebookApproval(!event.target.checked)}
               />
             </label>
           </div>

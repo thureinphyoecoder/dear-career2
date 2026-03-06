@@ -242,66 +242,34 @@ function normalizeSalaryText(value: unknown) {
 
 export function buildFacebookPostMessage(job: Job) {
   const description = getJobDescription(job);
-  const sections = parseJobDescription(description);
-  const facts = extractJobFacts(job);
   const lines = [job.title, `${job.company} · ${job.location}`];
   const salary = normalizeSalaryText(job.salary);
 
-  const detailRows: string[] = [];
-  detailRows.push(`- Location: ${job.location}`);
   if (job.employment_type) {
-    detailRows.push(`- Status: ${job.employment_type.replace(/-/g, " ")}`);
+    lines.push(`Status: ${job.employment_type.replace(/-/g, " ")}`);
   }
   if (salary) {
-    detailRows.push(`- Salary: ${salary}`);
-  }
-  const extraFacts = facts
-    .filter((fact) => !["location", "salary", "employment type", "status"].includes(fact.label.toLowerCase()))
-    .slice(0, 3);
-  for (const fact of extraFacts) {
-    detailRows.push(`- ${fact.label}: ${fact.value}`);
+    lines.push(`Salary: ${salary}`);
   }
 
-  const summary = extractJobSummary(job, 240);
-  if (summary && !summary.toLowerCase().includes(job.company.toLowerCase())) {
-    lines.push(summary);
-  }
-  if (detailRows.length > 0) {
-    lines.push("Details:");
-    lines.push(...detailRows);
-  }
+  const cleanedDescriptionLines = description
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => line.replace(/^[•●▪◦‣]\s*/, "- ").replace(/\s+/g, " ").trim())
+    .filter((line) => !["-", "--", "- -"].includes(line))
+    .filter((line, index, arr) => arr.findIndex((item) => item.toLowerCase() === line.toLowerCase()) === index)
+    .slice(0, 40);
 
-  for (const section of sections) {
-    if (!section.heading) continue;
-    const headingKey = section.heading.toLowerCase();
-    if (["details", "location", "status", "salary", "overview"].includes(headingKey)) {
-      continue;
-    }
-    const items = [...section.bullets];
-    if (items.length === 0 && section.paragraphs[0]) {
-      items.push(`- ${section.paragraphs[0]}`);
-    }
-    if (items.length === 0) continue;
-    lines.push(`${section.heading}:`);
-    lines.push(...items.slice(0, 4));
-    if (lines.length >= 16) break;
-  }
-
-  if (job.contact_email || job.contact_phone) {
-    lines.push("How to Apply:");
-    if (job.contact_email) {
-      lines.push(`- Email: ${job.contact_email}`);
-    }
-    if (job.contact_phone) {
-      lines.push(`- Phone: ${job.contact_phone}`);
-    }
+  if (cleanedDescriptionLines.length > 0) {
+    lines.push("", ...cleanedDescriptionLines);
   }
 
   if (job.source_url) {
-    lines.push(`Apply: ${job.source_url}`);
+    lines.push("", `Apply: ${job.source_url}`);
   }
 
-  return lines.filter(Boolean).join("\n\n");
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 export function formatFacebookPostContent(input: string) {

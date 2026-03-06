@@ -21,6 +21,7 @@ from ..services.job_admin import (
     format_job_validation_error,
     persist_job,
 )
+from ..services.publish import publish_job
 from ..serializers import serialize_job
 from .shared import (
     build_image_text_job_payload,
@@ -59,6 +60,8 @@ def job_create(request: HttpRequest):
         job = persist_job(build_job_from_payload(payload))
     except Exception as exc:
         return HttpResponseBadRequest(format_job_validation_error(exc))
+
+    maybe_auto_publish(job)
     return JsonResponse(serialize_job(job), status=201)
 
 
@@ -96,6 +99,8 @@ def job_detail(request: HttpRequest, job_id: int):
     except Exception as exc:
         return HttpResponseBadRequest(format_job_validation_error(exc))
 
+    maybe_auto_publish(job, force_facebook=True)
+
     approval_cleared = (
         (previous_requires_website_approval and not job.requires_website_approval)
         or (previous_requires_facebook_approval and not job.requires_facebook_approval)
@@ -111,8 +116,44 @@ def job_detail(request: HttpRequest, job_id: int):
             tone=AdminNotification.ToneChoices.SUCCESS,
             target_url=f"/admin/jobs/{job.id}",
         )
-
     return JsonResponse(serialize_job(job))
+
+
+def maybe_auto_publish(job: Job, *, force_facebook: bool = False) -> None:
+    if job.status != Job.WorkflowStatus.PUBLISHED or not job.is_active:
+        return
+
+    if not job.requires_website_approval:
+        publish_job(job, channel="website")
+
+    if job.requires_facebook_approval:
+        return
+
+    if job.is_fb_posted and not force_facebook:
+        return
+
+    was_fb_posted = bool(job.is_fb_posted)
+    result = publish_job(job, channel="facebook")
+    if result.get("published"):
+        notification_title = (
+            f"{job.title} updated on Facebook"
+            if force_facebook and was_fb_posted
+            else f"{job.title} posted to Facebook"
+        )
+        create_admin_notification(
+            notification_title,
+            f"{job.company} is now live on Facebook. Post ID: {result.get('post_id', 'n/a')}",
+            tone=AdminNotification.ToneChoices.SUCCESS,
+            target_url="/admin/facebook",
+        )
+    else:
+        reason = str(result.get("reason", "Facebook publish failed."))
+        create_admin_notification(
+            f"{job.title} Facebook post failed",
+            reason,
+            tone=AdminNotification.ToneChoices.WARNING,
+            target_url="/admin/facebook",
+        )
 
 
 @csrf_exempt

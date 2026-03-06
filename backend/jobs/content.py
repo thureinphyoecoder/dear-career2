@@ -143,42 +143,41 @@ def build_facebook_post_message(job) -> str:
     if job.salary:
         lines.append(f"Salary: {job.salary}")
 
-    summary = extract_summary(description, limit=240)
-    if summary:
-        lines.append(summary)
-
-    current_heading = ""
-    section_items: list[str] = []
-    section_count = 0
-
-    for line in description.split("\n"):
-        stripped = line.strip()
-        if not stripped:
+    cleaned_description_lines: list[str] = []
+    seen: set[str] = set()
+    for raw_line in description.split("\n"):
+        line = raw_line.strip()
+        if not line:
             continue
-        if is_heading_line(stripped):
-            if current_heading and section_items:
-                lines.append(current_heading)
-                lines.extend(section_items[:4])
-                section_count += 1
-                if section_count >= 3:
-                    break
-            current_heading = stripped.rstrip(":")
-            section_items = []
+        line = re.sub(r"^[•●▪◦‣]\s*", "- ", line)
+        line = re.sub(r"\s+", " ", line).strip()
+        if line in {"-", "--", "- -"}:
             continue
-        if is_bullet_line(stripped):
-            bullet = stripped
-            if bullet.startswith(("* ", "• ", "● ", "▪ ", "◦ ", "‣ ")):
-                bullet = f"- {bullet[2:].strip()}"
-            section_items.append(bullet)
+        normalized = line.casefold()
+        if normalized in seen:
             continue
-        if current_heading and not section_items:
-            section_items.append(f"- {stripped}")
+        seen.add(normalized)
+        cleaned_description_lines.append(line)
 
-    if section_count < 3 and current_heading and section_items:
-        lines.append(current_heading)
-        lines.extend(section_items[:4])
+    if cleaned_description_lines:
+        lines.append("")
+        lines.extend(cleaned_description_lines[:40])
 
     if job.source_url:
-        lines.append(f"Apply: {job.source_url}")
+        lines.extend(["", f"Apply: {job.source_url}"])
 
-    return "\n\n".join(line for line in lines if line).strip()
+    compact: list[str] = []
+    previous_blank = False
+    for line in lines:
+        if not line:
+            if not previous_blank:
+                compact.append("")
+            previous_blank = True
+            continue
+        compact.append(line)
+        previous_blank = False
+
+    while compact and compact[-1] == "":
+        compact.pop()
+
+    return "\n".join(compact).strip()

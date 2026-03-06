@@ -43,7 +43,7 @@ function normalizeJob(job: Job): Job {
 export async function getPublicJobs(): Promise<Job[]> {
   try {
     const response = await fetch(`${API_BASE_URL}/jobs/`, {
-      next: { revalidate: 120 },
+      cache: "no-store",
     });
 
     if (!response.ok) return [];
