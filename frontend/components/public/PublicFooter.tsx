@@ -20,7 +20,7 @@ export function PublicFooter() {
                 </div>
                 <p className="mb-0 max-w-[34rem] text-[0.98rem] leading-7 text-[#727975]">
                   <span className="font-semibold text-foreground">Thailand jobs</span> ကို
-                  တစ်နေရာထဲမှာ <span className="font-serif italic text-foreground">cleaner way</span> နဲ့ကြည့်နိုင်ဖို့
+                  တစ်နေရာထဲမှာ <span className="font-serif italic text-foreground">သန့်ရှင်းလွယ်ကူတဲ့ပုံစံ</span> နဲ့ကြည့်နိုင်ဖို့
                   <span className="font-semibold text-foreground"> curated links</span> နဲ့စုထားတဲ့ website ပါ။
                 </p>
               </div>
