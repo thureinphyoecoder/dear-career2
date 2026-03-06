@@ -17,7 +17,7 @@ import {
   type JobEditorFieldErrors,
 } from "@/lib/admin-form-validation";
 import { requestAdmin, requestAdminNoContent } from "@/lib/admin-client";
-import { buildFacebookPostMessage, parseJobDescription } from "@/lib/job-content";
+import { buildFacebookPostMessage, extractJobFacts, parseJobDescription } from "@/lib/job-content";
 import { cn } from "@/lib/utils";
 import type { Job, JobCategory, JobStatus } from "@/lib/types";
 import { useJobImageManager } from "@/components/admin/useJobImageManager";
@@ -44,6 +44,37 @@ const employmentTypeOptions = [
 
 const FETCH_TIMEOUT_MS = 20000;
 const ACCEPTED_IMAGE_TYPES = "image/jpeg,image/png,image/webp,image/gif";
+const STRUCTURED_DESCRIPTION_TEMPLATE = `Website: yourcompany.com
+Instagram: @yourbrand
+
+The Role: This is a 100% remote, full-time position. You will work closely with the core team to deliver strong visual communication and consistent brand storytelling.
+
+Details:
+📍 Location: Remote (Based in Thailand)
+⏰ Working Hours: Monday - Friday, 10:00 AM - 6:00 PM
+💰 Salary: 29,000+ THB/month (reviewable)
+📅 Start Date: March 2026
+
+What you'll be doing:
+• Creating bespoke illustrations and infographics.
+• Designing social media assets, digital workbooks, and decks.
+• Collaborating with cross-functional teams.
+• Maintaining high brand standards across platforms.
+
+Who we are looking for:
+• Strong portfolio in graphic design and illustration.
+• Proficiency in Adobe Illustrator and Photoshop.
+• Canva experience for fast-turnaround assets.
+• Good English communication and remote collaboration skills.
+
+Why join us?
+• Direct mentorship and career growth opportunities.
+• Stable, long-term contract with an international team.
+
+How to Apply:
+Send Portfolio (Required) and Resume to hiring@company.com with the subject:
+"Graphic Designer Application - [Your Name]".`;
+
 function normalizeErrorDetail(detail: string) {
   const trimmed = detail.trim();
 
@@ -155,6 +186,10 @@ export function JobEditor({
   const previewSections = useMemo(
     () => parseJobDescription(descriptionMm.trim() || descriptionEn.trim()),
     [descriptionEn, descriptionMm],
+  );
+  const previewFacts = useMemo(
+    () => extractJobFacts(previewJob as Job),
+    [previewJob],
   );
   const facebookPreview = useMemo(
     () => buildFacebookPostMessage(previewJob as Job),
@@ -517,6 +552,24 @@ export function JobEditor({
     } finally {
       setIsDeleting(false);
       setConfirmDeleteOpen(false);
+    }
+  }
+
+  function insertStructuredTemplate() {
+    if (!descriptionEn.trim() && !descriptionMm.trim()) {
+      setDescriptionEn(STRUCTURED_DESCRIPTION_TEMPLATE);
+      setDescriptionMm(STRUCTURED_DESCRIPTION_TEMPLATE);
+      clearFieldError("descriptionMm");
+      return;
+    }
+
+    if (!descriptionEn.trim()) {
+      setDescriptionEn(STRUCTURED_DESCRIPTION_TEMPLATE);
+    }
+
+    if (!descriptionMm.trim()) {
+      setDescriptionMm(STRUCTURED_DESCRIPTION_TEMPLATE);
+      clearFieldError("descriptionMm");
     }
   }
 
@@ -891,6 +944,18 @@ export function JobEditor({
             </h2>
           </div>
           <div className="grid gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-[rgba(160,183,164,0.12)] bg-[rgba(247,243,236,0.52)] px-3 py-2.5 text-sm text-[#56615c]">
+              <span>
+                Recommended format: `Heading: content`, then bullet lines with `•` and detail lines like `📍 Location: ...`.
+              </span>
+              <button
+                type="button"
+                className={cn(buttonVariants({ variant: "secondary" }), "h-8 rounded-md px-3 text-xs")}
+                onClick={insertStructuredTemplate}
+              >
+                Insert template
+              </button>
+            </div>
             <label className={fieldLabelClass}>
               <span className={eyebrowClass}>Myanmar description</span>
               <Textarea
@@ -927,6 +992,15 @@ export function JobEditor({
                 </h3>
               </div>
               <div className="grid gap-4 text-sm leading-7 text-[#5e6662]">
+                {previewFacts.length > 0 ? (
+                  <div className="grid gap-1 rounded-md border border-[rgba(160,183,164,0.14)] bg-[rgba(255,255,255,0.84)] p-3">
+                    {previewFacts.map((fact) => (
+                      <div key={`${fact.label}-${fact.value}`}>
+                        <span className="text-[#8a928d]">{fact.label}:</span> {fact.value}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
                 {previewSections.length > 0 ? (
                   previewSections.map((section, index) => (
                     <section key={`${section.heading || "section"}-${index}`} className="grid gap-2">
