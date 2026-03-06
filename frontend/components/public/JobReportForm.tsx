@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Send } from "lucide-react";
+import { Send } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
@@ -32,7 +32,15 @@ const reasonLabelMap: Record<JobReportReason, string> = {
   other: "Other",
 };
 
-export function JobReportForm({ jobId }: { jobId: number }) {
+export function JobReportForm({
+  jobId,
+  compact = false,
+  onSubmitted,
+}: {
+  jobId: number;
+  compact?: boolean;
+  onSubmitted?: () => void;
+}) {
   const [form, setForm] = useState<FormState>(initialState);
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
@@ -74,6 +82,7 @@ export function JobReportForm({ jobId }: { jobId: number }) {
       setMessage(nextMessage);
       toast.success(nextMessage);
       setForm(initialState);
+      onSubmitted?.();
     } catch {
       const nextMessage = "Unable to submit report right now.";
       setStatus("error");
@@ -83,20 +92,11 @@ export function JobReportForm({ jobId }: { jobId: number }) {
   }
 
   return (
-    <section className="grid gap-3 rounded-[1.75rem] border border-[rgba(190,126,126,0.2)] bg-[linear-gradient(165deg,rgba(255,253,252,0.9),rgba(254,244,244,0.72))] p-5 shadow-[0_16px_34px_rgba(188,127,127,0.08)]">
-      <div className="inline-flex items-center gap-2 text-[0.72rem] uppercase tracking-[0.16em] text-[#9d6f6f]">
-        <AlertTriangle className="h-4 w-4" />
-        Report to admin
-      </div>
-      <p className="m-0 text-sm leading-6 text-[#6a5d5d]">
-        If this posting looks suspicious, outdated, or incorrect, send a quick report.
-      </p>
-
-      <form className="grid gap-3" onSubmit={handleSubmit}>
-        <label className="grid gap-1.5">
-          <span className="text-xs uppercase tracking-[0.14em] text-[#8b7373]">Reason</span>
+    <form className="grid gap-3" onSubmit={handleSubmit}>
+      <label className="grid gap-1.5">
+          <span className="text-xs uppercase tracking-[0.14em] text-[#7f9685]">Reason</span>
           <select
-            className="h-10 w-full rounded-xl border border-[rgba(190,126,126,0.28)] bg-white/85 px-3 text-sm text-[#3f3a3a] outline-none focus:border-[rgba(155,96,96,0.6)]"
+            className="h-11 w-full rounded-xl border border-[rgba(160,183,164,0.24)] bg-white/90 px-3 text-sm text-[#3f4b45] outline-none focus:border-[rgba(116,141,122,0.52)]"
             value={form.reason}
             onChange={(event) =>
               setForm((current) => ({
@@ -111,77 +111,80 @@ export function JobReportForm({ jobId }: { jobId: number }) {
               </option>
             ))}
           </select>
-        </label>
+      </label>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="grid gap-1.5">
-            <span className="text-xs uppercase tracking-[0.14em] text-[#8b7373]">Name (optional)</span>
-            <Input
-              value={form.name}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  name: event.target.value,
-                }))
-              }
-              placeholder="Your name"
-              className="h-10 rounded-xl border-[rgba(190,126,126,0.28)] bg-white/85"
-            />
-          </label>
-          <label className="grid gap-1.5">
-            <span className="text-xs uppercase tracking-[0.14em] text-[#8b7373]">Email (optional)</span>
-            <Input
-              type="email"
-              value={form.email}
-              onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  email: event.target.value,
-                }))
-              }
-              placeholder="you@example.com"
-              className="h-10 rounded-xl border-[rgba(190,126,126,0.28)] bg-white/85"
-            />
-          </label>
-        </div>
-
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="grid gap-1.5">
-          <span className="text-xs uppercase tracking-[0.14em] text-[#8b7373]">Note (optional)</span>
-          <Textarea
-            value={form.message}
+          <span className="text-xs uppercase tracking-[0.14em] text-[#7f9685]">Name (optional)</span>
+          <Input
+            value={form.name}
             onChange={(event) =>
               setForm((current) => ({
                 ...current,
-                message: event.target.value,
+                name: event.target.value,
               }))
             }
-            placeholder="Explain what is wrong with this listing"
-            className="min-h-[92px] rounded-xl border-[rgba(190,126,126,0.28)] bg-white/85"
+            placeholder="Your name"
+            className="h-11 rounded-xl border-[rgba(160,183,164,0.24)] bg-white/90"
           />
         </label>
-
-        {message ? (
-          <div
-            className={
-              status === "success"
-                ? "rounded-xl border border-[rgba(115,157,115,0.28)] bg-[rgba(221,242,221,0.56)] px-3 py-2 text-sm text-[#3f6140]"
-                : "rounded-xl border border-[rgba(190,126,126,0.34)] bg-[rgba(245,214,214,0.45)] px-3 py-2 text-sm text-[#8a4d4d]"
+        <label className="grid gap-1.5">
+          <span className="text-xs uppercase tracking-[0.14em] text-[#7f9685]">Email (optional)</span>
+          <Input
+            type="email"
+            value={form.email}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                email: event.target.value,
+              }))
             }
-          >
-            {message}
-          </div>
-        ) : null}
+            placeholder="you@example.com"
+            className="h-11 rounded-xl border-[rgba(160,183,164,0.24)] bg-white/90"
+          />
+        </label>
+      </div>
 
-        <Button
-          type="submit"
-          size="sm"
-          disabled={status === "submitting"}
-          className="w-fit rounded-full bg-[#986767] px-4 text-white hover:bg-[#865a5a]"
+      <label className="grid gap-1.5">
+        <span className="text-xs uppercase tracking-[0.14em] text-[#7f9685]">Note (optional)</span>
+        <Textarea
+          value={form.message}
+          onChange={(event) =>
+            setForm((current) => ({
+              ...current,
+              message: event.target.value,
+            }))
+          }
+          placeholder="Explain what is wrong with this listing"
+          className="min-h-[110px] rounded-xl border-[rgba(160,183,164,0.24)] bg-white/90"
+        />
+      </label>
+
+      {message ? (
+        <div
+          className={
+            status === "success"
+              ? "rounded-xl border border-[rgba(115,157,115,0.28)] bg-[rgba(221,242,221,0.56)] px-3 py-2 text-sm text-[#3f6140]"
+              : "rounded-xl border border-[rgba(190,126,126,0.34)] bg-[rgba(245,214,214,0.45)] px-3 py-2 text-sm text-[#8a4d4d]"
+          }
         >
-          <Send className="mr-1 h-4 w-4" />
-          {status === "submitting" ? "Sending..." : "Send report"}
-        </Button>
-      </form>
-    </section>
+          {message}
+        </div>
+      ) : null}
+
+      <Button
+        type="submit"
+        size="sm"
+        disabled={status === "submitting"}
+        className={
+          compact
+            ? "w-full rounded-full bg-[#748d7a] px-4 text-white hover:bg-[#647a69]"
+            : "w-fit rounded-full bg-[#748d7a] px-4 text-white hover:bg-[#647a69]"
+        }
+      >
+        <Send className="mr-1 h-4 w-4" />
+        {status === "submitting" ? "Sending..." : "Send report"}
+      </Button>
+    </form>
   );
 }
