@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { BriefcaseBusiness, Clock3, Sparkles } from "lucide-react";
 
 import { AdCard } from "@/components/public/AdCard";
+import { JobsParallaxScene } from "@/components/public/JobsParallaxScene";
 import { JobsSearchForm } from "@/components/public/JobsSearchForm";
+import { RouteTransitionReset } from "@/components/public/RouteTransitionReset";
 import { buttonVariants } from "@/components/ui/button";
 import { JobCard } from "@/components/public/JobCard";
 import { cn } from "@/lib/utils";
@@ -47,6 +50,7 @@ type PublicJobsPageProps = {
     q?: string;
     category?: JobCategory;
     page?: string;
+    from?: string;
   }>;
 };
 
@@ -60,6 +64,7 @@ export default async function PublicJobsPage({
   const searchAd = ads.find((ad) => ad.placement === "jobs-search");
   const inlineAd = ads.find((ad) => ad.placement === "jobs-inline");
   const params = (await searchParams) ?? {};
+  const shouldPlayEntryScroll = params.from === "home";
   const displayQuery = normalizeSearchQuery(params.q);
   const query = displayQuery.toLowerCase();
   const requestedPage = Number(params.page ?? "1");
@@ -83,6 +88,7 @@ export default async function PublicJobsPage({
           .includes(query),
       )
     : jobs;
+  const hasAnyJobs = jobs.length > 0;
   const jobsByCategory = categorySections.map((section) => ({
     ...section,
     jobs: filteredJobs.filter((job) => job.category === section.key),
@@ -123,15 +129,24 @@ export default async function PublicJobsPage({
   };
 
   return (
-    <main className="mx-auto max-w-6xl px-4 pb-20 pt-32">
-      <div className="mb-4 flex justify-center">
-        <a
-          href={searchAd?.href ?? "/feedback"}
-          className="jobs-advertise-pill inline-flex items-center rounded-full border border-[rgba(160,183,164,0.18)] bg-[rgba(247,243,236,0.82)] px-4 py-2 text-[0.76rem] uppercase tracking-[0.16em] text-[#6f8574] transition-colors hover:border-[rgba(160,183,164,0.3)] hover:text-foreground"
-        >
-          {searchAd?.title ?? "Advertise with us"}
-        </a>
-      </div>
+    <JobsParallaxScene fromHome={shouldPlayEntryScroll}>
+      <main
+        className={cn(
+          "jobs-page mx-auto max-w-6xl px-4 pb-20 pt-32",
+          shouldPlayEntryScroll ? "jobs-page-scroll-enter" : "",
+        )}
+      >
+        <RouteTransitionReset />
+        {searchAd?.title && searchAd?.href ? (
+          <div className="mb-4 flex justify-center">
+            <a
+              href={searchAd.href}
+              className="jobs-advertise-pill inline-flex items-center rounded-full border border-[rgba(160,183,164,0.18)] bg-[rgba(247,243,236,0.82)] px-4 py-2 text-[0.76rem] uppercase tracking-[0.16em] text-[#6f8574] transition-colors hover:border-[rgba(160,183,164,0.3)] hover:text-foreground"
+            >
+              {searchAd.title}
+            </a>
+          </div>
+        ) : null}
 
       <JobsSearchForm
         initialQuery={displayQuery}
@@ -148,94 +163,123 @@ export default async function PublicJobsPage({
         </div>
       ) : null}
 
-      <div className="mt-5 flex items-center gap-3 border-b border-[rgba(160,183,164,0.12)] pb-4 text-sm">
-        {jobsByCategory.map((section) => (
-          <Link
-            key={section.key}
-            href={createJobsHref({ category: section.key, page: 1 })}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-full border px-3 py-2 transition-colors",
-              activeCategory === section.key
-                ? "border-[rgba(160,183,164,0.3)] bg-[rgba(160,183,164,0.08)]"
-                : "border-transparent hover:border-[rgba(160,183,164,0.14)] hover:bg-[rgba(255,255,255,0.52)]",
-            )}
-          >
-            <span
-              className={cn(
-                "text-[0.72rem] uppercase tracking-[0.16em]",
-                activeCategory === section.key
-                  ? "text-foreground"
-                  : "text-[#8da693]",
-              )}
-            >
-              {section.title}
-            </span>
-            <span
-              className={cn(
-                "inline-flex min-w-8 items-center justify-center rounded-full border px-2.5 py-1 text-[0.72rem] font-medium uppercase tracking-[0.12em]",
-                activeCategory === section.key
-                  ? "border-[rgba(160,183,164,0.22)] bg-white text-[#454c49]"
-                  : "border-[rgba(160,183,164,0.16)] text-[#454c49]",
-              )}
-            >
-              {section.jobs.length}
-            </span>
-          </Link>
-        ))}
-        {activeCategory ? (
-          <Link
-            href={createJobsHref({ category: null, page: 1 })}
-            className="inline-flex items-center px-2 text-[0.72rem] uppercase tracking-[0.16em] text-[#8da693] transition-colors hover:text-foreground"
-          >
-            Clear
-          </Link>
+        {hasAnyJobs ? (
+          <div className="mt-5 flex items-center gap-3 border-b border-[rgba(160,183,164,0.12)] pb-4 text-sm">
+            {jobsByCategory.map((section) => (
+              <Link
+                key={section.key}
+                href={createJobsHref({ category: section.key, page: 1 })}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-full border px-3 py-2 transition-colors",
+                  activeCategory === section.key
+                    ? "border-[rgba(160,183,164,0.3)] bg-[rgba(160,183,164,0.08)]"
+                    : "border-transparent hover:border-[rgba(160,183,164,0.14)] hover:bg-[rgba(255,255,255,0.52)]",
+                )}
+              >
+                <span
+                  className={cn(
+                    "text-[0.72rem] uppercase tracking-[0.16em]",
+                    activeCategory === section.key
+                      ? "text-foreground"
+                      : "text-[#8da693]",
+                  )}
+                >
+                  {section.title}
+                </span>
+                <span
+                  className={cn(
+                    "inline-flex min-w-8 items-center justify-center rounded-full border px-2.5 py-1 text-[0.72rem] font-medium uppercase tracking-[0.12em]",
+                    activeCategory === section.key
+                      ? "border-[rgba(160,183,164,0.22)] bg-white text-[#454c49]"
+                      : "border-[rgba(160,183,164,0.16)] text-[#454c49]",
+                  )}
+                >
+                  {section.jobs.length}
+                </span>
+              </Link>
+            ))}
+            {activeCategory ? (
+              <Link
+                href={createJobsHref({ category: null, page: 1 })}
+                className="inline-flex items-center px-2 text-[0.72rem] uppercase tracking-[0.16em] text-[#8da693] transition-colors hover:text-foreground"
+              >
+                Clear
+              </Link>
+            ) : null}
+          </div>
         ) : null}
-      </div>
 
-      {visibleSections.map((section) =>
-        section.jobs.length > 0 ? (
-          <section key={section.key} className="mt-10 grid gap-5">
-            <div className="grid gap-4 xl:grid-cols-2">
-              {section.jobs.flatMap((job, index) => {
-                const items = [
-                  <div key={job.id}>
-                    <JobCard job={job} />
-                  </div>,
-                ];
-
-                if (!hasInsertedInlineAd && index === 0) {
-                  hasInsertedInlineAd = true;
-                  items.push(
-                    <div key={`inline-ad-${section.key}`}>
-                      <AdCard
-                        compact
-                        eyebrow={inlineAd?.eyebrow || "Sponsored"}
-                        title={inlineAd?.title || "Promote an opportunity"}
-                        description={
-                          inlineAd?.description ||
-                          "A single sponsored slot appears inside the listings without interrupting browsing."
-                        }
-                        ctaLabel={inlineAd?.cta_label || "Book slot"}
-                        href={inlineAd?.href || "/feedback"}
-                        showHeaderBadges={false}
-                        showFooterBadges={false}
-                        className="h-full rounded-[1.5rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(247,243,236,0.72)] shadow-none"
-                        contentClassName="gap-3 p-5"
-                        titleClassName="text-[1rem] font-semibold leading-6 text-foreground"
-                        descriptionClassName="text-sm leading-6 text-[#727975]"
-                        ctaClassName="px-4 py-2 text-sm"
-                      />
-                    </div>,
-                  );
-                }
-
-                return items;
-              })}
+        {!hasAnyJobs ? (
+          <section className="mt-10">
+            <div className="grid gap-5 rounded-[1.8rem] border border-[rgba(160,183,164,0.18)] bg-[linear-gradient(150deg,rgba(255,255,255,0.92),rgba(246,248,244,0.78))] p-7 text-center shadow-[0_20px_60px_rgba(128,150,136,0.08)]">
+              <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(160,183,164,0.2)] bg-[rgba(247,243,236,0.7)] text-[#7f9685]">
+                <BriefcaseBusiness className="h-6 w-6" />
+              </div>
+              <div className="grid gap-2">
+                <h2 className="m-0 text-[1.4rem] font-semibold tracking-[-0.02em] text-foreground">
+                  No job posts yet
+                </h2>
+                <p className="mx-auto mb-0 max-w-[56ch] text-sm leading-7 text-[#65706a]">
+                  We are preparing new opportunities. Please check back soon for the latest listings.
+                </p>
+              </div>
+              <div className="mx-auto flex flex-wrap items-center justify-center gap-2 text-[0.74rem] uppercase tracking-[0.14em] text-[#819486]">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(160,183,164,0.18)] bg-white px-3 py-1.5">
+                  <Clock3 className="h-3.5 w-3.5" />
+                  Updated daily
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(160,183,164,0.18)] bg-white px-3 py-1.5">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Quality checked
+                </span>
+              </div>
             </div>
           </section>
-        ) : null,
-      )}
-      {filteredJobs.length === 0 ? (
+        ) : (
+          <>
+            {visibleSections.map((section) =>
+              section.jobs.length > 0 ? (
+                <section key={section.key} className="mt-10 grid gap-5">
+                  <div className="grid gap-4 xl:grid-cols-2">
+                    {section.jobs.flatMap((job, index) => {
+                      const items = [
+                        <div key={job.id}>
+                          <JobCard job={job} />
+                        </div>,
+                      ];
+
+                      if (!hasInsertedInlineAd && index === 0 && inlineAd?.title && inlineAd?.description && inlineAd?.href && inlineAd?.cta_label) {
+                        hasInsertedInlineAd = true;
+                        items.push(
+                          <div key={`inline-ad-${section.key}`}>
+                            <AdCard
+                              compact
+                              eyebrow={inlineAd.eyebrow || undefined}
+                              title={inlineAd.title}
+                              description={inlineAd.description}
+                              ctaLabel={inlineAd.cta_label}
+                              href={inlineAd.href}
+                              showHeaderBadges={false}
+                              showFooterBadges={false}
+                              className="h-full rounded-[1.5rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(247,243,236,0.72)] shadow-none"
+                              contentClassName="gap-3 p-5"
+                              titleClassName="text-[1rem] font-semibold leading-6 text-foreground"
+                              descriptionClassName="text-sm leading-6 text-[#727975]"
+                              ctaClassName="px-4 py-2 text-sm"
+                            />
+                          </div>,
+                        );
+                      }
+
+                      return items;
+                    })}
+                  </div>
+                </section>
+              ) : null,
+            )}
+          </>
+        )}
+      {hasAnyJobs && filteredJobs.length === 0 ? (
         <div className="mt-6 border-t border-[rgba(160,183,164,0.16)] pt-6">
           <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">No results</div>
           <p className="mb-0 mt-2 text-sm leading-7 text-[#727975]">
@@ -245,7 +289,7 @@ export default async function PublicJobsPage({
         </div>
       ) : null}
 
-      {filteredJobs.length > 0 && totalPages > 1 ? (
+      {hasAnyJobs && filteredJobs.length > 0 && totalPages > 1 ? (
         <nav className="mt-10 flex items-center justify-between gap-4 border-t border-[rgba(160,183,164,0.12)] pt-6">
           <Link
             href={createJobsHref({ page: Math.max(1, currentPage - 1) })}
@@ -287,6 +331,7 @@ export default async function PublicJobsPage({
           </Link>
         </nav>
       ) : null}
-    </main>
+      </main>
+    </JobsParallaxScene>
   );
 }
