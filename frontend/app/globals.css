@@ -59,10 +59,19 @@ a {
 }
 
 .hero-scene {
+  --hero-drag-x: 0px;
+  --hero-drag-y: 0px;
+  --hero-scroll-y: 0px;
   position: relative;
   min-height: 100vh;
   overflow: hidden;
   scroll-snap-align: start;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.hero-scene.is-dragging {
+  cursor: grabbing;
 }
 
 .hero-backdrop {
@@ -72,6 +81,12 @@ a {
     radial-gradient(circle at top center, rgba(255, 246, 232, 0.64), transparent 38%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.25), rgba(242, 242, 242, 0));
   background-color: #f2f2f2;
+  transform: translate3d(
+    calc(var(--hero-drag-x) * -0.08),
+    calc(var(--hero-scroll-y) * 0.08),
+    0
+  );
+  will-change: transform;
 }
 
 .hero-orb,
@@ -85,6 +100,8 @@ a {
   border-radius: 999px;
   filter: blur(42px);
   opacity: 0.18;
+  transition: transform 0.45s ease;
+  will-change: transform;
 }
 
 .hero-orb-left {
@@ -93,6 +110,11 @@ a {
   width: 28vw;
   height: 28vw;
   background: radial-gradient(circle, rgba(160, 183, 164, 0.2), transparent 72%);
+  transform: translate3d(
+    calc(var(--hero-drag-x) * -0.32),
+    calc(var(--hero-drag-y) * -0.18 + var(--hero-scroll-y) * 0.14),
+    0
+  );
 }
 
 .hero-orb-right {
@@ -101,12 +123,19 @@ a {
   width: 24vw;
   height: 24vw;
   background: radial-gradient(circle, rgba(255, 246, 232, 0.84), transparent 70%);
+  transform: translate3d(
+    calc(var(--hero-drag-x) * 0.26),
+    calc(var(--hero-drag-y) * 0.16 + var(--hero-scroll-y) * -0.12),
+    0
+  );
 }
 
 .hero-curve {
   border: 1px solid rgba(160, 183, 164, 0.14);
   border-radius: 999px;
   opacity: 0.28;
+  transition: transform 0.45s ease;
+  will-change: transform;
 }
 
 .hero-curve-left {
@@ -114,6 +143,11 @@ a {
   left: -14vw;
   width: 44vw;
   height: 44vw;
+  transform: translate3d(
+    calc(var(--hero-drag-x) * -0.18),
+    calc(var(--hero-drag-y) * -0.08 + var(--hero-scroll-y) * -0.1),
+    0
+  );
 }
 
 .hero-curve-right {
@@ -121,12 +155,24 @@ a {
   right: -10vw;
   width: 34vw;
   height: 34vw;
+  transform: translate3d(
+    calc(var(--hero-drag-x) * 0.16),
+    calc(var(--hero-drag-y) * 0.06 + var(--hero-scroll-y) * 0.1),
+    0
+  );
 }
 
 .hero-grain {
   position: absolute;
   inset: 0;
   opacity: 0;
+  transform: translate3d(
+    calc(var(--hero-drag-x) * 0.06),
+    calc(var(--hero-scroll-y) * 0.06),
+    0
+  );
+  transition: transform 0.45s ease;
+  will-change: transform;
 }
 
 .hero-svg-plants {
@@ -157,8 +203,13 @@ a {
   min-width: 440px;
   max-width: calc(78vh * 1.16);
   aspect-ratio: 210 / 180;
-  transform: translate(-50%, -22%);
+  transform: translate(
+    calc(-50% + var(--hero-drag-x) * 0.38),
+    calc(-22% + var(--hero-drag-y) * 0.22 + var(--hero-scroll-y) * 0.4)
+  );
   transform-origin: bottom center;
+  transition: transform 0.45s ease;
+  will-change: transform;
 }
 
 .hero-sprout-part {
@@ -207,6 +258,13 @@ a {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  transform: translate3d(
+    calc(var(--hero-drag-x) * 0.05),
+    calc(var(--hero-scroll-y) * -0.3),
+    0
+  );
+  transition: transform 0.45s ease;
+  will-change: transform;
 }
 
 .hero-body {
@@ -295,6 +353,172 @@ a {
 
 .jobs-advertise-pill {
   animation: jobsAdvertisePill 2.8s ease-in-out 0.3s infinite;
+}
+
+.jobs-page-scroll-enter {
+  animation: jobsPageScrollEnter 0.72s cubic-bezier(0.2, 0.85, 0.24, 1) both;
+}
+
+.jobs-parallax-scene {
+  --jobs-progress: 0;
+  --jobs-parallax-y: 0px;
+  position: relative;
+}
+
+.jobs-parallax-content {
+  position: relative;
+  z-index: 2;
+  transform: translate3d(0, calc(var(--jobs-parallax-y) * -0.12), 0);
+  will-change: transform;
+}
+
+.jobs-transition-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.jobs-transition-orb,
+.jobs-transition-curve {
+  position: absolute;
+  pointer-events: none;
+}
+
+.jobs-transition-orb {
+  border-radius: 999px;
+  filter: blur(44px);
+}
+
+.jobs-transition-orb-left {
+  top: 8vh;
+  left: -8vw;
+  width: 30vw;
+  height: 30vw;
+  opacity: calc(0.2 - var(--jobs-progress) * 0.18);
+  background: radial-gradient(circle, rgba(160, 183, 164, 0.23), transparent 72%);
+  transform: translate3d(
+    calc(var(--jobs-progress) * -230px),
+    calc(var(--jobs-progress) * -52px),
+    0
+  );
+}
+
+.jobs-transition-orb-right {
+  right: -8vw;
+  bottom: 16vh;
+  width: 26vw;
+  height: 26vw;
+  opacity: calc(0.22 - var(--jobs-progress) * 0.2);
+  background: radial-gradient(circle, rgba(255, 246, 232, 0.86), transparent 70%);
+  transform: translate3d(
+    calc(var(--jobs-progress) * 220px),
+    calc(var(--jobs-progress) * 46px),
+    0
+  );
+}
+
+.jobs-transition-curve {
+  border: 1px solid rgba(160, 183, 164, 0.16);
+  border-radius: 999px;
+  opacity: calc(0.32 - var(--jobs-progress) * 0.28);
+}
+
+.jobs-transition-curve-left {
+  bottom: -18vh;
+  left: -16vw;
+  width: 48vw;
+  height: 48vw;
+  transform: translate3d(calc(var(--jobs-progress) * -170px), 0, 0);
+}
+
+.jobs-transition-curve-right {
+  top: -14vh;
+  right: -12vw;
+  width: 40vw;
+  height: 40vw;
+  transform: translate3d(calc(var(--jobs-progress) * 170px), 0, 0);
+}
+
+.jobs-transition-sprout {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  width: min(34vw, 360px);
+  aspect-ratio: 210 / 180;
+  opacity: calc(0.24 - var(--jobs-progress) * 0.2);
+}
+
+.jobs-transition-sprout-left {
+  transform: translate(
+      calc(-50% + var(--jobs-progress) * -300px),
+      calc(-52% + var(--jobs-parallax-y) * -0.24)
+    )
+    scaleX(-1) rotate(-7deg);
+}
+
+.jobs-transition-sprout-right {
+  transform: translate(
+      calc(-50% + var(--jobs-progress) * 300px),
+      calc(-52% + var(--jobs-parallax-y) * -0.24)
+    )
+    rotate(7deg);
+}
+
+.jobs-transition-sprout-mark {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.jobs-page-scroll-enter section {
+  animation: jobsSectionReveal 0.64s ease-out both;
+}
+
+.jobs-page-scroll-enter section:nth-of-type(1) {
+  animation-delay: 0.08s;
+}
+
+.jobs-page-scroll-enter section:nth-of-type(2) {
+  animation-delay: 0.18s;
+}
+
+.jobs-page-scroll-enter section:nth-of-type(3) {
+  animation-delay: 0.28s;
+}
+
+.job-detail-page {
+  animation: jobsSectionReveal 0.56s ease-out both;
+}
+
+.job-detail-main {
+  animation: jobsSectionReveal 0.7s ease-out 0.08s both;
+}
+
+.job-detail-facts {
+  animation: jobsSectionReveal 0.72s ease-out 0.16s both;
+}
+
+.job-detail-aside {
+  animation: jobsSectionReveal 0.74s ease-out 0.22s both;
+}
+
+html.is-route-transitioning::before {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 20% 18%, rgba(255, 246, 232, 0.56), transparent 40%),
+    linear-gradient(180deg, rgba(247, 243, 236, 0.95), rgba(242, 242, 242, 0.96));
+  animation: jobsRouteSweep 0.46s cubic-bezier(0.2, 0.85, 0.24, 1) forwards;
+  content: "";
+}
+
+html.is-route-transitioning body {
+  overflow: hidden;
 }
 
 @keyframes up {
@@ -464,7 +688,10 @@ a {
 @media (max-width: 1280px) {
   .hero-sprout-single {
     top: 44%;
-    transform: translate(-50%, -18%);
+    transform: translate(
+      calc(-50% + var(--hero-drag-x) * 0.38),
+      calc(-18% + var(--hero-drag-y) * 0.22 + var(--hero-scroll-y) * 0.4)
+    );
   }
 }
 
@@ -483,7 +710,46 @@ a {
     min-width: 220px;
     max-width: calc(62vh * 1.16);
     opacity: 0.16;
-    transform: translate(-50%, -14%);
+    transform: translate(
+      calc(-50% + var(--hero-drag-x) * 0.38),
+      calc(-14% + var(--hero-drag-y) * 0.22 + var(--hero-scroll-y) * 0.4)
+    );
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-scene {
+    cursor: default;
+  }
+
+  .hero-backdrop,
+  .hero-orb,
+  .hero-curve,
+  .hero-grain,
+  .hero-sprout-single,
+  .hero-content {
+    transform: none;
+    transition: none;
+  }
+
+  .jobs-page-scroll-enter,
+  .jobs-page-scroll-enter section,
+  .jobs-parallax-content,
+  .job-detail-page,
+  .job-detail-main,
+  .job-detail-facts,
+  .job-detail-aside {
+    animation: none;
+    transform: none;
+  }
+
+  html.is-route-transitioning::before {
+    animation: none;
+    opacity: 0;
+  }
+
+  .jobs-transition-backdrop {
+    display: none;
   }
 }
 
@@ -652,6 +918,42 @@ a {
   50% {
     transform: translateY(-4px) scale(1.03);
     box-shadow: 0 12px 28px rgba(160, 183, 164, 0.12);
+  }
+}
+
+@keyframes jobsRouteSweep {
+  0% {
+    opacity: 0;
+    transform: translateY(12%) scale(1.02);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes jobsPageScrollEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(92px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes jobsSectionReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(34px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
