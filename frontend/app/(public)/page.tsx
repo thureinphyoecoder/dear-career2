@@ -1,6 +1,6 @@
-import Link from "next/link";
-
 import { AdCard } from "@/components/public/AdCard";
+import { HomeExploreJobsButton } from "@/components/public/HomeExploreJobsButton";
+import { HeroParallaxScene } from "@/components/public/HeroParallaxScene";
 import { HeroSearchForm } from "@/components/public/HeroSearchForm";
 import { HeroPlants } from "@/components/public/HeroPlants";
 import { JobCard } from "@/components/public/JobCard";
@@ -28,7 +28,7 @@ export default async function PublicHomePage() {
 
   return (
     <div className="grid">
-      <section className="hero-scene">
+      <HeroParallaxScene id="home-hero-section">
         <div className="hero-backdrop" />
         <div className="hero-orb hero-orb-left" />
         <div className="hero-orb hero-orb-right" />
@@ -51,15 +51,14 @@ export default async function PublicHomePage() {
             <HeroSearchForm />
 
             <div className="hero-actions flex flex-wrap gap-3">
-              <Link
-                href="/jobs"
+              <HomeExploreJobsButton
                 className={cn(
                   buttonVariants({ variant: "ghost" }),
                   "hero-explore-button h-[62px] border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.12)] px-7 text-base hover:bg-[rgba(255,255,255,0.22)]",
                 )}
               >
                 Explore jobs
-              </Link>
+              </HomeExploreJobsButton>
             </div>
 
             <div className="hero-card-row">
@@ -78,9 +77,9 @@ export default async function PublicHomePage() {
             </div>
           </main>
         </div>
-      </section>
+      </HeroParallaxScene>
 
-      <section className="mx-auto max-w-6xl px-4 py-5 pb-20">
+      <section id="home-jobs-section" className="mx-auto max-w-6xl px-4 py-5 pb-20">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {jobItems.map((item) => {
             if ("type" in item) {
