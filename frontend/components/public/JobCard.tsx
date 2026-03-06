@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,19 +36,10 @@ function formatRelativeTime(value?: string) {
 export function JobCard({ job }: { job: Job }) {
   const summary = extractJobSummary(job);
   const displayImageUrl = job.display_image_url || job.image_file_url || job.image_url || "";
-  const sourceLabel =
-    job.source && job.source.toLowerCase() !== "manual" ? job.source : null;
-  const [isViewed, setIsViewed] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    setIsViewed(window.localStorage.getItem(`viewed-job:${job.id}`) === "1");
-  }, [job.id]);
 
   function markViewed() {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(`viewed-job:${job.id}`, "1");
-    setIsViewed(true);
   }
 
   return (
@@ -65,40 +55,25 @@ export function JobCard({ job }: { job: Job }) {
             />
           </div>
         ) : null}
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">{categoryLabelMap[job.category]}</Badge>
-          <Badge variant="secondary">{job.employment_type}</Badge>
-          {sourceLabel ? (
-            <span className="text-[0.72rem] uppercase tracking-[0.14em] text-[#8da693]">
-              {sourceLabel}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline">{categoryLabelMap[job.category]}</Badge>
+            <Badge variant="secondary">{job.employment_type}</Badge>
+          </div>
+          <div className="text-right">
+            <span className="inline-flex items-center rounded-full border border-[rgba(160,183,164,0.14)] bg-[rgba(255,255,255,0.74)] px-2.5 py-1 text-[0.72rem] leading-none text-[#7b8680]">
+              {formatRelativeTime(job.created_at)}
             </span>
-          ) : null}
+          </div>
         </div>
 
         <div className="grid gap-1">
-          <div className="flex items-start justify-between gap-4">
-            <div className="grid gap-1">
-              <h3 className="m-0 text-[1.15rem] font-semibold leading-[1.35] text-foreground">
-                {job.title}
-              </h3>
-            </div>
-            <div className="grid justify-items-end gap-2 text-right">
-              <span className="text-[0.74rem] leading-none text-[#8a928d]">
-                {formatRelativeTime(job.created_at)}
-              </span>
-              {isViewed ? (
-                <span className="rounded-full bg-[rgba(160,183,164,0.12)] px-2.5 py-1 text-[0.68rem] font-medium uppercase tracking-[0.14em] text-[#6f8574]">
-                  Viewed
-                </span>
-              ) : null}
-            </div>
-          </div>
+          <h3 className="m-0 text-[1.15rem] font-semibold leading-[1.35] text-foreground">
+            {job.title}
+          </h3>
           <p className="m-0 text-sm leading-6 text-[#454c49]">
             {job.company} <span className="text-[#b7b1a6]">/</span> {job.location}
           </p>
-          <div className="flex items-center gap-2 text-[0.78rem] text-[#8a928d]">
-            {job.source_url ? <span>Direct source</span> : null}
-          </div>
         </div>
 
         <p className="m-0 line-clamp-3 text-[0.96rem] leading-7 text-[#727975]">
