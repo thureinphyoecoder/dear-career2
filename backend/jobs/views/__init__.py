@@ -15,6 +15,7 @@ from .notifications import (
     admin_notification_mark_read,
     admin_notification_stream,
 )
+from .reports import admin_report_detail, admin_report_list, job_report_create
 from .sources import (
     fetch_run_list,
     fetch_source_create,
@@ -27,6 +28,8 @@ __all__ = [
     "admin_notification_list",
     "admin_notification_mark_read",
     "admin_notification_stream",
+    "admin_report_detail",
+    "admin_report_list",
     "admin_dashboard_snapshot",
     "facebook_channel_credential",
     "facebook_page_posts",
@@ -42,6 +45,7 @@ __all__ = [
     "job_image_ocr_preview",
     "job_image_upload",
     "job_list",
+    "job_report_create",
     "job_scrape_preview",
     "managed_ad_create",
     "managed_ad_detail",
