@@ -42,7 +42,9 @@ export async function proxy(request: NextRequest) {
   if (isDev && request.nextUrl.hostname === "0.0.0.0") {
     const redirectedUrl = new URL(request.url);
     redirectedUrl.hostname = "localhost";
-    return applySecurityHeaders(NextResponse.redirect(redirectedUrl));
+    if (redirectedUrl.toString() !== request.url) {
+      return applySecurityHeaders(NextResponse.redirect(redirectedUrl));
+    }
   }
 
   const isLoginPage = pathname === "/admin/login";
