@@ -1,7 +1,18 @@
 import type { Job, JobsResponse, ManagedAd, ManagedAdPlacement } from "@/lib/types";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000/api";
+function getPublicApiBaseUrl() {
+  if (typeof window === "undefined") {
+    return (
+      process.env.API_BASE_URL_INTERNAL ??
+      process.env.DJANGO_ADMIN_API_BASE_URL ??
+      process.env.NEXT_PUBLIC_API_BASE_URL ??
+      "http://127.0.0.1:8000/api"
+    );
+  }
+  return process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000/api";
+}
+
+const API_BASE_URL = getPublicApiBaseUrl();
 const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
 
 function resolveAssetUrl(value?: string) {
