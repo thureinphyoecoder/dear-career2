@@ -218,11 +218,11 @@ export function FacebookCredentialForm({
                 </div>
               </article>
             ))
-          ) : (
+          ) : !postsError ? (
             <div className="px-5 py-4 text-sm text-[#727975]">
               No page posts found yet.
             </div>
-          )}
+          ) : null}
         </CardContent>
       </Card>
     </div>

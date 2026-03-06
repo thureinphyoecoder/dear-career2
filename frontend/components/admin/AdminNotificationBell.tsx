@@ -95,11 +95,13 @@ export function AdminNotificationBell({
   const router = useRouter();
   const queryClient = useQueryClient();
   const notificationsQuery = useAdminNotificationsQuery(initialNotifications);
-  const items = notificationsQuery.data ?? [];
-  const unreadCount = items.filter((item) => !item.is_read).length;
+  const allItems = notificationsQuery.data ?? [];
+  const items = allItems.filter((item) => !item.is_read);
+  const unreadCount = items.length;
   const [isOpen, setIsOpen] = useState(false);
   const [streamError, setStreamError] = useState("");
   const [hasFreshItem, setHasFreshItem] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const shellRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -172,6 +174,34 @@ export function AdminNotificationBell({
     router.refresh();
   }
 
+  async function clearNotifications() {
+    if (items.length === 0 || isClearing) {
+      return;
+    }
+
+    setIsClearing(true);
+    queryClient.setQueryData<AdminNotification[]>(
+      adminQueryKeys.notifications,
+      (current) =>
+        (current ?? []).map((entry) => ({
+          ...entry,
+          is_read: true,
+        })),
+    );
+
+    try {
+      await Promise.all(
+        items.map((item) =>
+          fetch(`/api/admin/proxy/jobs/admin/notifications/${item.id}/read`, {
+            method: "PATCH",
+          }),
+        ),
+      );
+    } finally {
+      setIsClearing(false);
+    }
+  }
+
   return (
     <div ref={shellRef} className="relative">
       <button
@@ -193,11 +223,24 @@ export function AdminNotificationBell({
         <div className="absolute right-0 z-30 mt-2 grid w-[min(92vw,360px)] gap-3 rounded-2xl border border-border/70 bg-white p-3 shadow-[0_20px_50px_rgba(44,56,48,0.08)]">
           <div className="flex items-center justify-between px-1">
             <div className="text-sm font-medium text-[#334039]">Notifications</div>
-            {notificationsQuery.isLoading ? (
-              <LoaderCircle className="h-4 w-4 animate-spin text-[#7f9582]" />
-            ) : (
-              <span className="text-xs text-[#7f9582]">Live</span>
-            )}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void clearNotifications()}
+                disabled={isClearing || unreadCount === 0}
+                className={cn(
+                  "inline-flex h-7 items-center rounded-md border px-2.5 text-[0.68rem] font-semibold uppercase tracking-[0.12em] transition-colors",
+                  unreadCount > 0
+                    ? "border-[#c8d8cc] bg-[#eef4ef] text-[#4c6154] hover:border-[#adc4b4] hover:bg-[#e4eee7] hover:text-[#2f4338]"
+                    : "cursor-not-allowed border-[#e0e7e2] bg-[#f5f7f6] text-[#a3aca7]",
+                )}
+              >
+                {isClearing ? "Clearing..." : "Clear"}
+              </button>
+              {notificationsQuery.isLoading ? (
+                <LoaderCircle className="h-4 w-4 animate-spin text-[#7f9582]" />
+              ) : null}
+            </div>
           </div>
 
           {streamError || notificationsQuery.error ? (
@@ -212,7 +255,7 @@ export function AdminNotificationBell({
           <div className="grid max-h-[420px] gap-2 overflow-y-auto pr-1">
             {items.length === 0 && !notificationsQuery.isLoading ? (
               <div className="rounded-xl border border-border/70 bg-[#fafbfa] px-3 py-4 text-sm text-[#727975]">
-                No scrape notifications yet.
+                No new notifications.
               </div>
             ) : null}
 
