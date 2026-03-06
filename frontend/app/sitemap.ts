@@ -1,20 +1,40 @@
 import type { MetadataRoute } from "next";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "http://localhost:3000";
+import { getPublicJobs } from "@/lib/api-public";
+import { getSiteUrl } from "@/lib/seo";
 
-  return [
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const baseUrl = getSiteUrl();
+  const staticPages: MetadataRoute.Sitemap = [
     {
       url: `${baseUrl}/`,
       priority: 1,
+      changeFrequency: "daily",
     },
     {
       url: `${baseUrl}/jobs`,
       priority: 0.8,
+      changeFrequency: "hourly",
     },
     {
-      url: `${baseUrl}/admin`,
-      priority: 0.4,
+      url: `${baseUrl}/about`,
+      priority: 0.6,
+      changeFrequency: "monthly",
     },
   ];
+
+  try {
+    const jobs = await getPublicJobs();
+    return [
+      ...staticPages,
+      ...jobs.map((job) => ({
+        url: `${baseUrl}/jobs/${job.slug}`,
+        lastModified: job.updated_at || job.created_at || undefined,
+        priority: 0.7,
+        changeFrequency: "daily" as const,
+      })),
+    ];
+  } catch {
+    return staticPages;
+  }
 }

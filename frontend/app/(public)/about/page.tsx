@@ -1,3 +1,23 @@
+import type { Metadata } from "next";
+
+import { absoluteUrl } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  title: "About",
+  description:
+    "Learn how Dear Career curates Thailand job listings and how to apply safely through original sources.",
+  alternates: {
+    canonical: "/about",
+  },
+  openGraph: {
+    type: "website",
+    url: absoluteUrl("/about"),
+    title: "About Dear Career",
+    description:
+      "Learn how Dear Career curates Thailand job listings and how to apply safely through original sources.",
+  },
+};
+
 export default function PublicAboutPage() {
   return (
     <main className="mx-auto max-w-6xl px-4 pb-20 pt-32">

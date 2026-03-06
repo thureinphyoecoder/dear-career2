@@ -1,4 +1,27 @@
+import type { Metadata } from "next";
+
 import { FeedbackForm } from "@/components/public/FeedbackForm";
+import { absoluteUrl } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  title: "Feedback",
+  description:
+    "Report broken links, listing quality issues, or feature requests for Dear Career.",
+  alternates: {
+    canonical: "/feedback",
+  },
+  robots: {
+    index: false,
+    follow: true,
+  },
+  openGraph: {
+    type: "website",
+    url: absoluteUrl("/feedback"),
+    title: "Dear Career Feedback",
+    description:
+      "Report broken links, listing quality issues, or feature requests for Dear Career.",
+  },
+};
 
 export default function PublicFeedbackPage() {
   return (

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
  
 import { JobsInfiniteResults } from "@/components/public/JobsInfiniteResults";
 
@@ -8,6 +9,7 @@ import { RouteTransitionReset } from "@/components/public/RouteTransitionReset";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getPublicAds, getPublicJobs } from "@/lib/api-public";
+import { absoluteUrl, truncateForMeta } from "@/lib/seo";
 import type { JobCategory } from "@/lib/types";
 
 function normalizeSearchQuery(value?: string) {
@@ -49,6 +51,31 @@ type PublicJobsPageProps = {
     from?: string;
   }>;
 };
+
+export async function generateMetadata({
+  searchParams,
+}: PublicJobsPageProps): Promise<Metadata> {
+  const params = (await searchParams) ?? {};
+  const query = normalizeSearchQuery(params.q);
+  const title = query ? `Jobs in Thailand for "${query}"` : "Jobs in Thailand";
+  const description = query
+    ? truncateForMeta(`Browse curated Thailand jobs matching "${query}" across NGO, white-collar, and blue-collar roles.`)
+    : "Browse curated NGO, white-collar, and blue-collar jobs in Thailand.";
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: query ? `/jobs?q=${encodeURIComponent(query)}` : "/jobs",
+    },
+    openGraph: {
+      type: "website",
+      url: absoluteUrl(query ? `/jobs?q=${encodeURIComponent(query)}` : "/jobs"),
+      title,
+      description,
+    },
+  };
+}
 
 export default async function PublicJobsPage({
   searchParams,

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
@@ -22,6 +23,7 @@ import { RouteTransitionReset } from "@/components/public/RouteTransitionReset";
 import { Badge } from "@/components/ui/badge";
 import { getJobBySlug, getPublicAds } from "@/lib/api-public";
 import { extractJobSummary, getJobDescription, parseJobDescription } from "@/lib/job-content";
+import { absoluteUrl, truncateForMeta } from "@/lib/seo";
 
 const categoryLabelMap: Record<string, string> = {
   ngo: "NGO",
@@ -89,6 +91,45 @@ function extractContactPhone(description: string, fallback?: string) {
   return match?.[1]?.trim() || "";
 }
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const job = await getJobBySlug(slug);
+  if (!job) {
+    return {
+      title: "Job not found",
+      description: "This job listing is not available anymore.",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const summary = truncateForMeta(extractJobSummary(job, 180) || `${job.title} at ${job.company} in ${job.location}.`);
+  const canonicalPath = `/jobs/${job.slug}`;
+  const image = job.display_image_url || job.image_file_url || job.image_url || undefined;
+
+  return {
+    title: `${job.title} in ${job.location}`,
+    description: summary,
+    alternates: { canonical: canonicalPath },
+    openGraph: {
+      type: "article",
+      url: absoluteUrl(canonicalPath),
+      title: `${job.title} | ${job.company}`,
+      description: summary,
+      images: image ? [{ url: image }] : undefined,
+    },
+    twitter: {
+      card: image ? "summary_large_image" : "summary",
+      title: `${job.title} | ${job.company}`,
+      description: summary,
+      images: image ? [image] : undefined,
+    },
+  };
+}
+
 export default async function PublicJobDetailPage({
   params,
 }: {
@@ -108,9 +149,48 @@ export default async function PublicJobDetailPage({
   const displayImageUrl = job.display_image_url || job.image_file_url || job.image_url || "";
   const contactEmail = extractContactEmail(description, job.contact_email);
   const contactPhone = extractContactPhone(description, job.contact_phone);
+  const canonicalUrl = absoluteUrl(`/jobs/${job.slug}`);
+  const jobPostingJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "JobPosting",
+    title: job.title,
+    description: truncateForMeta(description, 5000),
+    datePosted: job.created_at || undefined,
+    validThrough: undefined,
+    employmentType: job.employment_type || undefined,
+    hiringOrganization: {
+      "@type": "Organization",
+      name: job.company,
+      sameAs: job.source_url || undefined,
+      logo: displayImageUrl || undefined,
+    },
+    jobLocation: {
+      "@type": "Place",
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: job.location,
+        addressCountry: "TH",
+      },
+    },
+    directApply: false,
+    applicantLocationRequirements: {
+      "@type": "Country",
+      name: "Thailand",
+    },
+    url: canonicalUrl,
+    identifier: {
+      "@type": "PropertyValue",
+      name: "Dear Career",
+      value: String(job.id),
+    },
+  };
 
   return (
     <main className="job-detail-page mx-auto max-w-4xl px-4 pb-20 pt-28 md:pt-32">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingJsonLd) }}
+      />
       <RouteTransitionReset />
       <Link
         href="/jobs"

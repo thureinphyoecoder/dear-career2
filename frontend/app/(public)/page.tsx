@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 import { AdCard } from "@/components/public/AdCard";
 import { HomeExploreJobsButton } from "@/components/public/HomeExploreJobsButton";
 import { HeroParallaxScene } from "@/components/public/HeroParallaxScene";
@@ -8,11 +10,28 @@ import { JobsParallaxScene } from "@/components/public/JobsParallaxScene";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getPublicJobs } from "@/lib/api-public";
+import { absoluteUrl } from "@/lib/seo";
 import type { Job } from "@/lib/types";
 
 type AdSlot = {
   id: number;
   type: "ad";
+};
+
+export const metadata: Metadata = {
+  title: "Thailand Jobs Home",
+  description:
+    "Explore curated Thailand job listings across NGO, white-collar, and blue-collar categories.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    url: absoluteUrl("/"),
+    title: "Dear Career | Curated Thailand Jobs",
+    description:
+      "Explore curated Thailand job listings across NGO, white-collar, and blue-collar categories.",
+  },
 };
 
 export default async function PublicHomePage() {
