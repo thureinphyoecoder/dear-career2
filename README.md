@@ -14,8 +14,10 @@ The project supports:
 - Image upload plus OCR image-to-text intake
 - Fetch source management for supported job websites
 - Approval workflow for website and Facebook publishing
+- One-click publish from Drafted jobs (`Publish + Post`)
 - Facebook post drafting/publishing support
 - Managed ad slots and visitor analytics
+- SEO metadata + dynamic sitemap + JobPosting structured data
 
 ## Stack
 
@@ -124,6 +126,7 @@ Example:
 DJANGO_ADMIN_API_BASE_URL=http://127.0.0.1:8000/api
 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 FACEBOOK_APP_ID=
 FACEBOOK_APP_SECRET=
@@ -253,7 +256,8 @@ The job editor supports two intake paths:
 The OCR flow works like this:
 
 1. Admin uploads an image in the job editor
-2. Frontend posts the file to `/api/jobs/admin/jobs/ocr/`
+2. Frontend posts the file to Next.js admin proxy endpoint
+   - `/api/admin/proxy/jobs/admin/jobs/ocr`
 3. Backend validates the image bytes
 4. RapidOCR extracts text from the image
 5. Backend heuristically maps text into:
@@ -272,6 +276,7 @@ Notes:
 - OCR dependencies are installed in `backend/requirements.txt`
 - First OCR run may download OCR model assets depending on environment state
 - Image intake is meant to accelerate manual review, not bypass it
+- OCR supports 3 modes in the editor: `Fast`, `Balanced`, `Accurate`
 
 ## Browser Fetch Support
 
@@ -305,6 +310,13 @@ Important admin endpoints:
 - `GET /api/jobs/admin/sources/`
 - `POST /api/jobs/admin/channels/facebook/publish/`
 - `GET /api/jobs/admin/dashboard/`
+
+Public endpoints:
+
+- `GET /api/jobs/` (active + published + website-approved jobs)
+- `GET /api/jobs/ads/`
+- `POST /api/jobs/report/`
+- `POST /api/jobs/feedback/`
 
 ## Testing and Validation
 
@@ -344,11 +356,34 @@ Before deploying:
 - update allowed hosts and trusted origins
 - configure persistent media storage if needed
 - verify OCR and browser-fetch runtime dependencies exist in the deployment image
+- set `NEXT_PUBLIC_SITE_URL` to your production domain (used by metadata/robots/sitemap)
 
 For Facebook publishing:
 
 - backend needs page credentials
 - frontend needs app credentials if using the connect flow
+
+## Publishing Behavior
+
+- New job editor defaults to `published` status.
+- `Active listing` controls website visibility eligibility.
+- `Publish to website now`:
+  - checked = publish immediately
+  - unchecked = hold for website approval
+- `Post to Facebook now`:
+  - checked = attempt Facebook publish on save/update
+  - unchecked = keep in Facebook approval flow
+- In `Drafted` list, use `Publish + Post` for one-click website + Facebook publish.
+
+Note: Facebook posting still depends on valid page token + permissions (`pages_manage_posts`).
+
+## SEO Notes
+
+- Root/site metadata is configured in Next.js app layout.
+- Jobs listing and job detail pages expose canonical URLs and OG/Twitter metadata.
+- Job detail page outputs `JobPosting` JSON-LD.
+- `sitemap.xml` includes dynamic job detail URLs.
+- `robots.txt` blocks `/admin` and `/api`.
 
 ## Troubleshooting
 
@@ -376,6 +411,15 @@ Check:
 - file size is under 10 MB
 - OCR dependencies installed
 - backend process has network access if model download is needed
+
+### Draft publishes to website but not Facebook
+
+Check:
+
+- `Post to Facebook now` is enabled
+- Facebook page is connected in Admin > Facebook
+- token has valid page permissions (`pages_manage_posts`)
+- admin notification stream for exact publish failure reason
 
 ### Source fetch fails on dynamic sites
 
