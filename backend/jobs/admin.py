@@ -7,6 +7,7 @@ from .models import (
     FetchRun,
     FetchSource,
     Job,
+    JobReport,
     ManagedAd,
     VisitorEvent,
 )
@@ -86,6 +87,13 @@ class AdminNotificationAdmin(admin.ModelAdmin):
 class FeedbackMessageAdmin(admin.ModelAdmin):
     list_display = ("subject", "name", "email", "created_at")
     search_fields = ("subject", "name", "email", "message")
+
+
+@admin.register(JobReport)
+class JobReportAdmin(admin.ModelAdmin):
+    list_display = ("job_title", "reason", "status", "reporter_email", "created_at", "reviewed_at")
+    list_filter = ("reason", "status", "created_at")
+    search_fields = ("job_title", "job_company", "reporter_name", "reporter_email", "message")
 
 
 @admin.register(ChannelCredential)
