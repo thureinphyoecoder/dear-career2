@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { BrandLogo } from "@/components/public/BrandLogo";
 import { buttonVariants } from "@/components/ui/button";
@@ -9,8 +10,49 @@ import { cn } from "@/lib/utils";
 
 export function PublicNav() {
   const pathname = usePathname();
+  const [homeSection, setHomeSection] = useState<"home" | "jobs">("home");
   const linkClass =
-    "inline-flex items-center rounded-full border-b-2 px-3 py-2 text-[0.88rem] font-medium transition-colors sm:px-4 sm:text-[0.92rem]";
+    "relative inline-flex items-center px-3 pb-2.5 pt-2 text-[0.88rem] font-medium transition-colors sm:px-4 sm:text-[0.92rem] after:absolute after:bottom-0 after:left-1/2 after:h-px after:w-0 after:-translate-x-1/2 after:bg-[rgba(141,166,147,0.7)] after:transition-all";
+
+  useEffect(() => {
+    if (pathname !== "/") {
+      setHomeSection("home");
+      return;
+    }
+
+    const heroSection = document.getElementById("home-hero-section");
+    const jobsSection = document.getElementById("home-jobs-section");
+    if (!heroSection || !jobsSection) {
+      return;
+    }
+
+    const updateHomeSection = () => {
+      const anchor = window.innerHeight * 0.4;
+      const jobsTop = jobsSection.getBoundingClientRect().top;
+      setHomeSection(jobsTop <= anchor ? "jobs" : "home");
+    };
+
+    updateHomeSection();
+
+    const observer = new IntersectionObserver(updateHomeSection, {
+      threshold: [0, 0.2, 0.45, 0.7],
+      rootMargin: "-84px 0px -35% 0px",
+    });
+
+    observer.observe(heroSection);
+    observer.observe(jobsSection);
+    window.addEventListener("scroll", updateHomeSection, { passive: true });
+    window.addEventListener("resize", updateHomeSection);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", updateHomeSection);
+      window.removeEventListener("resize", updateHomeSection);
+    };
+  }, [pathname]);
+
+  const homeActive = pathname === "/" ? homeSection === "home" : pathname === "/";
+  const jobsActive = pathname === "/" ? homeSection === "jobs" : pathname?.startsWith("/jobs");
 
   return (
     <nav className="fixed left-0 right-0 top-0 z-20 px-4 py-4">
@@ -21,9 +63,9 @@ export function PublicNav() {
             href="/"
             className={cn(
               linkClass,
-              pathname === "/"
-                ? "border-[#8da693] text-foreground"
-                : "border-transparent text-[#454c49]/78 hover:text-foreground",
+              homeActive
+                ? "text-[#2f3a34] after:w-[62%]"
+                : "text-[#4f5954] hover:text-[#2f3a34]",
             )}
           >
             Home
@@ -32,9 +74,9 @@ export function PublicNav() {
             href="/jobs"
             className={cn(
               linkClass,
-              pathname?.startsWith("/jobs")
-                ? "border-[#8da693] text-foreground"
-                : "border-transparent text-[#454c49]/78 hover:text-foreground",
+              jobsActive
+                ? "text-[#2f3a34] after:w-[62%]"
+                : "text-[#4f5954] hover:text-[#2f3a34]",
             )}
           >
             Jobs
@@ -42,10 +84,10 @@ export function PublicNav() {
           <Link
             href="/about"
             className={cn(
-              "hidden sm:inline-flex sm:items-center sm:rounded-full sm:border-b-2 sm:px-4 sm:py-2 sm:text-[0.92rem] sm:font-medium sm:transition-colors",
+              "relative hidden sm:inline-flex sm:items-center sm:px-4 sm:pb-2.5 sm:pt-2 sm:text-[0.92rem] sm:font-medium sm:transition-colors sm:after:absolute sm:after:bottom-0 sm:after:left-1/2 sm:after:h-px sm:after:w-0 sm:after:-translate-x-1/2 sm:after:bg-[rgba(141,166,147,0.7)] sm:after:transition-all",
               pathname === "/about"
-                ? "border-[#8da693] text-foreground"
-                : "border-transparent text-[#454c49]/78 hover:text-foreground",
+                ? "text-[#2f3a34] sm:after:w-[62%]"
+                : "text-[#4f5954] hover:text-[#2f3a34]",
             )}
           >
             About
@@ -55,8 +97,8 @@ export function PublicNav() {
           href="/admin/login"
           className={cn(
             buttonVariants({ variant: "ghost", size: "sm" }),
-            "rounded-full border-b-2 border-transparent px-3 sm:px-4",
-            pathname?.startsWith("/admin") && "border-[#8da693] text-foreground",
+            "rounded-full px-3 text-[#4f5954] sm:px-4",
+            pathname?.startsWith("/admin") && "bg-[rgba(141,166,147,0.12)] text-[#2f3a34]",
           )}
         >
           Login
