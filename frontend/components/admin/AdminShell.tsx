@@ -130,6 +130,11 @@ export function AdminShell({
           badge: sidebarCounts.pendingApprovals,
         },
         {
+          href: "/admin/reports",
+          label: "Reports",
+          active: pathname === "/admin/reports",
+        },
+        {
           href: "/admin/jobs/new",
           label: "Create job",
           active: pathname === "/admin/jobs/new",
