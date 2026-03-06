@@ -108,6 +108,33 @@ export type VisitorSummary = {
   top_paths: VisitorPathStat[];
 };
 
+export type JobReportReason =
+  | "scam"
+  | "inaccurate"
+  | "expired"
+  | "duplicate"
+  | "other";
+
+export type JobReportStatus = "open" | "reviewed" | "resolved";
+
+export type JobReport = {
+  id: number;
+  job_id?: number | null;
+  job_title: string;
+  job_company?: string;
+  job_location?: string;
+  job_slug?: string;
+  reporter_name?: string;
+  reporter_email?: string;
+  reason: JobReportReason;
+  message?: string;
+  status: JobReportStatus;
+  review_note?: string;
+  reviewed_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
 export type ManagedAd = {
   id: number;
   title: string;
