@@ -238,6 +238,30 @@ class JobApiTests(TestCase):
         self.assertEqual(payload["salary"], "THB 45,000 - THB 60,000")
         self.assertEqual(payload["contact_email"], "hr@brightlotus.com")
         self.assertEqual(payload["source"], Job.SourceChoices.MANUAL)
+        mock_extract_text.assert_called_once()
+        self.assertEqual(mock_extract_text.call_args.args[2], "balanced")
+
+    @patch("jobs.views.jobs.extract_text_from_image_bytes")
+    def test_job_image_ocr_preview_accepts_ocr_mode(self, mock_extract_text):
+        mock_extract_text.return_value = "Frontend Developer\nCompany: Demo"
+
+        response = self.client.post(
+            "/api/jobs/admin/jobs/ocr/",
+            data={
+                "ocr_mode": "accurate",
+                "image": SimpleUploadedFile(
+                    "poster.png",
+                    PNG_PIXEL_BYTES,
+                    content_type="image/png",
+                ),
+            },
+            HTTP_HOST="localhost",
+            **self.admin_headers,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        mock_extract_text.assert_called_once()
+        self.assertEqual(mock_extract_text.call_args.args[2], "accurate")
 
     def test_job_image_ocr_preview_requires_image(self):
         response = self.client.post(
@@ -335,6 +359,35 @@ class JobContentFormattingTests(TestCase):
         )
 
         self.assertEqual(payload["image_url"], "https://example.com/media/creative.png")
+
+    def test_build_scraped_job_payload_extracts_jobbkk_contact_phone(self):
+        payload = build_scraped_job_payload(
+            "https://jobbkk.com/jobs/detailurgent/207083/1355660",
+            """
+            <html>
+              <body>
+                <div class="gridCompanyProfile_data">
+                  <p class="font-text-20 textRed">บริษัท ทดสอบ จำกัด</p>
+                </div>
+                <div class="borderStyle borderRadiusStyle p-3">
+                  <div class="mb-2">
+                    <p class="textRed font-text-20 font-DB-HeaventRounded-Bold">Sales Coordinator</p>
+                  </div>
+                  <section>
+                    <p class="textRed mb-2">สนใจสมัครงานตำแหน่งงานนี้กรุณาติดต่อ</p>
+                    <div>
+                      <p><span class="font-DB-HeaventRounded-Bold">เบอร์ผู้ติดต่อ : </span>0831424963</p>
+                    </div>
+                  </section>
+                </div>
+              </body>
+            </html>
+            """,
+        )
+
+        self.assertEqual(payload["title"], "Sales Coordinator")
+        self.assertEqual(payload["company"], "บริษัท ทดสอบ จำกัด")
+        self.assertEqual(payload["contact_phone"], "0831424963")
 
     def test_build_image_text_job_payload_extracts_text_fields(self):
         payload = build_image_text_job_payload(

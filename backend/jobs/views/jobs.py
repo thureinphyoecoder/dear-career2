@@ -199,11 +199,13 @@ def job_image_ocr_preview(request: HttpRequest):
     uploaded_file = request.FILES.get("image")
     if uploaded_file is None:
         return HttpResponseBadRequest("Missing uploaded file: image")
+    ocr_mode = (request.POST.get("ocr_mode") or "balanced").strip().lower()
 
     try:
         extracted_text = extract_text_from_image_bytes(
             uploaded_file.name,
             uploaded_file.read(),
+            ocr_mode,
         )
     except (ValueError, OCRExtractionError, OCREngineUnavailableError) as exc:
         create_admin_notification(

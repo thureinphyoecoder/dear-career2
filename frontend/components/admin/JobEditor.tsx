@@ -44,6 +44,15 @@ const employmentTypeOptions = [
 
 const FETCH_TIMEOUT_MS = 20000;
 const ACCEPTED_IMAGE_TYPES = "image/jpeg,image/png,image/webp,image/gif";
+const OCR_UPLOAD_MAX_EDGE_PX = 1900;
+const OCR_UPLOAD_TARGET_BYTES = 1_200_000;
+const OCR_UPLOAD_START_QUALITY = 0.88;
+const OCR_UPLOAD_MIN_QUALITY = 0.62;
+const OCR_MODE_OPTIONS = [
+  { value: "fast", label: "Fast OCR (quick draft)" },
+  { value: "balanced", label: "Balanced OCR" },
+  { value: "accurate", label: "Accurate OCR (best quality)" },
+] as const;
 const STRUCTURED_DESCRIPTION_TEMPLATE = `Website: yourcompany.com
 Instagram: @yourbrand
 
@@ -90,6 +99,80 @@ function normalizeErrorDetail(detail: string) {
   }
 }
 
+function summarizeIntakeValue(value: string, maxLength = 120) {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+  return `${normalized.slice(0, maxLength - 1)}…`;
+}
+
+function loadImageElementFromFile(file: File) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(image);
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Could not read uploaded image."));
+    };
+    image.src = objectUrl;
+  });
+}
+
+async function optimizeImageForOcr(file: File) {
+  const image = await loadImageElementFromFile(file);
+  const longestEdge = Math.max(image.width, image.height);
+  const needsResize = longestEdge > OCR_UPLOAD_MAX_EDGE_PX;
+  const needsCompress = file.size > OCR_UPLOAD_TARGET_BYTES;
+
+  if (!needsResize && !needsCompress) {
+    return file;
+  }
+
+  const scale = needsResize ? OCR_UPLOAD_MAX_EDGE_PX / longestEdge : 1;
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return file;
+  }
+
+  context.drawImage(image, 0, 0, width, height);
+  const toBlob = (quality: number) =>
+    new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), "image/jpeg", quality);
+    });
+
+  let quality = OCR_UPLOAD_START_QUALITY;
+  let blob = await toBlob(quality);
+  while (blob && blob.size > OCR_UPLOAD_TARGET_BYTES && quality > OCR_UPLOAD_MIN_QUALITY) {
+    quality = Math.max(OCR_UPLOAD_MIN_QUALITY, quality - 0.08);
+    blob = await toBlob(quality);
+  }
+
+  if (!blob) {
+    return file;
+  }
+
+  if (blob.size >= file.size && !needsResize) {
+    return file;
+  }
+
+  const originalStem = file.name.replace(/\.[^.]+$/, "") || "ocr-image";
+  return new File([blob], `${originalStem}-ocr.jpg`, {
+    type: "image/jpeg",
+    lastModified: Date.now(),
+  });
+}
+
 export function JobEditor({
   initialJob,
   returnTo = "",
@@ -124,10 +207,12 @@ export function JobEditor({
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [activeIntakeMode, setActiveIntakeMode] = useState<"url" | "image" | null>(null);
   const [intakeFields, setIntakeFields] = useState<string[]>([]);
+  const [intakePreview, setIntakePreview] = useState<Array<{ label: string; value: string }>>([]);
   const [intakeMessage, setIntakeMessage] = useState("");
   const [intakeError, setIntakeError] = useState("");
   const [urlIntakeError, setUrlIntakeError] = useState("");
   const [ocrImageFile, setOcrImageFile] = useState<File | null>(null);
+  const [ocrMode, setOcrMode] = useState<(typeof OCR_MODE_OPTIONS)[number]["value"]>("accurate");
   const [ocrImageError, setOcrImageError] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -226,13 +311,16 @@ export function JobEditor({
     setIntakeError("");
     setIntakeMessage("");
     setIntakeFields([]);
+    setIntakePreview([]);
   }
 
   function applyIntakePayload(scraped: Partial<Job>, options?: { fallbackSourceUrl?: string }) {
     const nextFetchedFields: string[] = [];
+    const nextPreview: Array<{ label: string; value: string }> = [];
     const nextSourceUrl = scraped.source_url?.trim() || options?.fallbackSourceUrl || "";
     if (nextSourceUrl) {
       nextFetchedFields.push("source URL");
+      nextPreview.push({ label: "Source URL", value: summarizeIntakeValue(nextSourceUrl, 86) });
       setSourceUrl(nextSourceUrl);
       setIntakeUrl(nextSourceUrl);
     }
@@ -240,75 +328,88 @@ export function JobEditor({
     const nextTitle = scraped.title?.trim();
     if (nextTitle) {
       nextFetchedFields.push("title");
+      nextPreview.push({ label: "Title", value: summarizeIntakeValue(nextTitle) });
       setTitle(nextTitle);
     }
 
     const nextCompany = scraped.company?.trim();
     if (nextCompany) {
       nextFetchedFields.push("company");
+      nextPreview.push({ label: "Company", value: summarizeIntakeValue(nextCompany) });
       setCompany(nextCompany);
     }
 
     const nextLocation = scraped.location?.trim();
     if (nextLocation) {
       nextFetchedFields.push("location");
+      nextPreview.push({ label: "Location", value: summarizeIntakeValue(nextLocation) });
       setLocation(nextLocation);
     }
 
     const nextEmploymentType = scraped.employment_type?.trim();
     if (nextEmploymentType) {
       nextFetchedFields.push("employment type");
+      nextPreview.push({ label: "Employment type", value: summarizeIntakeValue(nextEmploymentType) });
       setEmploymentType(nextEmploymentType);
     }
 
     if (scraped.category) {
       nextFetchedFields.push("category");
+      nextPreview.push({ label: "Category", value: summarizeIntakeValue(String(scraped.category)) });
       setCategory(scraped.category as JobCategory);
     }
 
     const nextSource = scraped.source?.trim();
     if (nextSource) {
       nextFetchedFields.push("source");
+      nextPreview.push({ label: "Source", value: summarizeIntakeValue(nextSource) });
       setSource(nextSource);
     }
 
     const nextSalary = scraped.salary?.trim();
     if (nextSalary) {
       nextFetchedFields.push("salary");
+      nextPreview.push({ label: "Salary", value: summarizeIntakeValue(nextSalary) });
       setSalary(nextSalary);
     }
 
     const nextContactEmail = scraped.contact_email?.trim();
     if (nextContactEmail) {
       nextFetchedFields.push("contact email");
+      nextPreview.push({ label: "Contact email", value: summarizeIntakeValue(nextContactEmail) });
       setContactEmail(nextContactEmail);
     }
 
     const nextContactPhone = scraped.contact_phone?.trim();
     if (nextContactPhone) {
       nextFetchedFields.push("contact phone");
+      nextPreview.push({ label: "Contact phone", value: summarizeIntakeValue(nextContactPhone) });
       setContactPhone(nextContactPhone);
     }
 
     const nextDescriptionEn = scraped.description_en?.trim();
     if (nextDescriptionEn) {
       nextFetchedFields.push("English description");
+      nextPreview.push({ label: "English description", value: summarizeIntakeValue(nextDescriptionEn) });
       setDescriptionEn(nextDescriptionEn);
     }
 
     const nextDescriptionMm = scraped.description_mm?.trim() || nextDescriptionEn;
     if (nextDescriptionMm) {
       nextFetchedFields.push("Myanmar description");
+      nextPreview.push({ label: "Myanmar description", value: summarizeIntakeValue(nextDescriptionMm) });
       setDescriptionMm(nextDescriptionMm);
     }
 
     const nextImageUrl = scraped.image_url?.trim();
     if (nextImageUrl) {
       nextFetchedFields.push("image");
+      nextPreview.push({ label: "Image URL", value: summarizeIntakeValue(nextImageUrl, 86) });
       setImageUrl(nextImageUrl, { syncPreview: !selectedImageFile && !uploadedImageUrl });
     }
 
     setIntakeFields(nextFetchedFields);
+    setIntakePreview(nextPreview);
     return nextFetchedFields;
   }
 
@@ -322,6 +423,7 @@ export function JobEditor({
       setIntakeError(nextError);
       setIntakeMessage("");
       setIntakeFields([]);
+      setIntakePreview([]);
       toast.error(nextError);
       return;
     }
@@ -360,6 +462,7 @@ export function JobEditor({
       toast.success(nextMessage);
     } catch (fetchError) {
       setIntakeFields([]);
+      setIntakePreview([]);
       const nextError =
         fetchError instanceof DOMException && fetchError.name === "AbortError"
           ? "Fetch failed. The source took too long to respond. Try again or use a different URL."
@@ -393,6 +496,7 @@ export function JobEditor({
       setIntakeError(nextFileError);
       setIntakeMessage("");
       setIntakeFields([]);
+      setIntakePreview([]);
       toast.error(nextFileError);
       return;
     }
@@ -402,8 +506,11 @@ export function JobEditor({
     resetIntakeFeedback();
 
     try {
+      setIntakeMessage("Preparing image for OCR...");
+      const optimizedImage = await optimizeImageForOcr(ocrImageFile);
       const formData = new FormData();
-      formData.append("image", ocrImageFile);
+      formData.append("image", optimizedImage);
+      formData.append("ocr_mode", ocrMode);
 
       const extracted = await requestAdmin<Partial<Job>>("/api/admin/proxy/jobs/admin/jobs/ocr", {
         method: "POST",
@@ -420,6 +527,7 @@ export function JobEditor({
       toast.success(nextMessage);
     } catch (extractError) {
       setIntakeFields([]);
+      setIntakePreview([]);
       const nextError =
         extractError instanceof Error
           ? `Image OCR failed. ${extractError.message}`
@@ -653,6 +761,20 @@ export function JobEditor({
               <span className="text-sm leading-6 text-[#4f5d56]">
                 Upload a screenshot, poster, or scan and extract text into the form.
               </span>
+              <label className="grid gap-1">
+                <span className="text-xs uppercase tracking-[0.12em] text-[#6f8676]">OCR mode</span>
+                <select
+                  className={selectClass}
+                  value={ocrMode}
+                  onChange={(event) => setOcrMode(event.target.value as (typeof OCR_MODE_OPTIONS)[number]["value"])}
+                >
+                  {OCR_MODE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
               {ocrImageFile ? (
                 <div className="flex items-center justify-between gap-3 rounded-md bg-[#edf3ee] px-3 py-2 text-sm text-[#3f5148]">
                   <span className="truncate">{ocrImageFile.name}</span>
@@ -715,7 +837,7 @@ export function JobEditor({
                 <span>
                   {isProcessingIntake
                     ? activeIntakeMode === "image"
-                      ? "Running OCR on the uploaded image and mapping detected text into job fields."
+                      ? `Running ${ocrMode} OCR on the uploaded image and mapping detected text into job fields.`
                       : "Checking the pasted source and extracting usable job fields."
                     : intakeError || intakeMessage}
                 </span>
@@ -727,15 +849,21 @@ export function JobEditor({
               </div>
             ) : null}
             {!isProcessingIntake && intakeFields.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {intakeFields.map((field) => (
-                  <span
-                    key={field}
-                    className="inline-flex items-center rounded-full border border-[rgba(116,141,122,0.18)] bg-[rgba(255,255,255,0.86)] px-2.5 py-1 text-xs tracking-[0.08em] text-[#58705e]"
-                  >
-                    {field}
-                  </span>
-                ))}
+              <div className="grid gap-2">
+                <div className="text-xs uppercase tracking-[0.12em] text-[#5a6f60]">
+                  Extracted {intakeFields.length} fields
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {intakePreview.map((item) => (
+                    <div
+                      key={`${item.label}-${item.value}`}
+                      className="rounded-md border border-[rgba(116,141,122,0.2)] bg-[rgba(255,255,255,0.9)] px-2.5 py-2"
+                    >
+                      <div className="text-[11px] uppercase tracking-[0.12em] text-[#6b8272]">{item.label}</div>
+                      <div className="mt-1 text-xs leading-5 text-[#43574b]">{item.value}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : null}
           </div>

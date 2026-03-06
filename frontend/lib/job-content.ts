@@ -232,33 +232,69 @@ export function extractJobFacts(job: Job): JobDescriptionFact[] {
   return facts;
 }
 
+function normalizeSalaryText(value: unknown) {
+  if (typeof value !== "string") return "";
+  const normalized = value.trim();
+  if (!normalized) return "";
+  if (/^(true|false|null|none)$/i.test(normalized)) return "";
+  return normalized;
+}
+
 export function buildFacebookPostMessage(job: Job) {
   const description = getJobDescription(job);
   const sections = parseJobDescription(description);
+  const facts = extractJobFacts(job);
   const lines = [job.title, `${job.company} · ${job.location}`];
+  const salary = normalizeSalaryText(job.salary);
 
+  const detailRows: string[] = [];
+  detailRows.push(`- Location: ${job.location}`);
   if (job.employment_type) {
-    lines.push(`Status: ${job.employment_type.replace(/-/g, " ")}`);
+    detailRows.push(`- Status: ${job.employment_type.replace(/-/g, " ")}`);
   }
-  if (job.salary) {
-    lines.push(`Salary: ${job.salary}`);
+  if (salary) {
+    detailRows.push(`- Salary: ${salary}`);
+  }
+  const extraFacts = facts
+    .filter((fact) => !["location", "salary", "employment type", "status"].includes(fact.label.toLowerCase()))
+    .slice(0, 3);
+  for (const fact of extraFacts) {
+    detailRows.push(`- ${fact.label}: ${fact.value}`);
   }
 
   const summary = extractJobSummary(job, 240);
-  if (summary) {
+  if (summary && !summary.toLowerCase().includes(job.company.toLowerCase())) {
     lines.push(summary);
+  }
+  if (detailRows.length > 0) {
+    lines.push("Details:");
+    lines.push(...detailRows);
   }
 
   for (const section of sections) {
     if (!section.heading) continue;
+    const headingKey = section.heading.toLowerCase();
+    if (["details", "location", "status", "salary", "overview"].includes(headingKey)) {
+      continue;
+    }
     const items = [...section.bullets];
     if (items.length === 0 && section.paragraphs[0]) {
       items.push(`- ${section.paragraphs[0]}`);
     }
     if (items.length === 0) continue;
-    lines.push(section.heading);
+    lines.push(`${section.heading}:`);
     lines.push(...items.slice(0, 4));
     if (lines.length >= 16) break;
+  }
+
+  if (job.contact_email || job.contact_phone) {
+    lines.push("How to Apply:");
+    if (job.contact_email) {
+      lines.push(`- Email: ${job.contact_email}`);
+    }
+    if (job.contact_phone) {
+      lines.push(`- Phone: ${job.contact_phone}`);
+    }
   }
 
   if (job.source_url) {
@@ -266,4 +302,50 @@ export function buildFacebookPostMessage(job: Job) {
   }
 
   return lines.filter(Boolean).join("\n\n");
+}
+
+export function formatFacebookPostContent(input: string) {
+  const normalized = input
+    .replace(/\r\n/g, "\n")
+    .replace(/\t/g, " ")
+    .split("\n")
+    .map((line) => line.replace(/\s+/g, " ").trim());
+
+  const output: string[] = [];
+  let previousBlank = true;
+
+  for (const line of normalized) {
+    if (!line) {
+      if (!previousBlank) {
+        output.push("");
+      }
+      previousBlank = true;
+      continue;
+    }
+
+    let nextLine = line;
+    const bulletMatch = nextLine.match(/^[-*•●▪◦‣]\s*(.+)$/);
+    if (bulletMatch?.[1]) {
+      nextLine = `- ${bulletMatch[1].trim()}`;
+    }
+
+    const keyValueMatch = nextLine.match(/^([^:]{2,40})\s*:\s*(.+)$/);
+    if (keyValueMatch?.[1] && keyValueMatch?.[2]) {
+      const key = keyValueMatch[1]
+        .trim()
+        .split(/\s+/)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+      nextLine = `${key}: ${keyValueMatch[2].trim()}`;
+    }
+
+    output.push(nextLine);
+    previousBlank = false;
+  }
+
+  while (output.length > 0 && output[output.length - 1] === "") {
+    output.pop();
+  }
+
+  return output.join("\n");
 }

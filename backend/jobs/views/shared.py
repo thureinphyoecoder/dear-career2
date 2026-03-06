@@ -144,8 +144,21 @@ def extract_contact_email(text: str) -> str:
 
 
 def extract_contact_phone(text: str) -> str:
-    match = re.search(r"(\+?\d[\d\s().-]{7,}\d)", text)
-    return clean_text(match.group(1)) if match else ""
+    labeled_match = re.search(
+        r"(?:เบอร์ผู้ติดต่อ|เบอร์ติดต่อ|โทรศัพท์|โทร|contact(?:\s*number)?|mobile|phone|tel(?:ephone)?)\s*[:：]?\s*(\+?\d[\d\s().-]{7,}\d)",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if labeled_match:
+        return clean_text(labeled_match.group(1))
+
+    candidates = re.findall(r"(\+?\d[\d\s().-]{7,}\d)", text)
+    for candidate in candidates:
+        digits = re.sub(r"\D", "", candidate)
+        # Keep plausible phone numbers and avoid random long IDs.
+        if 9 <= len(digits) <= 12:
+            return clean_text(candidate)
+    return ""
 
 
 def derive_source_label_from_url(raw_url: str, domain: str) -> str:
@@ -194,12 +207,46 @@ def normalize_employment_type(value: str) -> str:
 
 
 def derive_salary(text: str) -> str:
+    labeled_match = re.search(
+        r"(?:salary|เงินเดือน(?:\(บาท\))?)\s*[:：]?\s*([^\n\r]+)",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if labeled_match:
+        candidate = clean_text(labeled_match.group(1))
+        candidate = re.split(r"(?:วันทำงาน|เวลาทำงาน|รูปแบบงาน|ระดับตำแหน่งงาน)", candidate, maxsplit=1)[0]
+        candidate = clean_text(candidate)
+        if candidate:
+            return candidate
+
     match = re.search(
-        r"((?:THB|MMK|USD|Ks\.?|Baht|\$)\s?[\d,]+(?:\s?(?:-|–|to)\s?(?:THB|MMK|USD|Ks\.?|Baht|\$)?\s?[\d,]+)?)",
+        r"((?:(?:THB|MMK|USD|Ks\.?|Baht|\$)\s*)?[\d,]{3,}(?:\s?(?:-|–|to)\s?(?:(?:THB|MMK|USD|Ks\.?|Baht|\$)\s*)?[\d,]{3,})?\s*(?:บาท|THB|MMK|USD|Ks\.?|Baht)?)",
         text,
         flags=re.IGNORECASE,
     )
     return clean_text(match.group(1)) if match else ""
+
+
+def normalize_salary_value(value: object | None) -> str:
+    if value is None or isinstance(value, bool):
+        return ""
+
+    text = clean_text(value)
+    if not text:
+        return ""
+
+    lowered = text.lower()
+    if lowered in {"true", "false", "null", "none", "yes", "no"}:
+        return ""
+
+    if re.search(r"(thb|mmk|usd|baht|บาท|ks\.?|\$)", text, flags=re.IGNORECASE):
+        return text[:120]
+
+    numeric = re.search(r"(\d[\d,]{2,}(?:\s?(?:-|–|to)\s?\d[\d,]{2,})?)", text)
+    if numeric:
+        return clean_text(numeric.group(1))
+
+    return ""
 
 
 def compact_text_lines(text: str) -> list[str]:
@@ -544,12 +591,56 @@ def extract_thaingo_fields(soup) -> dict:
     }
 
 
+def extract_jobbkk_fields(soup) -> dict:
+    company = pick_first_text(
+        soup,
+        [
+            ".gridCompanyProfile_data p.font-text-20.textRed",
+            ".gridCompanyProfile_data .font-text-20.textRed",
+        ],
+    )
+    title = pick_first_text(
+        soup,
+        [
+            ".borderStyle.borderRadiusStyle .mb-2 p.textRed.font-text-20",
+            ".borderStyle.borderRadiusStyle .mb-2 p.textRed",
+        ],
+    )
+    details_node = soup.select_one(".borderStyle.borderRadiusStyle")
+    details_text = clean_text(details_node.get_text(" ", strip=True)) if details_node else ""
+    details_html = normalize_rich_text(str(details_node)) if details_node else ""
+
+    salary = ""
+    salary_match = re.search(
+        r"เงินเดือน(?:\(บาท\))?\s*[:：]?\s*([0-9,\s\-–to]+)",
+        details_text,
+        flags=re.IGNORECASE,
+    )
+    if salary_match:
+        salary = clean_text(salary_match.group(1))
+        if salary and not re.search(r"(บาท|thb)", salary, flags=re.IGNORECASE):
+            salary = f"{salary} บาท"
+    if not salary:
+        salary = derive_salary(details_text)
+
+    return {
+        "title": title,
+        "company": company,
+        "description": details_html,
+        "salary": salary,
+        "contact_phone": extract_contact_phone(details_text),
+        "contact_email": extract_contact_email(details_text),
+    }
+
+
 def extract_domain_specific_fields(hostname: str, soup) -> dict:
     hostname = hostname.lower()
     if "linkedin.com" in hostname:
         return extract_linkedin_fields(soup)
     if "jobsdb.com" in hostname:
         return extract_jobsdb_fields(soup)
+    if "jobbkk.com" in hostname:
+        return extract_jobbkk_fields(soup)
     if "jobthai.com" in hostname:
         return extract_jobthai_fields(soup)
     if "thaingo.org" in hostname:
@@ -580,7 +671,7 @@ def build_scraped_job_payload(url: str, html: str) -> dict:
         paragraph = soup.find("p")
         description = normalize_rich_text(str(paragraph) if paragraph else "")
 
-    body_text = clean_text(" ".join(islice(soup.stripped_strings, 120))) if soup else ""
+    body_text = clean_text(" ".join(islice(soup.stripped_strings, 420))) if soup else ""
     combined_text = " ".join(filter(None, [raw_title, description, body_text]))
     location = (
         domain_fields.get("location")
@@ -598,9 +689,13 @@ def build_scraped_job_payload(url: str, html: str) -> dict:
     employment_type = normalize_employment_type(
         domain_fields.get("employment_type") or json_ld_fields.get("employment_type") or ""
     )
-    salary = clean_text(domain_fields.get("salary") or json_ld_fields.get("salary") or "")
-    contact_email = extract_contact_email(combined_text)
-    contact_phone = extract_contact_phone(combined_text)
+    salary = (
+        normalize_salary_value(domain_fields.get("salary"))
+        or normalize_salary_value(json_ld_fields.get("salary"))
+        or derive_salary(combined_text)
+    )
+    contact_email = clean_text(domain_fields.get("contact_email") or extract_contact_email(combined_text))
+    contact_phone = clean_text(domain_fields.get("contact_phone") or extract_contact_phone(combined_text))
     raw_image_url = domain_fields.get("image_url") or pick_image_url(soup, url)
     image_url = urljoin(url, raw_image_url) if raw_image_url else ""
 
