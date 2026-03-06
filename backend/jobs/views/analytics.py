@@ -82,7 +82,10 @@ def admin_dashboard_snapshot(request: HttpRequest):
 
     job_counts = Job.objects.aggregate(
         total_jobs=Count("id"),
-        published_jobs=Count("id", filter=Q(is_active=True)),
+        published_jobs=Count(
+            "id",
+            filter=Q(is_active=True) & Q(status=Job.WorkflowStatus.PUBLISHED),
+        ),
         draft_jobs=Count("id", filter=Q(status=Job.WorkflowStatus.DRAFT)),
         pending_count=Count(
             "id",

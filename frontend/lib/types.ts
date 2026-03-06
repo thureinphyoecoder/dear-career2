@@ -92,6 +92,7 @@ export type AdminDashboardSnapshot = {
   pending_approvals: ApprovalItem[];
   notifications: AdminNotification[];
   sources: FetchSource[];
+  visitor_summary?: VisitorSummary;
 };
 
 export type VisitorPathStat = {
