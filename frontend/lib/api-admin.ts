@@ -9,6 +9,7 @@ import type {
   Job,
   JobsResponse,
   ManagedAd,
+  JobReport,
   VisitorSummary,
 } from "@/lib/types";
 import { getAdminApiHeaders } from "@/lib/admin-api-auth";
@@ -518,4 +519,17 @@ export async function getFetchSettings(): Promise<FetchSettings> {
     sources,
     facebook,
   };
+}
+
+export async function getAdminJobReports(): Promise<JobReport[]> {
+  try {
+    const response = await fetchAdmin(`${ADMIN_API_BASE_URL}/jobs/admin/reports/`);
+    if (!response.ok) {
+      return [];
+    }
+    const data = (await response.json()) as { results: JobReport[] };
+    return data.results;
+  } catch {
+    return [];
+  }
 }
