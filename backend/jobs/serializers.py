@@ -137,6 +137,26 @@ def serialize_visitor_summary(payload):
     }
 
 
+def serialize_job_report(report):
+    return {
+        "id": report.id,
+        "job_id": report.job_id,
+        "job_title": report.job_title,
+        "job_company": report.job_company,
+        "job_location": report.job_location,
+        "job_slug": report.job_slug,
+        "reporter_name": report.reporter_name,
+        "reporter_email": report.reporter_email,
+        "reason": report.reason,
+        "message": report.message,
+        "status": report.status,
+        "review_note": report.review_note,
+        "reviewed_at": report.reviewed_at.isoformat() if report.reviewed_at else None,
+        "created_at": report.created_at.isoformat() if report.created_at else None,
+        "updated_at": report.updated_at.isoformat() if report.updated_at else None,
+    }
+
+
 def serialize_managed_ad(ad):
     return {
         "id": ad.id,
