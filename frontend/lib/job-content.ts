@@ -6,23 +6,57 @@ export type JobDescriptionSection = {
   bullets: string[];
 };
 
+export type JobDescriptionFact = {
+  label: string;
+  value: string;
+};
+
 const SECTION_HEADINGS = new Set([
   "about",
   "about the role",
   "benefits",
   "compensation",
+  "details",
   "how to apply",
+  "key details",
   "key responsibilities",
   "location",
+  "overview",
   "qualifications",
   "requirements",
   "responsibilities",
   "role overview",
   "status",
+  "the role",
   "to apply",
+  "what you'll be doing",
+  "who we are looking for",
+  "why join",
+  "why join us",
 ]);
 
 const EMOJI_BULLETS = ["📍", "🕓", "💼", "💰", "📧", "📌", "📞", "🗓", "📅", "🌐"];
+const FACT_LABEL_BLOCKLIST = new Set([
+  "details",
+  "the role",
+  "how to apply",
+  "what you'll be doing",
+  "who we are looking for",
+  "why join",
+  "why join us",
+]);
+const FACT_LABEL_ALLOWLIST = new Set([
+  "location",
+  "working hours",
+  "salary",
+  "start date",
+  "website",
+  "instagram",
+  "employment type",
+  "contract",
+  "timezone",
+  "language",
+]);
 
 function normalizeLine(line: string) {
   return line.replace(/\s+/g, " ").replace(/^[•●▪◦‣]\s*/, "- ").trim();
@@ -40,6 +74,35 @@ function isHeadingLine(line: string) {
   const normalized = line.replace(/:$/, "").trim().toLowerCase();
   if (SECTION_HEADINGS.has(normalized)) return true;
   return line.endsWith(":") && line.split(/\s+/).length <= 6 && line.length <= 80;
+}
+
+function parseInlineHeading(line: string) {
+  const match = line.match(/^([^:]{1,80}):\s*(.+)$/);
+  if (!match) {
+    return null;
+  }
+
+  const heading = match[1]?.trim();
+  const content = match[2]?.trim();
+  if (!heading || !content) {
+    return null;
+  }
+
+  const normalizedHeading = heading.toLowerCase();
+  const isKnownHeading = SECTION_HEADINGS.has(normalizedHeading);
+  const shortHeading = heading.split(/\s+/).length <= 6 && heading.length <= 56;
+  if (!isKnownHeading && !shortHeading) {
+    return null;
+  }
+
+  if (FACT_LABEL_ALLOWLIST.has(normalizedHeading)) {
+    return null;
+  }
+
+  return {
+    heading,
+    content,
+  };
 }
 
 export function getJobDescription(job: Job) {
@@ -76,6 +139,13 @@ export function parseJobDescription(text: string): JobDescriptionSection[] {
       flushParagraph();
       continue;
     }
+    const inlineHeading = parseInlineHeading(line);
+    if (inlineHeading) {
+      flushSection();
+      current.heading = inlineHeading.heading;
+      paragraphParts.push(inlineHeading.content);
+      continue;
+    }
     if (isHeadingLine(line)) {
       flushSection();
       current.heading = line.replace(/:$/, "");
@@ -106,7 +176,56 @@ export function extractJobSummary(job: Job, limit = 220) {
     if (bullet) return bullet.replace(/^- /, "").slice(0, limit).trim();
   }
 
-  return "Curated opening with direct source details and a cleaner application path.";
+  return "";
+}
+
+export function extractJobFacts(job: Job): JobDescriptionFact[] {
+  const description = getJobDescription(job);
+  const facts: JobDescriptionFact[] = [];
+  const seen = new Set<string>();
+
+  const lines = description
+    .split("\n")
+    .map((line) => normalizeLine(line).replace(/^- /, "").trim())
+    .filter(Boolean);
+
+  for (const line of lines) {
+    const match = line.match(
+      /^(?:[\p{Extended_Pictographic}]\s*)?([A-Za-z][A-Za-z0-9 &'()/.-]{1,40}):\s*(.+)$/u,
+    );
+    if (!match) {
+      continue;
+    }
+    const label = match[1]?.trim();
+    const value = match[2]?.trim();
+    if (!label || !value) {
+      continue;
+    }
+
+    const normalized = label.toLowerCase();
+    if (FACT_LABEL_BLOCKLIST.has(normalized)) {
+      continue;
+    }
+
+    const shouldInclude =
+      FACT_LABEL_ALLOWLIST.has(normalized) ||
+      normalized.includes("hour") ||
+      normalized.includes("date") ||
+      normalized.includes("location") ||
+      normalized.includes("salary");
+
+    if (!shouldInclude || seen.has(normalized)) {
+      continue;
+    }
+
+    facts.push({ label, value });
+    seen.add(normalized);
+    if (facts.length >= 8) {
+      break;
+    }
+  }
+
+  return facts;
 }
 
 export function buildFacebookPostMessage(job: Job) {
