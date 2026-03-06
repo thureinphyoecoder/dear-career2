@@ -47,6 +47,7 @@ export function AdminShell({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isPublishedView = pathname === "/admin/jobs" && searchParams?.get("status") === "published";
+  const isDraftedView = pathname === "/admin/jobs" && searchParams?.get("status") === "draft";
   const djangoAdminUrl =
     process.env.NEXT_PUBLIC_DJANGO_ADMIN_URL ?? "http://127.0.0.1:8000/admin/";
   const sidebarCollapsed = useAdminShellStore((state) => state.sidebarCollapsed);
@@ -104,8 +105,14 @@ export function AdminShell({
           href: "/admin/jobs",
           label: "Jobs",
           active:
-            (!isPublishedView && pathname === "/admin/jobs") ||
+            (!isPublishedView && !isDraftedView && pathname === "/admin/jobs") ||
             (pathname?.startsWith("/admin/jobs/") && pathname !== "/admin/jobs/new"),
+        },
+        {
+          href: "/admin/jobs?status=draft",
+          label: "Drafted",
+          active: isDraftedView,
+          badge: sidebarCounts.draftedJobs,
         },
         {
           href: "/admin/jobs?status=published",
@@ -184,17 +191,13 @@ export function AdminShell({
               </div>
             ) : null}
             {navGroups.map((group) => (
-              <details
-                key={group.label}
-                className="group grid gap-1"
-                open={group.items.some((item) => item.active) || undefined}
-              >
-                <summary
+              <div key={group.label} className="grid gap-1">
+                <div
                   className={cn(
-                    "flex min-h-[38px] w-full cursor-pointer list-none items-center rounded-lg border border-transparent px-3 text-left text-[0.9rem] transition-colors",
+                    "flex min-h-[38px] w-full items-center rounded-lg border border-transparent px-3 text-left text-[0.9rem]",
                     group.items.some((item) => item.active)
                       ? "border-[#c5d2c8] bg-[#e9efea] text-[#1f2b25]"
-                      : "text-[#4f5a54] hover:border-[#d6e0d8] hover:bg-[#eef3ef]",
+                      : "text-[#4f5a54]",
                     sidebarCollapsed ? "justify-center gap-0 px-2" : "gap-3",
                   )}
                 >
@@ -204,10 +207,10 @@ export function AdminShell({
                     <ChevronDown
                       size={16}
                       strokeWidth={1.9}
-                      className="ml-auto transition-transform group-open:rotate-180"
+                      className="ml-auto rotate-180 text-[#6f7a73]"
                     />
                   ) : null}
-                </summary>
+                </div>
                 {!sidebarCollapsed ? (
                   <div className="ml-4 grid gap-1 border-l border-[#d8e2da] pb-1 pl-4 pt-1">
                     {group.items.map((item) => (
@@ -238,7 +241,7 @@ export function AdminShell({
                     ))}
                   </div>
                 ) : null}
-              </details>
+              </div>
             ))}
           </div>
 
@@ -261,8 +264,8 @@ export function AdminShell({
         </div>
       </aside>
 
-      <main className="min-w-0 px-4 py-4 sm:px-5 sm:py-5 lg:px-8 lg:py-8">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#cfdbd2] bg-white px-3 py-3 shadow-[0_10px_30px_rgba(44,56,48,0.06)] sm:px-4">
+      <main className="min-w-0 px-4 py-4 sm:px-6 sm:py-5 lg:px-10 lg:py-8">
+        <div className="mb-5 flex w-full flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#cfdbd2] bg-white px-3 py-3 shadow-[0_10px_30px_rgba(44,56,48,0.06)] sm:px-4">
           <div className="flex min-w-0 items-center gap-2 text-sm text-[#4b5851]">
             <button
               type="button"
@@ -316,7 +319,9 @@ export function AdminShell({
             </form>
           </div>
         </div>
-        {children}
+        <div className="mx-auto w-full max-w-[1340px]">
+          {children}
+        </div>
       </main>
     </div>
   );

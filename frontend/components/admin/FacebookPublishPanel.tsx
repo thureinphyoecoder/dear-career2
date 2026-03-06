@@ -20,7 +20,7 @@ import {
   validateFacebookPublishFields,
   type FacebookPublishFieldErrors,
 } from "@/lib/admin-form-validation";
-import { buildFacebookPostMessage } from "@/lib/job-content";
+import { buildFacebookPostMessage, formatFacebookPostContent } from "@/lib/job-content";
 import { adminQueryKeys } from "@/lib/admin-query-keys";
 import { normalizeServerError } from "@/lib/form-validation";
 import type { Job } from "@/lib/types";
@@ -74,13 +74,13 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
     }
   }, [selectedJob, selectedJobDefaultMessage, messageDirty]);
   const publishMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (payload: { jobId: string; message: string }) => {
       const response = await fetch("/api/admin/proxy/jobs/admin/channels/facebook/publish", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          job_id: selectedJobId,
-          message,
+          job_id: payload.jobId,
+          message: payload.message,
         }),
       });
       if (response.redirected || response.url.includes("/admin/login")) {
@@ -145,9 +145,11 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
     event.preventDefault();
     setError("");
     setSuccess("");
+    const normalizedMessage = formatFacebookPostContent(message);
+    setMessage(normalizedMessage);
     const nextFieldErrors = validateFacebookPublishFields({
       selectedJobId,
-      message,
+      message: normalizedMessage,
     });
 
     if (Object.keys(nextFieldErrors).length > 0) {
@@ -163,7 +165,10 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
     setSubmitting(true);
     setLastAttemptAt(new Date().toLocaleTimeString());
     try {
-      await publishMutation.mutateAsync();
+      await publishMutation.mutateAsync({
+        jobId: selectedJobId,
+        message: normalizedMessage,
+      });
     } finally {
       setSubmitting(false);
     }
@@ -215,6 +220,12 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
                 setMessageDirty(true);
                 if (fieldErrors.message) {
                   setFieldErrors((current) => ({ ...current, message: "" }));
+                }
+              }}
+              onBlur={() => {
+                const normalized = formatFacebookPostContent(message);
+                if (normalized !== message) {
+                  setMessage(normalized);
                 }
               }}
               placeholder="Write the Facebook post content"

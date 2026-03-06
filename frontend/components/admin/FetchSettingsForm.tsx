@@ -42,7 +42,7 @@ export function FetchSettingsForm({
   const fieldLabelClass = "grid gap-2";
   const eyebrowClass = "text-xs uppercase tracking-[0.16em] text-[#8da693]";
   const selectClass =
-    "h-14 w-full rounded-[1.5rem] border border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.88)] px-4 text-sm text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-[#8da693]";
+    "h-14 w-full appearance-none rounded-[1.5rem] border border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.88)] bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath d='M3 5l4 4 4-4' fill='none' stroke='%235d6f61' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")] bg-[position:right_1rem_center] bg-no-repeat px-4 pr-10 text-sm text-foreground shadow-sm outline-none transition-colors focus:border-[#8da693] focus:ring-2 focus:ring-[rgba(141,166,147,0.26)]";
 
   async function saveSettings() {
     const nextErrors = validateFetchSettingsFields({
@@ -180,8 +180,8 @@ export function FetchSettingsForm({
                 value={cadenceUnit}
                 onChange={(event) => setCadenceUnit(event.target.value as FetchSettings["cadence_unit"])}
               >
-                <option value="minutes">Minutes</option>
-                <option value="hours">Hours</option>
+                <option className="bg-[#f7faf7] text-[#334039]" value="minutes">Minutes</option>
+                <option className="bg-[#f7faf7] text-[#334039]" value="hours">Hours</option>
               </select>
             </label>
             <label className={fieldLabelClass}>
@@ -202,8 +202,8 @@ export function FetchSettingsForm({
                 value={realtimeNotifications ? "enabled" : "disabled"}
                 onChange={(event) => setRealtimeNotifications(event.target.value === "enabled")}
               >
-                <option value="enabled">Enabled</option>
-                <option value="disabled">Disabled</option>
+                <option className="bg-[#f7faf7] text-[#334039]" value="enabled">Enabled</option>
+                <option className="bg-[#f7faf7] text-[#334039]" value="disabled">Disabled</option>
               </select>
             </label>
           </div>

@@ -6,6 +6,7 @@ import type { AdminDashboardSnapshot, FacebookPageCredential } from "@/lib/types
 
 type SidebarCounts = {
   publishedJobs: number;
+  draftedJobs: number;
   pendingApprovals: number;
 };
 
@@ -31,6 +32,7 @@ export const useAdminShellStore = create<AdminShellState>((set) => ({
   sidebarCollapsed: false,
   sidebarCounts: {
     publishedJobs: 0,
+    draftedJobs: 0,
     pendingApprovals: 0,
   },
   facebookProfile: null,
@@ -49,6 +51,7 @@ export const useAdminShellStore = create<AdminShellState>((set) => ({
       sidebarCounts: snapshot
         ? {
             publishedJobs: snapshot.published_jobs,
+            draftedJobs: snapshot.draft_jobs,
             pendingApprovals: snapshot.pending_approvals.length,
           }
         : state.sidebarCounts,

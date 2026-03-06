@@ -72,7 +72,6 @@ export function AdminJobsFilterForm({
           <option value="all">All statuses</option>
           <option value="published">Published</option>
           <option value="draft">Draft</option>
-          <option value="archived">Archived</option>
           <option value="pending-review">Pending review</option>
         </select>
         <div className="flex flex-wrap gap-2">
