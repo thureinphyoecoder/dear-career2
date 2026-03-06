@@ -6,16 +6,25 @@ const ADMIN_API_BASE_URL =
   process.env.DJANGO_ADMIN_API_BASE_URL ?? "http://127.0.0.1:8000/api";
 const ADMIN_PROXY_READ_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 4000 : 2000;
 const ADMIN_PROXY_WRITE_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 20000 : 20000;
+const ADMIN_PROXY_OCR_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 120000 : 120000;
+const ADMIN_PROXY_SCRAPE_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 45000 : 45000;
 
 function getProxyTimeoutMs(request: NextRequest, normalizedPath: string) {
+  if (normalizedPath.endsWith("jobs/ocr")) {
+    return ADMIN_PROXY_OCR_TIMEOUT_MS;
+  }
+
+  if (normalizedPath.endsWith("jobs/scrape")) {
+    return ADMIN_PROXY_SCRAPE_TIMEOUT_MS;
+  }
+
   if (request.method !== "GET" && request.method !== "HEAD") {
     return ADMIN_PROXY_WRITE_TIMEOUT_MS;
   }
 
   if (
     normalizedPath.endsWith("channels/facebook/posts") ||
-    normalizedPath.endsWith("channels/facebook/publish") ||
-    normalizedPath.endsWith("jobs/scrape")
+    normalizedPath.endsWith("channels/facebook/publish")
   ) {
     return ADMIN_PROXY_WRITE_TIMEOUT_MS;
   }

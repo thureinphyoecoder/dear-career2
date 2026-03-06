@@ -64,6 +64,7 @@ export function FacebookCredentialForm({
       return new Intl.DateTimeFormat("en", {
         dateStyle: "medium",
         timeStyle: "short",
+        timeZone: "Asia/Bangkok",
       }).format(new Date(value));
     } catch {
       return "";

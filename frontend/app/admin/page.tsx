@@ -13,6 +13,7 @@ function formatDateTime(value?: string) {
   return new Intl.DateTimeFormat("en-TH", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: "Asia/Bangkok",
   }).format(parsed);
 }
 

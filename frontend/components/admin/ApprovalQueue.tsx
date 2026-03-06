@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Check, Eye } from "lucide-react";
+import { Check } from "lucide-react";
 import { toast } from "sonner";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -28,6 +28,7 @@ function formatDate(value?: string) {
   return new Intl.DateTimeFormat("en-TH", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: "Asia/Bangkok",
   }).format(new Date(value));
 }
 
@@ -237,18 +238,6 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
                     </div>
                   </div>
                   <div className="relative z-10 flex w-full flex-wrap items-center justify-start gap-2 pointer-events-auto xl:w-auto xl:justify-end">
-                    <Link
-                      href={reviewHrefFor(job.id)}
-                      onClick={() => markViewed(job.id)}
-                      className={cn(
-                        buttonVariants({ variant: "secondary" }),
-                        "h-11 w-11 rounded-xl border-border/70 bg-white px-0 text-[#6f7b73] hover:bg-[#f3f7f4] hover:text-[#334039]",
-                      )}
-                      aria-label={`View ${job.title}`}
-                      title="View job"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Link>
                     <button
                       type="button"
                       className={cn(buttonVariants(), "w-full rounded-xl sm:w-auto sm:min-w-[188px]")}

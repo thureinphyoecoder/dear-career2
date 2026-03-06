@@ -106,6 +106,9 @@ export function AdminNotificationBell({
 
   useEffect(() => {
     const eventSource = new EventSource("/api/admin/proxy/jobs/admin/notifications/stream");
+    eventSource.onopen = () => {
+      setStreamError("");
+    };
     eventSource.addEventListener("notification", (event) => {
       const message = event as MessageEvent<string>;
       try {
@@ -123,7 +126,9 @@ export function AdminNotificationBell({
       }
     });
     eventSource.onerror = () => {
-      setStreamError("Live updates paused. Reconnecting...");
+      if (eventSource.readyState === EventSource.CONNECTING) {
+        setStreamError("Live updates paused. Reconnecting...");
+      }
     };
 
     return () => {

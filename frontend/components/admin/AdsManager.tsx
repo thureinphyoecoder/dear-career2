@@ -53,10 +53,22 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
   const [message, setMessage] = useState("");
   const [createErrors, setCreateErrors] = useState<AdFieldErrors>({});
   const [editErrors, setEditErrors] = useState<Record<number, AdFieldErrors>>({});
+  const [refreshing, setRefreshing] = useState(false);
+  const [placementFilter, setPlacementFilter] = useState<"all" | ManagedAdPlacement>("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | ManagedAdStatus>("all");
 
   const orderedAds = useMemo(
     () => Object.values(ads).sort((left, right) => left.sort_order - right.sort_order || left.id - right.id),
     [ads],
+  );
+  const visibleAds = useMemo(
+    () =>
+      orderedAds.filter((ad) => {
+        if (placementFilter !== "all" && ad.placement !== placementFilter) return false;
+        if (statusFilter !== "all" && ad.status !== statusFilter) return false;
+        return true;
+      }),
+    [orderedAds, placementFilter, statusFilter],
   );
 
   function updateAd(adId: number, patch: Partial<ManagedAd>) {
@@ -110,6 +122,26 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
       setError(createError instanceof Error ? createError.message : "Unable to create ad.");
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function refreshAds() {
+    setRefreshing(true);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch("/api/admin/proxy/jobs/admin/ads/");
+      if (!response.ok) {
+        const detail = await response.text();
+        throw new Error(normalizeServerError(detail, "Unable to load ads."));
+      }
+      const payload = (await response.json()) as { results: ManagedAd[] };
+      setAds(Object.fromEntries(payload.results.map((ad) => [ad.id, ad])));
+      setMessage("Ads reloaded.");
+    } catch (refreshError) {
+      setError(refreshError instanceof Error ? refreshError.message : "Unable to load ads.");
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -289,7 +321,51 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
       )}
 
       <section className="grid gap-4">
-        {orderedAds.map((ad) => {
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/70 bg-white p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              className="h-10 rounded-md border border-border/70 bg-white px-3 text-sm outline-none"
+              value={placementFilter}
+              onChange={(event) => setPlacementFilter(event.target.value as "all" | ManagedAdPlacement)}
+            >
+              <option value="all">All placements</option>
+              {placementOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <select
+              className="h-10 rounded-md border border-border/70 bg-white px-3 text-sm outline-none"
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value as "all" | ManagedAdStatus)}
+            >
+              <option value="all">All status</option>
+              {statusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            className={cn(buttonVariants({ variant: "secondary" }), "rounded-md")}
+            type="button"
+            onClick={() => void refreshAds()}
+            disabled={refreshing}
+          >
+            {refreshing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+            {refreshing ? "Refreshing..." : "Reload ads"}
+          </button>
+        </div>
+
+        {visibleAds.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border/70 bg-white p-6 text-sm text-[#727975]">
+            No ads found for current filters. Create a new ad or change filters.
+          </div>
+        ) : null}
+
+        {visibleAds.map((ad) => {
           const isOpen = openAdId === ad.id;
           const isSaving = savingId === ad.id;
           const fieldErrors = editErrors[ad.id] ?? {};

@@ -29,7 +29,14 @@ export default async function AdminJobsPage({ searchParams }: AdminJobsPageProps
           .filter(Boolean)
           .some((value) => value?.toLowerCase().includes(query.toLowerCase()))
       : true;
-    const matchesStatus = status === "all" ? true : (job.status ?? "published") === status;
+    const matchesStatus =
+      status === "all"
+        ? true
+        : status === "published"
+          ? (job.status ?? "published") === "published" &&
+            job.is_active !== false &&
+            job.requires_website_approval !== true
+          : (job.status ?? "published") === status;
     return matchesQuery && matchesStatus;
   });
   const totalPages = Math.max(1, Math.ceil(filteredJobs.length / PAGE_SIZE));

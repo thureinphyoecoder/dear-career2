@@ -12,7 +12,7 @@ import {
   PanelLeftOpen,
   Shield,
 } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { AdminNotificationBell } from "@/components/admin/AdminNotificationBell";
@@ -45,6 +45,8 @@ export function AdminShell({
   initialNotifications?: AdminNotification[];
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isPublishedView = pathname === "/admin/jobs" && searchParams?.get("status") === "published";
   const djangoAdminUrl =
     process.env.NEXT_PUBLIC_DJANGO_ADMIN_URL ?? "http://127.0.0.1:8000/admin/";
   const sidebarCollapsed = useAdminShellStore((state) => state.sidebarCollapsed);
@@ -102,13 +104,13 @@ export function AdminShell({
           href: "/admin/jobs",
           label: "Jobs",
           active:
-            pathname === "/admin/jobs" ||
+            (!isPublishedView && pathname === "/admin/jobs") ||
             (pathname?.startsWith("/admin/jobs/") && pathname !== "/admin/jobs/new"),
         },
         {
           href: "/admin/jobs?status=published",
           label: "Published",
-          active: false,
+          active: isPublishedView,
           badge: sidebarCounts.publishedJobs,
         },
         {

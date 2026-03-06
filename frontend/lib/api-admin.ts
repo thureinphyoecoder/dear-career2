@@ -23,6 +23,7 @@ function getAdminFetchOptions(): RequestInit {
   return {
     signal: AbortSignal.timeout(ADMIN_FETCH_TIMEOUT_MS),
     headers: getAdminApiHeaders(),
+    cache: "no-store",
     next: { revalidate: ADMIN_REVALIDATE_SECONDS },
   };
 }
@@ -261,7 +262,10 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
 
   const pendingApprovals = buildApprovalsFromJobs(jobs);
   const publishedJobs = jobs.filter(
-    (job) => (job.status ?? "published") === "published" && job.is_active !== false,
+    (job) =>
+      (job.status ?? "published") === "published" &&
+      job.is_active !== false &&
+      job.requires_website_approval !== true,
   ).length;
   const draftJobs = jobs.filter((job) => (job.status ?? "published") === "draft").length;
 

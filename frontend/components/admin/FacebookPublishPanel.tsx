@@ -1,8 +1,17 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import { AlertCircle, CheckCircle2, Send } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import {
+  AlertCircle,
+  Banknote,
+  BriefcaseBusiness,
+  CheckCircle2,
+  FileText,
+  SquarePen,
+  Send,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -21,6 +30,7 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
   const queryClient = useQueryClient();
   const [selectedJobId, setSelectedJobId] = useState<string>(jobs[0] ? String(jobs[0].id) : "");
   const [message, setMessage] = useState<string>(jobs[0] ? buildFacebookPostMessage(jobs[0]) : "");
+  const [messageDirty, setMessageDirty] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -31,6 +41,38 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
     () => jobs.find((job) => String(job.id) === selectedJobId) ?? null,
     [jobs, selectedJobId],
   );
+
+  const selectedJobDefaultMessage = useMemo(
+    () => (selectedJob ? buildFacebookPostMessage(selectedJob) : ""),
+    [selectedJob],
+  );
+
+  useEffect(() => {
+    if (jobs.length === 0) {
+      setSelectedJobId("");
+      setMessage("");
+      setMessageDirty(false);
+      return;
+    }
+
+    const selectedStillExists = jobs.some((job) => String(job.id) === selectedJobId);
+    if (!selectedStillExists) {
+      const firstJob = jobs[0];
+      setSelectedJobId(String(firstJob.id));
+      setMessage(buildFacebookPostMessage(firstJob));
+      setMessageDirty(false);
+    }
+  }, [jobs, selectedJobId]);
+
+  useEffect(() => {
+    if (!selectedJob) {
+      return;
+    }
+
+    if (!messageDirty) {
+      setMessage(selectedJobDefaultMessage);
+    }
+  }, [selectedJob, selectedJobDefaultMessage, messageDirty]);
   const publishMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch("/api/admin/proxy/jobs/admin/channels/facebook/publish", {
@@ -92,6 +134,7 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
     const nextJob = jobs.find((job) => String(job.id) === nextId);
     if (nextJob) {
       setMessage(buildFacebookPostMessage(nextJob));
+      setMessageDirty(false);
     }
     setError("");
     setSuccess("");
@@ -131,7 +174,10 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
       <CardContent className="grid gap-4 p-5">
         <form className="grid gap-4" onSubmit={handleSubmit}>
           <div className="grid gap-1">
-            <label className="text-[0.76rem] uppercase tracking-[0.16em] text-[#8da693]">Job</label>
+            <label className="inline-flex items-center gap-2 text-[0.76rem] uppercase tracking-[0.16em] text-[#8da693]">
+              <BriefcaseBusiness className="h-3.5 w-3.5" />
+              Job
+            </label>
             <select
               className={cn(
                 "h-11 rounded-xl border border-[rgba(160,183,164,0.24)] bg-white px-3 text-[0.95rem] text-[#334039] outline-none",
@@ -154,7 +200,10 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
           </div>
 
           <div className="grid gap-1">
-            <label className="text-[0.76rem] uppercase tracking-[0.16em] text-[#8da693]">Post</label>
+            <label className="inline-flex items-center gap-2 text-[0.76rem] uppercase tracking-[0.16em] text-[#8da693]">
+              <FileText className="h-3.5 w-3.5" />
+              Post
+            </label>
             <textarea
               className={cn(
                 "min-h-[180px] rounded-2xl border border-[rgba(160,183,164,0.24)] bg-white px-4 py-3 text-[0.95rem] leading-7 text-[#334039] outline-none",
@@ -163,6 +212,7 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
               value={message}
               onChange={(event) => {
                 setMessage(event.target.value);
+                setMessageDirty(true);
                 if (fieldErrors.message) {
                   setFieldErrors((current) => ({ ...current, message: "" }));
                 }
@@ -176,8 +226,33 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
           </div>
 
           {selectedJob ? (
-            <div className="text-[0.84rem] text-[#7a847e]">
-              Posting: <strong className="text-[#334039]">{selectedJob.title}</strong>
+            <div className="grid gap-2 text-[0.84rem] text-[#7a847e]">
+              <div>
+                Posting: <strong className="text-[#334039]">{selectedJob.title}</strong>
+              </div>
+              <div>
+                <Link
+                  href={`/admin/jobs/${selectedJob.id}?returnTo=${encodeURIComponent("/admin/facebook")}`}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(160,183,164,0.28)] bg-white px-2.5 py-1 text-[0.76rem] font-medium text-[#59665e] transition-colors hover:bg-[#f7faf7]"
+                >
+                  <SquarePen className="h-3.5 w-3.5" />
+                  Edit job details
+                </Link>
+              </div>
+              <div className="flex flex-wrap gap-2 text-[0.78rem]">
+                {selectedJob.employment_type ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(160,183,164,0.24)] bg-[rgba(244,248,245,0.9)] px-2.5 py-1 text-[#59665e]">
+                    <BriefcaseBusiness className="h-3.5 w-3.5" />
+                    {selectedJob.employment_type.replace(/-/g, " ")}
+                  </span>
+                ) : null}
+                {selectedJob.salary ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(160,183,164,0.24)] bg-[rgba(244,248,245,0.9)] px-2.5 py-1 text-[#59665e]">
+                    <Banknote className="h-3.5 w-3.5" />
+                    {selectedJob.salary}
+                  </span>
+                ) : null}
+              </div>
             </div>
           ) : null}
 
