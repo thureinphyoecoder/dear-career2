@@ -4,6 +4,7 @@ import { HeroParallaxScene } from "@/components/public/HeroParallaxScene";
 import { HeroSearchForm } from "@/components/public/HeroSearchForm";
 import { HeroPlants } from "@/components/public/HeroPlants";
 import { JobCard } from "@/components/public/JobCard";
+import { JobsParallaxScene } from "@/components/public/JobsParallaxScene";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getPublicJobs } from "@/lib/api-public";
@@ -68,7 +69,7 @@ export default async function PublicHomePage() {
                 description="A premium placement for employers who want one refined, high-visibility story at the top of the page."
                 ctaLabel="Book featured ad"
                 href="/jobs"
-                className="border border-[rgba(160,183,164,0.14)] bg-[linear-gradient(145deg,rgba(255,255,255,0.16),rgba(247,243,238,0.08))] shadow-none backdrop-blur-[2px]"
+                className="border border-[rgba(160,183,164,0.1)] bg-[linear-gradient(145deg,rgba(255,255,255,0.08),rgba(247,243,238,0.04))] shadow-none backdrop-blur-[1px]"
                 contentClassName="gap-2 p-4"
                 titleClassName="text-[1.18rem] leading-[1.05]"
                 descriptionClassName="text-[0.82rem] leading-5"
@@ -79,31 +80,33 @@ export default async function PublicHomePage() {
         </div>
       </HeroParallaxScene>
 
-      <section id="home-jobs-section" className="mx-auto max-w-6xl px-4 py-5 pb-20">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {jobItems.map((item) => {
-            if ("type" in item) {
+      <JobsParallaxScene fromHome>
+        <section id="home-jobs-section" className="mx-auto max-w-6xl px-4 py-5 pb-20">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {jobItems.map((item) => {
+              if ("type" in item) {
+                return (
+                  <div key="jobs-ad-slot">
+                    <AdCard
+                      compact
+                      title="Featured employer campaign"
+                      description="Mix sponsored placements into the listings feed without breaking the visual rhythm."
+                      ctaLabel="See rates"
+                      href="/jobs"
+                    />
+                  </div>
+                );
+              }
+
               return (
-                <div key="jobs-ad-slot">
-                  <AdCard
-                    compact
-                    title="Featured employer campaign"
-                    description="Mix sponsored placements into the listings feed without breaking the visual rhythm."
-                    ctaLabel="See rates"
-                    href="/jobs"
-                  />
+                <div key={item.id}>
+                  <JobCard job={item} />
                 </div>
               );
-            }
-
-            return (
-              <div key={item.id}>
-                <JobCard job={item} />
-              </div>
-            );
-          })}
-        </div>
-      </section>
+            })}
+          </div>
+        </section>
+      </JobsParallaxScene>
     </div>
   );
 }

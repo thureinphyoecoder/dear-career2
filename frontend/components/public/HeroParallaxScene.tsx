@@ -7,6 +7,7 @@ type ParallaxState = {
   dragX: number;
   dragY: number;
   scrollY: number;
+  exitProgress: number;
 };
 
 const DRAG_X_RANGE = 34;
@@ -25,7 +26,7 @@ export function HeroParallaxScene({
   id?: string;
 }) {
   const sceneRef = useRef<HTMLElement | null>(null);
-  const stateRef = useRef<ParallaxState>({ dragX: 0, dragY: 0, scrollY: 0 });
+  const stateRef = useRef<ParallaxState>({ dragX: 0, dragY: 0, scrollY: 0, exitProgress: 0 });
   const reducedMotionRef = useRef(false);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -35,10 +36,11 @@ export function HeroParallaxScene({
       return;
     }
 
-    const { dragX, dragY, scrollY } = stateRef.current;
+    const { dragX, dragY, scrollY, exitProgress } = stateRef.current;
     scene.style.setProperty("--hero-drag-x", `${dragX.toFixed(2)}px`);
     scene.style.setProperty("--hero-drag-y", `${dragY.toFixed(2)}px`);
     scene.style.setProperty("--hero-scroll-y", `${scrollY.toFixed(2)}px`);
+    scene.style.setProperty("--hero-exit-progress", exitProgress.toFixed(4));
   }, []);
 
   const updateScroll = useCallback(() => {
@@ -52,6 +54,7 @@ export function HeroParallaxScene({
     const rect = scene.getBoundingClientRect();
     const progress = clamp(-rect.top / Math.max(rect.height, 1), 0, 1);
     stateRef.current.scrollY = -progress * SCROLL_Y_RANGE;
+    stateRef.current.exitProgress = clamp(-rect.top / Math.max(rect.height * 0.72, 1), 0, 1);
     applyState();
   }, [applyState]);
 
@@ -74,6 +77,14 @@ export function HeroParallaxScene({
 
   const handlePointerDown = useCallback((event: React.PointerEvent<HTMLElement>) => {
     if (event.button !== 0 || reducedMotionRef.current) {
+      return;
+    }
+    const target = event.target as HTMLElement | null;
+    if (
+      target?.closest(
+        "button,a,input,textarea,select,option,label,[role='button'],[data-no-hero-drag='true']",
+      )
+    ) {
       return;
     }
 

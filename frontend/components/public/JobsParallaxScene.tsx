@@ -3,12 +3,6 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 
-import {
-  SproutBase,
-  SproutLeafLeft,
-  SproutLeafRight,
-  SproutStem,
-} from "@/components/public/HeroSproutParts";
 import { cn } from "@/lib/utils";
 
 const MAX_PROGRESS_SCROLL = 760;
@@ -35,16 +29,31 @@ export function JobsParallaxScene({ children, fromHome = false }: JobsParallaxSc
     if (reducedMotion) {
       scene.style.setProperty("--jobs-progress", "1");
       scene.style.setProperty("--jobs-parallax-y", "0px");
+      scene.style.setProperty("--jobs-base-progress", "1");
+      scene.style.setProperty("--jobs-stem-progress", "1");
+      scene.style.setProperty("--jobs-leaf-left-progress", "1");
+      scene.style.setProperty("--jobs-leaf-right-progress", "1");
       return;
     }
 
     const update = () => {
-      const scrollY = window.scrollY;
-      const progress = clamp(scrollY / MAX_PROGRESS_SCROLL, 0, 1);
-      const parallaxY = clamp(scrollY * 0.08, 0, 52);
+      const rect = scene.getBoundingClientRect();
+      const viewportHeight = Math.max(window.innerHeight, 1);
+      const normalizedEntry = clamp((viewportHeight - rect.top) / Math.max(viewportHeight + rect.height, 1), 0, 1);
+      const globalProgress = clamp(window.scrollY / MAX_PROGRESS_SCROLL, 0, 1);
+      const progress = clamp((normalizedEntry + globalProgress) * 0.56, 0, 1);
+      const parallaxY = clamp((viewportHeight - rect.top) * 0.09, 0, 56);
+      const baseProgress = clamp(progress / 0.28, 0, 1);
+      const stemProgress = clamp((progress - 0.1) / 0.28, 0, 1);
+      const leafLeftProgress = clamp((progress - 0.22) / 0.3, 0, 1);
+      const leafRightProgress = clamp((progress - 0.34) / 0.32, 0, 1);
 
       scene.style.setProperty("--jobs-progress", progress.toFixed(4));
       scene.style.setProperty("--jobs-parallax-y", `${parallaxY.toFixed(2)}px`);
+      scene.style.setProperty("--jobs-base-progress", baseProgress.toFixed(4));
+      scene.style.setProperty("--jobs-stem-progress", stemProgress.toFixed(4));
+      scene.style.setProperty("--jobs-leaf-left-progress", leafLeftProgress.toFixed(4));
+      scene.style.setProperty("--jobs-leaf-right-progress", leafRightProgress.toFixed(4));
     };
 
     update();
@@ -68,20 +77,6 @@ export function JobsParallaxScene({ children, fromHome = false }: JobsParallaxSc
           <div className="jobs-transition-orb jobs-transition-orb-right" />
           <div className="jobs-transition-curve jobs-transition-curve-left" />
           <div className="jobs-transition-curve jobs-transition-curve-right" />
-
-          <div className="jobs-transition-sprout jobs-transition-sprout-left">
-            <SproutBase className="jobs-transition-sprout-mark" />
-            <SproutStem className="jobs-transition-sprout-mark" />
-            <SproutLeafLeft className="jobs-transition-sprout-mark" />
-            <SproutLeafRight className="jobs-transition-sprout-mark" />
-          </div>
-
-          <div className="jobs-transition-sprout jobs-transition-sprout-right">
-            <SproutBase className="jobs-transition-sprout-mark" />
-            <SproutStem className="jobs-transition-sprout-mark" />
-            <SproutLeafLeft className="jobs-transition-sprout-mark" />
-            <SproutLeafRight className="jobs-transition-sprout-mark" />
-          </div>
         </div>
       ) : null}
 
