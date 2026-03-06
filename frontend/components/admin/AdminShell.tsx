@@ -5,7 +5,6 @@ import {
   CircleUserRound,
   BriefcaseBusiness,
   ChevronDown,
-  ChevronRight,
   LayoutDashboard,
   FolderKanban,
   LogOut,
@@ -48,17 +47,6 @@ export function AdminShell({
   const pathname = usePathname();
   const djangoAdminUrl =
     process.env.NEXT_PUBLIC_DJANGO_ADMIN_URL ?? "http://127.0.0.1:8000/admin/";
-  const breadcrumbSegments = pathname
-    .split("/")
-    .filter(Boolean)
-    .slice(1)
-    .map((segment, index, segments) => ({
-      label: segment
-        .replace(/-/g, " ")
-        .replace(/\b\w/g, (character) => character.toUpperCase()),
-      href: `/admin/${segments.slice(0, index + 1).join("/")}`,
-      isLast: index === segments.length - 1,
-    }));
   const sidebarCollapsed = useAdminShellStore((state) => state.sidebarCollapsed);
   const setSidebarCollapsed = useAdminShellStore((state) => state.setSidebarCollapsed);
   const sidebarCounts = useAdminShellStore((state) => state.sidebarCounts);
@@ -201,10 +189,10 @@ export function AdminShell({
               >
                 <summary
                   className={cn(
-                    "flex min-h-[38px] w-full cursor-pointer list-none items-center rounded-xl px-3 text-left text-[0.92rem] transition-colors hover:bg-[#eef3ef]",
+                    "flex min-h-[38px] w-full cursor-pointer list-none items-center rounded-lg border border-transparent px-3 text-left text-[0.9rem] transition-colors",
                     group.items.some((item) => item.active)
-                      ? "bg-[rgba(141,166,147,0.14)] text-[#294037]"
-                      : "text-[#465049]",
+                      ? "border-[#c5d2c8] bg-[#e9efea] text-[#1f2b25]"
+                      : "text-[#4f5a54] hover:border-[#d6e0d8] hover:bg-[#eef3ef]",
                     sidebarCollapsed ? "justify-center gap-0 px-2" : "gap-3",
                   )}
                 >
@@ -219,15 +207,15 @@ export function AdminShell({
                   ) : null}
                 </summary>
                 {!sidebarCollapsed ? (
-                  <div className="ml-4 grid gap-1 border-l border-border/70 pb-1 pl-4 pt-1">
+                  <div className="ml-4 grid gap-1 border-l border-[#d8e2da] pb-1 pl-4 pt-1">
                     {group.items.map((item) => (
                       <Link
                         key={item.href}
                         className={cn(
-                          "flex min-h-[34px] items-center justify-between gap-3 rounded-lg border-l-2 px-2.5 text-[0.88rem] transition-colors",
+                          "flex min-h-[34px] items-center justify-between gap-3 rounded-md px-2.5 text-[0.86rem] transition-colors",
                           item.active
-                            ? "border-[rgba(116,141,122,0.7)] bg-[rgba(141,166,147,0.1)] font-medium text-[#294037]"
-                            : "border-transparent text-[#7a847e] hover:text-[#465049]",
+                            ? "bg-[#e3ece5] font-semibold text-[#1f2b25] shadow-[inset_2px_0_0_#4e6758]"
+                            : "text-[#6d7871] hover:bg-[#edf2ee] hover:text-[#344039]",
                         )}
                         href={item.href}
                       >
@@ -237,8 +225,8 @@ export function AdminShell({
                             className={cn(
                               "inline-flex min-w-[1.7rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[0.72rem] font-semibold",
                               item.active
-                                ? "bg-[#7f9582] text-white"
-                                : "bg-[rgba(141,166,147,0.12)] text-[#5b6a62]",
+                                ? "bg-[#607868] text-white"
+                                : "bg-[#e5ede7] text-[#5b6a62]",
                             )}
                           >
                             {item.badge}
@@ -272,8 +260,8 @@ export function AdminShell({
       </aside>
 
       <main className="min-w-0 px-4 py-4 sm:px-5 sm:py-5 lg:px-8 lg:py-8">
-        <div className="mb-6 grid gap-3 rounded-2xl border border-[#cfdbd2] bg-white px-3 py-3 shadow-[0_10px_30px_rgba(44,56,48,0.06)] sm:px-4">
-          <div className="flex min-w-0 items-center gap-2 overflow-x-auto text-sm text-[#4b5851]">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#cfdbd2] bg-white px-3 py-3 shadow-[0_10px_30px_rgba(44,56,48,0.06)] sm:px-4">
+          <div className="flex min-w-0 items-center gap-2 text-sm text-[#4b5851]">
             <button
               type="button"
               aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -286,29 +274,9 @@ export function AdminShell({
                 <PanelLeftClose size={17} strokeWidth={1.9} />
               )}
             </button>
-            <Link
-              href="/admin"
-              className="shrink-0 rounded-lg px-1 py-1 font-medium text-[#26342d] transition-colors hover:text-[#1c2722]"
-            >
+            <Link href="/admin" className="shrink-0 rounded-lg px-1 py-1 font-medium text-[#26342d]">
               {title}
             </Link>
-            {breadcrumbSegments.map((segment, index) => (
-              <div key={segment.href} className="flex shrink-0 items-center gap-2">
-                <ChevronRight size={14} strokeWidth={1.9} className="text-[#8b9890]" />
-                <Link
-                  href={segment.href}
-                  className={cn(
-                    "rounded-lg px-2.5 py-1 text-[0.88rem] transition-colors",
-                    index > 1 && "hidden sm:inline-flex",
-                    segment.isLast
-                      ? "bg-[#edf3ee] text-[#2f3d35]"
-                      : "bg-[#f7faf8] text-[#58655e] hover:bg-[#edf3ee] hover:text-[#2e3d35]",
-                  )}
-                >
-                  {segment.label}
-                </Link>
-              </div>
-            ))}
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             {facebookProfile ? (

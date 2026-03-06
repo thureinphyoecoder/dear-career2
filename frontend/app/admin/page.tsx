@@ -1,85 +1,108 @@
 import Link from "next/link";
+import { Bell, Clock3, Database, FileClock, Globe, ShieldCheck } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAdminDashboardSnapshot } from "@/lib/api-admin";
 import { cn } from "@/lib/utils";
 
+function formatDateTime(value?: string) {
+  if (!value) return "Not available";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "Not available";
+  return new Intl.DateTimeFormat("en-TH", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(parsed);
+}
+
+const toneClassMap = {
+  info: "border-[rgba(123,148,167,0.26)] bg-[rgba(123,148,167,0.1)] text-[#4a6677]",
+  success: "border-[rgba(98,152,116,0.24)] bg-[rgba(98,152,116,0.1)] text-[#2f6341]",
+  warning: "border-[rgba(196,149,88,0.3)] bg-[rgba(196,149,88,0.12)] text-[#7a5b2f]",
+} as const;
+
 export default async function AdminDashboardPage() {
   const snapshot = await getAdminDashboardSnapshot();
-  const nextManualSource = snapshot.sources.find((source) => source.requires_manual_url);
-  const healthySources = snapshot.sources.filter((source) => source.status === "healthy").length;
-  const latestNotification = snapshot.notifications[0];
+  const visitorSummary = snapshot.visitor_summary;
+
   const statItems = [
-    ["Live jobs", snapshot.published_jobs],
-    ["Pending review", snapshot.pending_approvals.length],
-    ["Healthy sources", healthySources],
-    ["Visitors", snapshot.total_visitors],
-    ["Active ads", snapshot.active_ads],
+    {
+      label: "Live jobs",
+      value: snapshot.published_jobs,
+      detail: `${snapshot.total_jobs} total`,
+      icon: ShieldCheck,
+    },
+    {
+      label: "Pending approvals",
+      value: snapshot.pending_approvals.length,
+      detail: "Need review",
+      icon: FileClock,
+    },
+    {
+      label: "Sources",
+      value: snapshot.source_count,
+      detail: "Connected",
+      icon: Database,
+    },
+    {
+      label: "Visitors",
+      value: snapshot.total_visitors,
+      detail: `${visitorSummary?.today_visitors ?? 0} today`,
+      icon: Globe,
+    },
   ] as const;
 
   return (
-    <div className="grid max-w-none gap-6 xl:pr-6">
+    <div className="grid max-w-none gap-5 xl:pr-6">
       <header className="flex justify-end">
-        <div className="flex flex-wrap gap-2">
-          <Link href="/admin/jobs/new" className={cn(buttonVariants(), "rounded-md")}>
-            New job
-          </Link>
-          <Link
-            href="/admin/approvals"
-            className={cn(buttonVariants({ variant: "secondary" }), "rounded-md")}
-          >
-            Approvals
-          </Link>
-        </div>
+        <Link href="/admin/jobs/new" className={cn(buttonVariants(), "rounded-xl")}>
+          New job
+        </Link>
       </header>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        {statItems.map(([label, value]) => (
-          <Card
-            key={label}
-            className="rounded-2xl border-border/70 bg-white shadow-none"
-          >
-            <CardContent className="grid gap-1 p-5">
-              <strong className="text-[1.9rem] font-semibold leading-none text-[#334039]">{value}</strong>
-              <span className="text-[0.88rem] text-[#727975]">{label}</span>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {statItems.map((item) => (
+          <Card key={item.label} className="rounded-2xl border-border/70 bg-white shadow-none">
+            <CardContent className="grid gap-2 p-5">
+              <div className="inline-flex items-center justify-between gap-3 text-[#6a766f]">
+                <span className="text-[0.78rem] uppercase tracking-[0.12em]">{item.label}</span>
+                <item.icon className="h-4 w-4" />
+              </div>
+              <strong className="text-[2rem] font-semibold leading-none text-[#334039]">{item.value}</strong>
+              <span className="text-[0.86rem] text-[#727975]">{item.detail}</span>
             </CardContent>
           </Card>
         ))}
       </section>
 
-      <section className="grid gap-8 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.9fr)]">
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,1fr)]">
         <Card className="rounded-2xl border-border/70 bg-white shadow-none">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-            <CardTitle className="text-[1.02rem] font-semibold tracking-[-0.02em] text-foreground">
-              Pending approvals
-            </CardTitle>
-            <Link href="/admin/jobs" className="text-[0.88rem] text-[#7f9582]">
-              Jobs
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-[1rem] font-semibold text-foreground">Pending Approvals</CardTitle>
+            <Link href="/admin/approvals" className="text-sm text-[#6f876f] hover:underline">
+              Open queue
             </Link>
           </CardHeader>
           <CardContent className="grid gap-0 p-0">
             {snapshot.pending_approvals.length === 0 ? (
-              <p className="m-0 px-6 py-6 text-[0.92rem] text-[#727975]">No approvals waiting.</p>
+              <div className="px-6 py-8 text-sm text-[#6d7771]">No items waiting for approval.</div>
             ) : (
-              snapshot.pending_approvals.map((item) => (
+              snapshot.pending_approvals.slice(0, 8).map((item) => (
                 <div
                   key={item.id}
-                  className="flex flex-col gap-3 border-t border-border/60 px-6 py-4 first:border-t-0 sm:flex-row sm:items-center sm:justify-between"
+                  className="grid gap-1 border-t border-border/60 px-6 py-4 first:border-t-0"
                 >
-                  <div className="grid gap-1.5">
-                    <strong className="font-medium text-[#334039]">{item.title}</strong>
-                    <span className="text-[0.92rem] text-[#727975]">
-                      {item.company} · {item.source_label}
-                    </span>
-                  </div>
-                  <div className="grid gap-1 text-left sm:justify-items-end">
-                    <span className="text-[0.92rem] capitalize text-[#727975]">
+                  <strong className="font-medium text-[#334039]">{item.title}</strong>
+                  <span className="text-sm text-[#727975]">{item.company}</span>
+                  <div className="flex flex-wrap items-center gap-2 text-[0.8rem] text-[#7a847e]">
+                    <span className="rounded-full border border-[rgba(141,166,147,0.2)] px-2.5 py-0.5 uppercase tracking-[0.08em]">
                       {item.requested_action.replace("-", " ")}
                     </span>
-                    <Link href="/admin/jobs" className="text-[0.88rem] text-[#7f9582]">
-                      Review
-                    </Link>
+                    <span className="inline-flex items-center gap-1">
+                      <Clock3 className="h-3.5 w-3.5" />
+                      {formatDateTime(item.requested_at)}
+                    </span>
                   </div>
                 </div>
               ))
@@ -87,74 +110,42 @@ export default async function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        <div className="grid gap-6">
-          <Card className="rounded-2xl border-border/70 bg-white shadow-none">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-[1.02rem] font-semibold tracking-[-0.02em] text-foreground">
-                Sources
-              </CardTitle>
-              <Link href="/admin/sources" className="text-[0.88rem] text-[#7f9582]">
-                Open
-              </Link>
-            </CardHeader>
-            <CardContent className="grid gap-0">
-              {snapshot.sources.slice(0, 4).map((source) => (
-                <div
-                  key={source.id}
-                  className="flex flex-col gap-3 border-t border-border/60 py-4 first:border-t-0 first:pt-0 sm:flex-row sm:items-center sm:justify-between"
+        <Card className="rounded-2xl border-border/70 bg-white shadow-none">
+          <CardHeader className="pb-3">
+            <CardTitle className="inline-flex items-center gap-2 text-[1rem] font-semibold text-foreground">
+              <Bell className="h-4 w-4" />
+              Notifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            {snapshot.notifications.length === 0 ? (
+              <div className="rounded-xl border border-[rgba(160,183,164,0.16)] bg-[rgba(247,249,247,0.8)] px-4 py-6 text-sm text-[#6d7771]">
+                No notifications.
+              </div>
+            ) : (
+              snapshot.notifications.slice(0, 6).map((notification) => (
+                <article
+                  key={notification.id}
+                  className="grid gap-1 rounded-xl border border-border/60 bg-[rgba(250,252,250,0.92)] px-4 py-3"
                 >
-                  <div className="grid gap-1">
-                    <strong className="font-medium text-[#334039]">{source.label}</strong>
-                    <span className="text-[0.92rem] text-[#727975]">
-                      {source.requires_manual_url
-                        ? "Manual URL intake"
-                        : `Every ${source.cadence_value} ${source.cadence_unit}`}
-                    </span>
-                  </div>
-                  <div className="grid gap-1 text-left sm:justify-items-end">
+                  <div className="flex items-start justify-between gap-3">
+                    <strong className="text-sm text-[#334039]">{notification.title}</strong>
                     <span
                       className={cn(
-                        "inline-flex rounded-full border px-2.5 py-1 text-[0.68rem] uppercase tracking-[0.12em]",
-                        {
-                          "border-[rgba(76,145,118,0.22)] bg-[rgba(76,145,118,0.14)] text-[#246245]":
-                            source.status === "healthy",
-                          "border-[rgba(204,165,92,0.22)] bg-[rgba(204,165,92,0.16)] text-[#8a6120]":
-                            source.status === "warning",
-                          "border-[rgba(114,121,117,0.22)] bg-[rgba(114,121,117,0.16)] text-[#59605d]":
-                            source.status === "paused",
-                        },
+                        "rounded-full border px-2 py-0.5 text-[0.68rem] uppercase tracking-[0.1em]",
+                        toneClassMap[notification.tone],
                       )}
                     >
-                      {source.status}
+                      {notification.tone}
                     </span>
                   </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-4">
-            <Card className="rounded-2xl border-border/70 bg-white shadow-none">
-              <CardContent className="grid gap-1 p-5">
-                <strong className="font-medium text-[#334039]">
-                  {nextManualSource ? nextManualSource.label : "No manual source"}
-                </strong>
-                <span className="text-[0.9rem] text-[#727975]">Manual intake</span>
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-2xl border-border/70 bg-white shadow-none">
-              <CardContent className="grid gap-1 p-5">
-                <strong className="font-medium text-[#334039]">
-                  {latestNotification?.title ?? "No signal"}
-                </strong>
-                <span className="text-[0.9rem] text-[#727975]">
-                  {latestNotification?.detail ?? "No recent activity."}
-                </span>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                  <p className="m-0 text-sm leading-6 text-[#68726c]">{notification.detail}</p>
+                  <span className="text-[0.78rem] text-[#86918a]">{formatDateTime(notification.created_at)}</span>
+                </article>
+              ))
+            )}
+          </CardContent>
+        </Card>
       </section>
     </div>
   );
