@@ -245,6 +245,59 @@ class FeedbackMessage(models.Model):
         return f"{self.subject} · {self.email}"
 
 
+class JobReport(models.Model):
+    class StatusChoices(models.TextChoices):
+        OPEN = "open", "Open"
+        REVIEWED = "reviewed", "Reviewed"
+        RESOLVED = "resolved", "Resolved"
+
+    class ReasonChoices(models.TextChoices):
+        SCAM = "scam", "Scam / fake job"
+        INACCURATE = "inaccurate", "Inaccurate information"
+        EXPIRED = "expired", "Expired / closed role"
+        DUPLICATE = "duplicate", "Duplicate posting"
+        OTHER = "other", "Other"
+
+    job = models.ForeignKey(
+        Job,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reports",
+    )
+    job_title = models.CharField(max_length=255)
+    job_company = models.CharField(max_length=255, blank=True)
+    job_location = models.CharField(max_length=255, blank=True)
+    job_slug = models.SlugField(max_length=255, blank=True)
+    reporter_name = models.CharField(max_length=120, blank=True)
+    reporter_email = models.EmailField(blank=True)
+    reason = models.CharField(
+        max_length=32,
+        choices=ReasonChoices.choices,
+        default=ReasonChoices.OTHER,
+    )
+    message = models.TextField(blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=StatusChoices.choices,
+        default=StatusChoices.OPEN,
+    )
+    reviewed_at = models.DateTimeField(blank=True, null=True)
+    review_note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status"]),
+            models.Index(fields=["created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.job_title} · {self.reason}"
+
+
 class ChannelCredential(models.Model):
     class PlatformChoices(models.TextChoices):
         FACEBOOK = "facebook", "Facebook"
