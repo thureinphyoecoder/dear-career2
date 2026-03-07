@@ -16,7 +16,7 @@ import { getAdminApiHeaders } from "@/lib/admin-api-auth";
 
 const ADMIN_API_BASE_URL =
   process.env.DJANGO_ADMIN_API_BASE_URL ?? "http://127.0.0.1:8000/api";
-const ADMIN_FETCH_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 2500 : 1200;
+const ADMIN_FETCH_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 8000 : 1200;
 const ADMIN_REVALIDATE_SECONDS = process.env.NODE_ENV === "production" ? 15 : 5;
 
 function getAdminFetchOptions(): RequestInit {
