@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, BriefcaseBusiness, Clock3, Sparkles } from "lucide-react";
+import { BriefcaseBusiness, Clock3, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { JobCard } from "@/components/public/JobCard";
@@ -91,7 +91,6 @@ export function JobsInfiniteResults({
 }) {
   const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [showToTop, setShowToTop] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const sponsoredAd: SponsoredAdLike = inlineAd?.title &&
     inlineAd?.description &&
@@ -156,15 +155,6 @@ export function JobsInfiniteResults({
     observer.observe(sentinelRef.current);
     return () => observer.disconnect();
   }, [hasMore, loadMore]);
-
-  useEffect(() => {
-    const onScroll = () => {
-      setShowToTop(window.scrollY > 560);
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   if (!hasAnyJobs) {
     return (
@@ -261,17 +251,6 @@ export function JobsInfiniteResults({
           <span className="text-sm text-[#8a928d]">You reached the latest jobs.</span>
         )}
       </div>
-
-      {showToTop ? (
-        <button
-          type="button"
-          aria-label="Back to top"
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-6 right-6 z-30 inline-flex h-14 w-14 items-center justify-center rounded-full border border-[rgba(116,141,122,0.32)] bg-[rgba(255,255,255,0.98)] text-[#3e5345] shadow-[0_14px_34px_rgba(120,140,126,0.24)] transition-colors hover:bg-white sm:bottom-7 sm:right-8"
-        >
-          <ArrowUp className="h-5 w-5" />
-        </button>
-      ) : null}
     </>
   );
 }
