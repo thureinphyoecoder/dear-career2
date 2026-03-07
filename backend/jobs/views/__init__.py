@@ -9,6 +9,7 @@ from .jobs import (
     job_image_upload,
     job_list,
     job_scrape_preview,
+    public_job_detail,
 )
 from .notifications import (
     admin_notification_list,
@@ -51,6 +52,7 @@ __all__ = [
     "managed_ad_detail",
     "managed_ad_list",
     "public_active_ad_list",
+    "public_job_detail",
     "visitor_summary",
     "visitor_track",
 ]
