@@ -363,6 +363,42 @@ For Facebook publishing:
 - backend needs page credentials
 - frontend needs app credentials if using the connect flow
 
+### Docker Production Deploy
+
+The repo includes a production compose file that runs:
+
+- PostgreSQL
+- Django via `gunicorn`
+- Next.js via `next start`
+- Nginx on port `80`
+
+Files:
+
+- `docker-compose.prod.yml`
+- `backend/.env.production.example`
+- `frontend/.env.production.example`
+- `deploy/nginx/dear-career.conf`
+
+Quick deploy:
+
+```bash
+cp backend/.env.production.example backend/.env.production
+cp frontend/.env.production.example frontend/.env.production
+docker compose --env-file backend/.env.production -f docker-compose.prod.yml up -d --build
+```
+
+With the default production examples, the app is expected to be served from:
+
+- `http://dear.thureinphyo.com`
+
+The backend API is proxied by Nginx at:
+
+- `/api/jobs/`
+
+The Django admin is exposed by Nginx at:
+
+- `/django-admin/`
+
 ## Publishing Behavior
 
 - New job editor defaults to `published` status.
