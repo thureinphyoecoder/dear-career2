@@ -61,7 +61,7 @@ export async function createAdminSessionToken(username: string): Promise<string>
 
 export async function verifyAdminSessionToken(
   token: string | undefined,
-): Promise<{ valid: boolean; username?: string }> {
+): Promise<{ valid: boolean; username?: string; expiresAt?: number }> {
   if (!token || !isAdminAuthConfigured()) {
     return { valid: false };
   }
@@ -88,5 +88,36 @@ export async function verifyAdminSessionToken(
   return {
     valid: true,
     username: decodeURIComponent(encodedUsername),
+    expiresAt,
   };
+}
+
+export function parseAdminSessionToken(token: string | undefined): {
+  username: string;
+  expiresAt: number;
+} | null {
+  if (!token) {
+    return null;
+  }
+
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    return null;
+  }
+
+  const [encodedUsername, rawExpiresAt] = parts;
+  const expiresAt = Number(rawExpiresAt);
+
+  if (!Number.isFinite(expiresAt)) {
+    return null;
+  }
+
+  try {
+    return {
+      username: decodeURIComponent(encodedUsername),
+      expiresAt,
+    };
+  } catch {
+    return null;
+  }
 }

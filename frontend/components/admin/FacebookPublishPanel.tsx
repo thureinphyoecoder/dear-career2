@@ -23,10 +23,34 @@ import {
 import { buildFacebookPostMessage, formatFacebookPostContent } from "@/lib/job-content";
 import { adminQueryKeys } from "@/lib/admin-query-keys";
 import { normalizeServerError } from "@/lib/form-validation";
-import type { Job } from "@/lib/types";
+import type { FacebookPagePost, Job } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
+function normalizePostText(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function formatPostTimestamp(value?: string) {
+  if (!value) return "";
+
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "Asia/Bangkok",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+export function FacebookPublishPanel({
+  jobs,
+  posts,
+}: {
+  jobs: Job[];
+  posts: FacebookPagePost[];
+}) {
   const queryClient = useQueryClient();
   const [selectedJobId, setSelectedJobId] = useState<string>(jobs[0] ? String(jobs[0].id) : "");
   const [message, setMessage] = useState<string>(jobs[0] ? buildFacebookPostMessage(jobs[0]) : "");
@@ -46,6 +70,14 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
     () => (selectedJob ? buildFacebookPostMessage(selectedJob) : ""),
     [selectedJob],
   );
+  const duplicatePost = useMemo(() => {
+    const normalizedMessage = normalizePostText(message);
+    if (!normalizedMessage) {
+      return null;
+    }
+
+    return posts.find((post) => normalizePostText(post.message ?? "") === normalizedMessage) ?? null;
+  }, [message, posts]);
 
   useEffect(() => {
     if (jobs.length === 0) {
@@ -264,6 +296,19 @@ export function FacebookPublishPanel({ jobs }: { jobs: Job[] }) {
                   </span>
                 ) : null}
               </div>
+            </div>
+          ) : null}
+
+          {duplicatePost ? (
+            <div className="flex items-start gap-2 rounded-md border border-[rgba(169,97,111,0.22)] bg-[rgba(169,97,111,0.08)] px-3 py-2 text-sm text-[#8e4a4a]">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                Duplicate warning: the same post content already exists on the connected page
+                {duplicatePost.created_time
+                  ? ` (${formatPostTimestamp(duplicatePost.created_time)})`
+                  : ""}
+                .
+              </span>
             </div>
           ) : null}
 

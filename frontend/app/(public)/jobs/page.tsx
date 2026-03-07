@@ -157,6 +157,7 @@ export default async function PublicJobsPage({
           initialQuery={displayQuery}
           category={activeCategory}
           buttonLabel="Search"
+          liveSearch
           shellClassName="rounded-2xl border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.52)] p-2 sm:rounded-full"
           inputClassName="h-[50px] border-0 bg-transparent pr-3 text-sm shadow-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 sm:h-[52px] sm:pr-5"
           buttonClassName={cn(buttonVariants({ variant: "secondary" }), "h-[50px] px-4 sm:h-[52px] sm:px-5")}

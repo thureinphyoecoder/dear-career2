@@ -15,13 +15,31 @@ from .shared import create_admin_notification, load_json_body
 
 @csrf_exempt
 @require_admin_api_auth
-@require_http_methods(["GET", "PATCH"])
+@require_http_methods(["GET", "PATCH", "DELETE"])
 def facebook_channel_credential(request: HttpRequest):
     credential, _ = ChannelCredential.objects.get_or_create(
         platform=ChannelCredential.PlatformChoices.FACEBOOK
     )
 
     if request.method == "GET":
+        return JsonResponse(serialize_channel_credential(credential))
+
+    if request.method == "DELETE":
+        credential.account_name = ""
+        credential.page_id = ""
+        credential.access_token = ""
+        credential.profile_name = ""
+        credential.profile_image_url = ""
+        credential.save(
+            update_fields=[
+                "account_name",
+                "page_id",
+                "access_token",
+                "profile_name",
+                "profile_image_url",
+                "updated_at",
+            ]
+        )
         return JsonResponse(serialize_channel_credential(credential))
 
     try:

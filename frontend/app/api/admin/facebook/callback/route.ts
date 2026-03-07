@@ -23,6 +23,20 @@ type FacebookUserProfile = {
   };
 };
 
+async function verifyPageFeedAccess(pageId: string, accessToken: string) {
+  const verifyUrl = new URL(`${GRAPH_API_BASE}/${pageId}/feed`);
+  verifyUrl.searchParams.set("fields", "id");
+  verifyUrl.searchParams.set("limit", "1");
+  verifyUrl.searchParams.set("access_token", accessToken);
+
+  try {
+    await fetchJson<{ data?: Array<{ id: string }> }>(verifyUrl);
+    return "";
+  } catch (error) {
+    return error instanceof Error ? error.message : "facebook-feed-check-failed";
+  }
+}
+
 function getFacebookAppId() {
   return process.env.FACEBOOK_APP_ID ?? "";
 }
@@ -69,6 +83,7 @@ export async function GET(request: NextRequest) {
   const returnedState = request.nextUrl.searchParams.get("state") ?? "";
   const code = request.nextUrl.searchParams.get("code") ?? "";
   const oauthError = request.nextUrl.searchParams.get("error");
+  const grantedScopes = request.nextUrl.searchParams.get("granted_scopes") ?? "";
 
   if (oauthError) {
     return NextResponse.redirect(new URL("/admin/facebook?error=facebook-denied", request.url));
@@ -134,7 +149,26 @@ export async function GET(request: NextRequest) {
       throw new Error("Facebook page credential could not be saved.");
     }
 
-    const response = NextResponse.redirect(new URL("/admin/facebook?connected=1", request.url));
+    const target = new URL("/admin/facebook?connected=1", request.url);
+    const requiredScopes = ["pages_show_list", "pages_manage_posts", "pages_read_engagement"];
+    const grantedScopeSet = new Set(
+      grantedScopes
+        .split(",")
+        .map((scope) => scope.trim())
+        .filter(Boolean),
+    );
+    const missingScopes = requiredScopes.filter((scope) => !grantedScopeSet.has(scope));
+    if (missingScopes.length > 0) {
+      target.searchParams.set("warning", `Missing Facebook permissions: ${missingScopes.join(", ")}`);
+    } else {
+      const feedCheckError = await verifyPageFeedAccess(selectedPage.id, selectedPage.access_token);
+      if (feedCheckError) {
+        target.searchParams.set("warning", feedCheckError);
+      }
+    }
+
+    const response = NextResponse.redirect(target, 303);
+    response.headers.set("cache-control", "no-store");
     response.cookies.set({
       name: FACEBOOK_STATE_COOKIE,
       value: "",
@@ -152,7 +186,8 @@ export async function GET(request: NextRequest) {
       "error",
       error instanceof Error && error.message ? error.message : "facebook-connect-failed",
     );
-    const response = NextResponse.redirect(target);
+    const response = NextResponse.redirect(target, 303);
+    response.headers.set("cache-control", "no-store");
     response.cookies.set({
       name: FACEBOOK_STATE_COOKIE,
       value: "",

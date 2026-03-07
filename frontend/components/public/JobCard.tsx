@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { extractJobSummary } from "@/lib/job-content";
 import { cn } from "@/lib/utils";
 import type { Job } from "@/lib/types";
+import { PublicJobImage } from "@/components/public/PublicJobImage";
 
 const categoryLabelMap = {
   ngo: "NGO",
@@ -69,16 +70,15 @@ export function JobCard({ job }: { job: Job }) {
         )}
       />
       <CardContent className="relative grid h-full gap-4 p-5 pt-5">
-        {displayImageUrl ? (
-          <div className="overflow-hidden rounded-[1.2rem] border border-[rgba(160,183,164,0.16)] bg-[rgba(247,243,236,0.42)]">
-            <img
-              src={displayImageUrl}
-              alt={job.title}
-              className="aspect-[16/10] w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-              loading="lazy"
-            />
-          </div>
-        ) : null}
+        <PublicJobImage
+          src={displayImageUrl}
+          title={job.title}
+          company={job.company}
+          alt={job.title}
+          wrapperClassName="rounded-[1.2rem] border border-[rgba(160,183,164,0.16)] bg-[rgba(247,243,236,0.42)]"
+          imageClassName="aspect-[16/10] w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+          fallbackClassName="aspect-[16/10] p-6"
+        />
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">{categoryLabelMap[job.category]}</Badge>

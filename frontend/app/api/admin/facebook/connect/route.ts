@@ -32,8 +32,10 @@ export async function GET(request: NextRequest) {
   oauthUrl.searchParams.set("state", state);
   oauthUrl.searchParams.set("scope", FACEBOOK_OAUTH_SCOPES);
   oauthUrl.searchParams.set("auth_type", "rerequest");
+  oauthUrl.searchParams.set("return_scopes", "true");
 
   const response = NextResponse.redirect(oauthUrl);
+  response.headers.set("cache-control", "no-store");
   response.cookies.set({
     name: FACEBOOK_STATE_COOKIE,
     value: state,

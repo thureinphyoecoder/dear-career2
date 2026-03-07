@@ -1,11 +1,16 @@
 """Publishing helpers for downstream channels."""
 
 import json
+import re
 
 from django.conf import settings
 
 from jobs.content import build_facebook_post_message
 from jobs.models import ChannelCredential, Job
+
+
+def _normalize_post_text(value: str) -> str:
+    return re.sub(r"\s+", " ", (value or "").strip()).casefold()
 
 
 def publish_job(job: Job, *, channel: str = "website", message: str = "") -> dict:
@@ -52,6 +57,42 @@ def publish_job(job: Job, *, channel: str = "website", message: str = "") -> dic
                 "channel": channel,
                 "reason": "facebook post content is empty",
             }
+
+        if job.is_fb_posted and job.fb_post_id:
+            return {
+                "job_id": job.id,
+                "published": False,
+                "channel": channel,
+                "reason": f"duplicate facebook post detected: this job was already posted as {job.fb_post_id}",
+            }
+
+        normalized_message = _normalize_post_text(post_message)
+
+        try:
+            duplicate_response = requests.get(
+                f"https://graph.facebook.com/v23.0/{page_id}/feed",
+                params={
+                    "fields": "message,created_time",
+                    "limit": 25,
+                    "access_token": access_token,
+                },
+                timeout=15,
+            )
+            if duplicate_response.ok:
+                duplicate_payload = duplicate_response.json()
+                for item in duplicate_payload.get("data", []):
+                    existing_message = _normalize_post_text(str(item.get("message", "")))
+                    if existing_message and existing_message == normalized_message:
+                        created_time = str(item.get("created_time", "")).strip()
+                        duplicate_suffix = f" on {created_time}" if created_time else ""
+                        return {
+                            "job_id": job.id,
+                            "published": False,
+                            "channel": channel,
+                            "reason": f"duplicate facebook post detected: the same content already exists{duplicate_suffix}",
+                        }
+        except requests.RequestException:
+            pass
 
         try:
             response = requests.post(

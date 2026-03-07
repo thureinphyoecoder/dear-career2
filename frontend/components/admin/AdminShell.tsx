@@ -166,6 +166,11 @@ export function AdminShell({
     },
   ];
 
+  const activeNavItem =
+    navGroups.flatMap((group) => group.items).find((item) => item.active) ??
+    navGroups[0]?.items[0];
+  const headerLabel = activeNavItem?.label ?? title;
+
   return (
     <div
       className={cn(
@@ -279,9 +284,15 @@ export function AdminShell({
                 <PanelLeftClose size={17} strokeWidth={1.9} />
               )}
             </button>
-            <Link href="/admin" className="shrink-0 rounded-lg px-1 py-1 font-medium text-[#26342d]">
-              {title}
-            </Link>
+            <div className="flex min-w-0 items-center gap-2">
+              <Link href="/admin" className="shrink-0 rounded-lg px-1 py-1 font-medium text-[#7a847e]">
+                {title}
+              </Link>
+              <span className="text-[#a1aca5]">/</span>
+              <span className="truncate rounded-lg px-1 py-1 font-semibold text-[#26342d]">
+                {headerLabel}
+              </span>
+            </div>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             {facebookProfile ? (

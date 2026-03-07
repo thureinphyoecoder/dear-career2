@@ -21,6 +21,7 @@ import { AdCard } from "@/components/public/AdCard";
 import { JobReportModalTrigger } from "@/components/public/JobReportModalTrigger";
 import { RouteTransitionReset } from "@/components/public/RouteTransitionReset";
 import { Badge } from "@/components/ui/badge";
+import { PublicJobImage } from "@/components/public/PublicJobImage";
 import { getJobBySlug, getPublicAds } from "@/lib/api-public";
 import { extractJobSummary, getJobDescription, parseJobDescription } from "@/lib/job-content";
 import { absoluteUrl, truncateForMeta } from "@/lib/seo";
@@ -228,11 +229,15 @@ export default async function PublicJobDetailPage({
             </span>
           </div>
 
-          {displayImageUrl ? (
-            <div className="overflow-hidden rounded-[1.6rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(247,243,236,0.46)] shadow-[0_14px_30px_rgba(132,151,138,0.12)]">
-              <img src={displayImageUrl} alt={job.title} className="aspect-[16/9] w-full object-cover" />
-            </div>
-          ) : null}
+          <PublicJobImage
+            src={displayImageUrl}
+            title={job.title}
+            company={job.company}
+            alt={job.title}
+            wrapperClassName="rounded-[1.6rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(247,243,236,0.46)] shadow-[0_14px_30px_rgba(132,151,138,0.12)]"
+            imageClassName="aspect-[16/9] w-full object-cover"
+            fallbackClassName="aspect-[16/9] p-8"
+          />
 
           {contactEmail || contactPhone ? (
             <div className="grid gap-2 rounded-2xl border border-[rgba(160,183,164,0.16)] bg-[rgba(247,243,236,0.56)] p-4">

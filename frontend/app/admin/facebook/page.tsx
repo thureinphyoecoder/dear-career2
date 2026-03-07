@@ -1,11 +1,17 @@
 import { FacebookCredentialForm } from "@/components/admin/FacebookCredentialForm";
+import { cookies } from "next/headers";
 import { getAdminJobs, getFacebookCredential, getFacebookPagePostsState } from "@/lib/api-admin";
+import { ADMIN_SESSION_COOKIE, parseAdminSessionToken } from "@/lib/admin-auth";
 
 export default async function AdminFacebookPage({
   searchParams,
 }: {
-  searchParams: Promise<{ connected?: string; error?: string }>;
+  searchParams: Promise<{ connected?: string; disconnected?: string; error?: string; warning?: string }>;
 }) {
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
+  const adminSession = parseAdminSessionToken(sessionToken);
+  const sessionSnapshotAt = Date.now();
   const [credential, postsState, jobs] = await Promise.all([
     getFacebookCredential(),
     getFacebookPagePostsState(),
@@ -32,8 +38,12 @@ export default async function AdminFacebookPage({
         posts={postsState.posts}
         postsError={postsState.error}
         oauthConnected={params.connected === "1"}
+        disconnected={params.disconnected === "1"}
         oauthError={params.error}
+        oauthWarning={params.warning}
         missingConfig={missingConfig}
+        sessionExpiresAt={adminSession?.expiresAt}
+        sessionSnapshotAt={sessionSnapshotAt}
       />
     </div>
   );
