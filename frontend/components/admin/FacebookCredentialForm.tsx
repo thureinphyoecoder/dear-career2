@@ -184,6 +184,13 @@ export function FacebookCredentialForm({
     }
   }
 
+  function formatConfigLabel(value: string) {
+    if (value === "FACEBOOK_APP_ID") return "Facebook App ID";
+    if (value === "FACEBOOK_APP_SECRET") return "Facebook App Secret";
+    if (value === "NEXT_PUBLIC_APP_URL") return "App URL";
+    return value.replace(/_/g, " ");
+  }
+
   function handleDisconnect() {
     setDisconnectError("");
     startDisconnectTransition(async () => {
@@ -289,8 +296,9 @@ export function FacebookCredentialForm({
             <div className="flex items-start gap-2 rounded-md border border-[rgba(169,97,111,0.22)] bg-[rgba(169,97,111,0.08)] px-3 py-2 text-sm text-[#8e4a4a]">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                Facebook connect is not ready yet. Add these vars to `frontend/.env.local`:{" "}
-                <strong>{missingConfig.join(", ")}</strong>
+                Facebook connection is not available yet because required server settings are missing:
+                {" "}
+                <strong>{missingConfig.map(formatConfigLabel).join(", ")}</strong>
               </span>
             </div>
           ) : null}
@@ -338,7 +346,18 @@ export function FacebookCredentialForm({
         </CardContent>
       </Card>
 
-      <FacebookPublishPanel jobs={jobs} posts={posts} />
+      <FacebookPublishPanel
+        jobs={jobs}
+        posts={posts}
+        canPublish={hasConnectedPage && oauthReady}
+        publishDisabledReason={
+          !oauthReady
+            ? "Complete the Facebook server settings before connecting a page."
+            : !hasConnectedPage
+              ? "Connect a Facebook page to enable posting."
+              : ""
+        }
+      />
 
       <Card className="border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.92)] shadow-none">
         <CardContent className="grid gap-0 p-0">

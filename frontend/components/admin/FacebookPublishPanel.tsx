@@ -47,9 +47,13 @@ function formatPostTimestamp(value?: string) {
 export function FacebookPublishPanel({
   jobs,
   posts,
+  canPublish = true,
+  publishDisabledReason = "",
 }: {
   jobs: Job[];
   posts: FacebookPagePost[];
+  canPublish?: boolean;
+  publishDisabledReason?: string;
 }) {
   const queryClient = useQueryClient();
   const [selectedJobId, setSelectedJobId] = useState<string>(jobs[0] ? String(jobs[0].id) : "");
@@ -177,6 +181,14 @@ export function FacebookPublishPanel({
     event.preventDefault();
     setError("");
     setSuccess("");
+
+    if (!canPublish) {
+      const nextError = publishDisabledReason || "Connect a Facebook page before posting.";
+      setError(nextError);
+      toast.error(nextError);
+      return;
+    }
+
     const normalizedMessage = formatFacebookPostContent(message);
     setMessage(normalizedMessage);
     const nextFieldErrors = validateFacebookPublishFields({
@@ -219,10 +231,12 @@ export function FacebookPublishPanel({
               className={cn(
                 "h-11 rounded-xl border border-[rgba(160,183,164,0.24)] bg-white px-3 text-[0.95rem] text-[#334039] outline-none",
                 fieldErrors.selectedJobId && "border-[rgba(169,97,111,0.34)] shadow-[0_0_0_3px_rgba(169,97,111,0.1)]",
+                !canPublish && "cursor-not-allowed opacity-60",
               )}
               value={selectedJobId}
               onChange={(event) => handleJobChange(event.target.value)}
               aria-invalid={Boolean(fieldErrors.selectedJobId)}
+              disabled={!canPublish}
             >
               <option value="">Choose a job</option>
               {jobs.map((job) => (
@@ -245,6 +259,7 @@ export function FacebookPublishPanel({
               className={cn(
                 "min-h-[180px] rounded-2xl border border-[rgba(160,183,164,0.24)] bg-white px-4 py-3 text-[0.95rem] leading-7 text-[#334039] outline-none",
                 fieldErrors.message && "border-[rgba(169,97,111,0.34)] shadow-[0_0_0_3px_rgba(169,97,111,0.1)]",
+                !canPublish && "cursor-not-allowed opacity-60",
               )}
               value={message}
               onChange={(event) => {
@@ -262,6 +277,7 @@ export function FacebookPublishPanel({
               }}
               placeholder="Write the Facebook post content"
               aria-invalid={Boolean(fieldErrors.message)}
+              disabled={!canPublish}
             />
             {fieldErrors.message ? (
               <span className="text-sm text-[#8e4a4a]">{fieldErrors.message}</span>
@@ -312,6 +328,13 @@ export function FacebookPublishPanel({
             </div>
           ) : null}
 
+          {!canPublish && publishDisabledReason ? (
+            <div className="flex items-start gap-2 rounded-md border border-[rgba(188,145,74,0.24)] bg-[rgba(188,145,74,0.1)] px-3 py-2 text-sm text-[#7b5d22]">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{publishDisabledReason}</span>
+            </div>
+          ) : null}
+
           {error ? (
             <div className="flex items-start gap-2 rounded-md border border-[rgba(169,97,111,0.22)] bg-[rgba(169,97,111,0.08)] px-3 py-2 text-sm text-[#8e4a4a]">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -340,7 +363,7 @@ export function FacebookPublishPanel({
             <button
               type="submit"
               className={cn(buttonVariants(), "rounded-xl")}
-              disabled={submitting || !selectedJobId}
+              disabled={submitting || !selectedJobId || !canPublish}
             >
               <Send className="h-4 w-4" />
               {submitting ? "Posting..." : "Post to Facebook"}

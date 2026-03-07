@@ -21,10 +21,12 @@ export function normalizeServerError(detail: string, fallback: string) {
     return message || fallback;
   } catch {
     const normalized = trimmed.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    const lower = trimmed.toLowerCase();
     if (
       normalized.includes("APPEND_SLASH") ||
       normalized.includes("trailing slash") ||
-      normalized.includes("<!DOCTYPE html>") ||
+      lower.includes("<!doctype html>") ||
+      lower.includes("<html") ||
       normalized.includes("Traceback") ||
       normalized.includes("RuntimeError at")
     ) {
