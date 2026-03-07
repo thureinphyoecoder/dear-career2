@@ -137,7 +137,7 @@ For admin session/login in Docker, `frontend/.env.docker` also includes:
 ```env
 ADMIN_DASHBOARD_USERNAME=admin
 ADMIN_DASHBOARD_PASSWORD=
-ADMIN_DASHBOARD_PASSWORD_HASH=...
+ADMIN_DASHBOARD_PASSWORD_HASH=pbkdf2_sha256$...
 ADMIN_SESSION_SECRET=replace-with-a-long-random-secret
 ADMIN_SESSION_DURATION_HOURS=12
 ```

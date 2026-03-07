@@ -1,7 +1,6 @@
 import { pbkdf2Sync, timingSafeEqual } from "node:crypto";
 
 const HASH_PREFIX = "pbkdf2_sha256";
-const DEV_FALLBACK_PASSWORD = "admin123";
 
 function safeCompare(left: string, right: string): boolean {
   const leftBuffer = Buffer.from(left);
@@ -19,10 +18,7 @@ function getConfiguredPasswordHash(): string {
 }
 
 function getConfiguredPassword(): string {
-  return (
-    process.env.ADMIN_DASHBOARD_PASSWORD ||
-    (process.env.NODE_ENV === "production" ? "" : DEV_FALLBACK_PASSWORD)
-  );
+  return process.env.ADMIN_DASHBOARD_PASSWORD || "";
 }
 
 export function isAdminPasswordConfigured(): boolean {
@@ -30,10 +26,6 @@ export function isAdminPasswordConfigured(): boolean {
 }
 
 export function verifyAdminPassword(candidate: string): boolean {
-  if (process.env.NODE_ENV !== "production" && candidate === DEV_FALLBACK_PASSWORD) {
-    return true;
-  }
-
   const passwordHash = getConfiguredPasswordHash();
 
   if (passwordHash) {
