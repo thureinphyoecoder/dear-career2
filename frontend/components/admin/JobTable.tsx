@@ -46,13 +46,13 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
 
       if (!response.ok) {
         const detail = await response.text();
-        throw new Error(detail || "Unable to delete job.");
+        throw new Error(detail || "Could not remove this job.");
       }
 
       setJobRows((current) => current.filter((job) => job.id !== pendingDeleteJob.id));
-      toast.success(`Deleted ${pendingDeleteJob.title}.`);
+      toast.success(`Removed ${pendingDeleteJob.title}.`);
     } catch (error) {
-      const nextError = error instanceof Error ? error.message : "Unable to delete job.";
+      const nextError = error instanceof Error ? error.message : "Could not remove this job.";
       setActionError(nextError);
       toast.error(nextError);
     } finally {
@@ -78,16 +78,16 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
 
       if (!response.ok) {
         const detail = await response.text();
-        throw new Error(detail || "Unable to publish job.");
+        throw new Error(detail || "Could not make this job live.");
       }
 
       const updated = (await response.json()) as Job;
       setJobRows((current) =>
         current.map((row) => (row.id === updated.id ? updated : row)),
       );
-      toast.success(`Published + Facebook queued for ${updated.title}.`);
+      toast.success(`${updated.title} is now live and ready for Facebook posting.`);
     } catch (error) {
-      const nextError = error instanceof Error ? error.message : "Unable to publish job.";
+      const nextError = error instanceof Error ? error.message : "Could not make this job live.";
       setActionError(nextError);
       toast.error(nextError);
     } finally {
@@ -110,8 +110,8 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
               <tr>
                 <th className="border-b border-border/70 px-5 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Role</th>
                 <th className="border-b border-border/70 px-5 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Category</th>
-                <th className="border-b border-border/70 px-5 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Source</th>
-                <th className="border-b border-border/70 px-5 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Status</th>
+                <th className="border-b border-border/70 px-5 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Added from</th>
+                <th className="border-b border-border/70 px-5 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Job stage</th>
                 <th className="border-b border-border/70 px-5 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Updated</th>
                 <th className="border-b border-border/70 px-5 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]" />
               </tr>
@@ -120,7 +120,7 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
             {jobRows.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-5 py-8 text-[0.92rem] text-[#727975]">
-                  No jobs yet. Create a listing or queue a fetch source first.
+                  No jobs yet. Add one yourself or bring one in from a job link.
                 </td>
               </tr>
             ) : (
@@ -135,7 +135,7 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
                     </div>
                   </td>
                   <td className="border-b border-border/60 px-5 py-4 align-top capitalize">{formatCategory(job.category)}</td>
-                  <td className="border-b border-border/60 px-5 py-4 align-top">{job.source || "manual"}</td>
+                  <td className="border-b border-border/60 px-5 py-4 align-top">{job.source || "Added by hand"}</td>
                   <td className="border-b border-border/60 px-5 py-4 align-top">
                     <StatusPill status={job.status ?? "published"} />
                   </td>
@@ -151,7 +151,7 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
                         >
                           <Upload className="h-4 w-4" />
                           <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-[#334039] px-2 py-1 text-[0.72rem] text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
-                            {publishingId === job.id ? "Publishing" : "Publish + Post"}
+                            {publishingId === job.id ? "Making live" : "Make live"}
                           </span>
                         </button>
                       ) : null}
@@ -163,7 +163,7 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
                       >
                         <PencilLine className="h-4 w-4" />
                         <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-[#334039] px-2 py-1 text-[0.72rem] text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
-                          Edit
+                          Open
                         </span>
                       </Link>
                       <button
@@ -174,7 +174,7 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
                       >
                         <Trash2 className="h-4 w-4" />
                         <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded-md bg-[#334039] px-2 py-1 text-[0.72rem] text-white opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
-                          {deletingId === job.id ? "Deleting" : "Delete"}
+                          {deletingId === job.id ? "Removing" : "Remove"}
                         </span>
                       </button>
                     </div>
@@ -188,13 +188,13 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
       </Card>
       <ConfirmModal
         open={Boolean(pendingDeleteJob)}
-        title="Delete job"
+        title="Remove job"
         description={
           pendingDeleteJob
-            ? `This will permanently remove "${pendingDeleteJob.title}" from the admin list.`
+            ? `This will permanently remove "${pendingDeleteJob.title}" from your job list.`
             : ""
         }
-        confirmLabel="Delete"
+        confirmLabel="Remove"
         isLoading={Boolean(pendingDeleteJob && deletingId === pendingDeleteJob.id)}
         onConfirm={() => void deleteJob()}
         onCancel={() => {

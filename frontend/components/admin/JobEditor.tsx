@@ -29,10 +29,10 @@ const categoryOptions: Array<{ value: JobCategory; label: string }> = [
 ];
 
 const statusOptions: Array<{ value: JobStatus; label: string }> = [
-  { value: "draft", label: "Draft" },
-  { value: "published", label: "Published" },
-  { value: "archived", label: "Archived" },
-  { value: "pending-review", label: "Pending review" },
+  { value: "draft", label: "Not live yet" },
+  { value: "published", label: "Live on website" },
+  { value: "archived", label: "Hidden" },
+  { value: "pending-review", label: "Needs review" },
 ];
 
 const employmentTypeOptions = [
@@ -49,9 +49,9 @@ const OCR_UPLOAD_TARGET_BYTES = 1_200_000;
 const OCR_UPLOAD_START_QUALITY = 0.88;
 const OCR_UPLOAD_MIN_QUALITY = 0.62;
 const OCR_MODE_OPTIONS = [
-  { value: "fast", label: "Fast OCR (quick draft)" },
-  { value: "balanced", label: "Balanced OCR" },
-  { value: "accurate", label: "Accurate OCR (best quality)" },
+  { value: "fast", label: "Quick read" },
+  { value: "balanced", label: "Balanced" },
+  { value: "accurate", label: "Best quality" },
 ] as const;
 const STRUCTURED_DESCRIPTION_TEMPLATE = `Website: yourcompany.com
 Instagram: @yourbrand
@@ -93,7 +93,7 @@ function normalizeErrorDetail(detail: string) {
   } catch {
     const normalized = trimmed.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
     if (normalized.includes("APPEND_SLASH") || normalized.includes("trailing slash")) {
-      return "The source fetch endpoint was requested with the wrong URL format. Try again.";
+      return "The job link format was not accepted. Please try again.";
     }
     return normalized;
   }
@@ -117,7 +117,7 @@ function loadImageElementFromFile(file: File) {
     };
     image.onerror = () => {
       URL.revokeObjectURL(objectUrl);
-      reject(new Error("Could not read uploaded image."));
+      reject(new Error("Could not open this image."));
     };
     image.src = objectUrl;
   });
@@ -320,7 +320,7 @@ export function JobEditor({
     const nextSourceUrl = scraped.source_url?.trim() || options?.fallbackSourceUrl || "";
     if (nextSourceUrl) {
       nextFetchedFields.push("source URL");
-      nextPreview.push({ label: "Source URL", value: summarizeIntakeValue(nextSourceUrl, 86) });
+      nextPreview.push({ label: "Original job link", value: summarizeIntakeValue(nextSourceUrl, 86) });
       setSourceUrl(nextSourceUrl);
       setIntakeUrl(nextSourceUrl);
     }
@@ -419,7 +419,7 @@ export function JobEditor({
     if (!intakeResult.success) {
       const nextFieldError = intakeResult.error.issues[0]?.message || "Enter a valid job URL.";
       setUrlIntakeError(nextFieldError);
-      const nextError = `Fetch failed. ${nextFieldError}`;
+      const nextError = `Could not fill from this link. ${nextFieldError}`;
       setIntakeError(nextError);
       setIntakeMessage("");
       setIntakeFields([]);
@@ -449,15 +449,15 @@ export function JobEditor({
         const detail = await response.text();
         const normalizedDetail = normalizeErrorDetail(detail);
 
-        throw new Error(normalizedDetail || "Could not fetch job details from that URL.");
+        throw new Error(normalizedDetail || "Could not fill in this job from the link.");
       }
 
       const scraped = (await response.json()) as Partial<Job>;
       const nextFetchedFields = applyIntakePayload(scraped, { fallbackSourceUrl: url });
       const nextMessage =
         nextFetchedFields.length > 0
-          ? "Fetch complete. Review the autofilled fields below before saving."
-          : "Fetch completed, but the source did not expose usable job fields. Fill the form manually or try a different URL.";
+          ? "Details were filled in from the job link. Please review them before saving."
+          : "The link opened, but we could not find enough job details. Please fill in the form yourself or try another link.";
       setIntakeMessage(nextMessage);
       toast.success(nextMessage);
     } catch (fetchError) {
@@ -465,10 +465,10 @@ export function JobEditor({
       setIntakePreview([]);
       const nextError =
         fetchError instanceof DOMException && fetchError.name === "AbortError"
-          ? "Fetch failed. The source took too long to respond. Try again or use a different URL."
+          ? "This job link took too long to respond. Please try again or use another link."
           : fetchError instanceof Error
-            ? `Fetch failed. ${fetchError.message}`
-            : "Fetch failed. Could not fetch job details from that URL.";
+            ? `Could not fill from this link. ${fetchError.message}`
+            : "Could not fill from this link.";
       setIntakeError(nextError);
       toast.error(nextError);
     } finally {
@@ -481,7 +481,7 @@ export function JobEditor({
 
   async function extractFromImage() {
     if (!ocrImageFile) {
-      const nextError = "Upload an image before running image-to-text.";
+      const nextError = "Upload an image before reading text from it.";
       setOcrImageError(nextError);
       setIntakeError(nextError);
       setIntakeMessage("");
@@ -506,7 +506,7 @@ export function JobEditor({
     resetIntakeFeedback();
 
     try {
-      setIntakeMessage("Preparing image for OCR...");
+      setIntakeMessage("Preparing the image...");
       const optimizedImage = await optimizeImageForOcr(ocrImageFile);
       const formData = new FormData();
       formData.append("image", optimizedImage);
@@ -515,14 +515,14 @@ export function JobEditor({
       const extracted = await requestAdmin<Partial<Job>>("/api/admin/proxy/jobs/admin/jobs/ocr", {
         method: "POST",
         body: formData,
-        fallbackError: "Unable to read text from the uploaded image.",
+        fallbackError: "Could not read text from this image.",
       });
 
       const nextFetchedFields = applyIntakePayload(extracted);
       const nextMessage =
         nextFetchedFields.length > 0
-          ? "Image text extracted. Review the autofilled fields below before saving."
-          : "Image text was read, but no usable job fields were mapped. Fill the form manually.";
+          ? "Text was read from the image and the form was filled in. Please review it before saving."
+          : "Text was read from the image, but it did not match the job form. Please fill in the details yourself.";
       setIntakeMessage(nextMessage);
       toast.success(nextMessage);
     } catch (extractError) {
@@ -530,8 +530,8 @@ export function JobEditor({
       setIntakePreview([]);
       const nextError =
         extractError instanceof Error
-          ? `Image OCR failed. ${extractError.message}`
-          : "Image OCR failed. Unable to read text from the uploaded image.";
+          ? `Could not read text from this image. ${extractError.message}`
+          : "Could not read text from this image.";
       setIntakeError(nextError);
       toast.error(nextError);
     } finally {
@@ -692,7 +692,7 @@ export function JobEditor({
       <section className={panelClass}>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className={eyebrowClass}>Manual intake</div>
+            <div className={eyebrowClass}>Fill from a job link</div>
           </div>
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-[rgba(150,174,157,0.28)] bg-[#f8fbf9] text-[#5f7867]">
             <Sparkles className="h-4 w-4" />
@@ -744,12 +744,12 @@ export function JobEditor({
               onClick={() => void fetchFromUrl()}
             >
               {activeIntakeMode === "url" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
-              {activeIntakeMode === "url" ? "Fetching..." : "Fetch from URL"}
+              {activeIntakeMode === "url" ? "Reading..." : "Fill from link"}
             </button>
           </div>
           <div className="grid gap-3">
             <label className={fieldLabelClass}>
-              <span className={eyebrowClass}>Job image OCR</span>
+              <span className={eyebrowClass}>Read text from an image</span>
               <Input
                 className="h-auto rounded-md border-[rgba(150,174,157,0.28)] bg-white px-3 py-3 text-[#2f3d35] file:mr-3 file:rounded-md file:border-0 file:bg-[#edf3ee] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[#33443b] hover:file:bg-[#e1ebe4]"
                 type="file"
@@ -761,7 +761,7 @@ export function JobEditor({
                 }}
               />
               <span className="text-sm leading-6 text-[#4f5d56]">
-                Upload a screenshot, poster, or scan and extract text into the form.
+                Upload a screenshot, poster, or scan to pull the written details into the form.
               </span>
               <label className="grid gap-1">
                 <span className="text-xs uppercase tracking-[0.12em] text-[#6f8676]">Mode</span>
@@ -809,7 +809,7 @@ export function JobEditor({
               onClick={() => void extractFromImage()}
             >
               {activeIntakeMode === "image" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
-              {activeIntakeMode === "image" ? "Reading image..." : "Image to text"}
+              {activeIntakeMode === "image" ? "Reading image..." : "Read image text"}
             </button>
           </div>
         </div>
@@ -830,17 +830,17 @@ export function JobEditor({
                 <strong className="font-medium">
                   {isProcessingIntake
                     ? activeIntakeMode === "image"
-                      ? "Reading job image..."
-                      : "Fetching job details..."
+                      ? "Reading the uploaded image..."
+                      : "Reading the job link..."
                     : intakeError
-                      ? "Intake did not complete"
-                      : "Intake completed"}
+                      ? "Could not load details"
+                      : "Details loaded"}
                 </strong>
                 <span>
                   {isProcessingIntake
                     ? activeIntakeMode === "image"
-                      ? `Running ${ocrMode} OCR on the uploaded image and mapping detected text into job fields.`
-                      : "Checking the pasted source and extracting usable job fields."
+                      ? `Reading the uploaded image in ${ocrMode} mode and filling in the job form.`
+                      : "Checking the pasted job link and filling in the form."
                     : intakeError || intakeMessage}
                 </span>
               </div>
@@ -853,7 +853,7 @@ export function JobEditor({
             {!isProcessingIntake && intakeFields.length > 0 ? (
               <div className="grid gap-2">
                 <div className="text-xs uppercase tracking-[0.12em] text-[#5a6f60]">
-                  Extracted {intakeFields.length} fields
+                  Filled {intakeFields.length} fields
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2">
                   {intakePreview.map((item) => (
@@ -874,7 +874,7 @@ export function JobEditor({
 
       <section className={panelClass}>
         <div>
-          <div className={eyebrowClass}>Job CRUD</div>
+          <div className={eyebrowClass}>Job details</div>
           <h2 className="mt-1 text-[1.02rem] font-semibold tracking-[-0.02em] text-foreground">
             Listing details
           </h2>
@@ -966,12 +966,12 @@ export function JobEditor({
             />
           </label>
           <label className={fieldLabelClass}>
-            <span className={eyebrowClass}>Source</span>
+            <span className={eyebrowClass}>Added from</span>
             <Input
               className={inputClassName}
               value={source}
               onChange={(event) => setSource(event.target.value)}
-              placeholder="manual"
+              placeholder="Added by hand"
             />
           </label>
           <label className={fieldLabelClass}>
@@ -998,7 +998,7 @@ export function JobEditor({
             />
           </label>
           <label className={`${fieldLabelClass} md:col-span-2`}>
-            <span className={eyebrowClass}>Source URL</span>
+            <span className={eyebrowClass}>Original job link</span>
             <Input
               className={cn(inputClassName, fieldErrors.sourceUrl && inputErrorClass)}
               value={sourceUrl}
@@ -1012,7 +1012,7 @@ export function JobEditor({
             {fieldErrors.sourceUrl ? <span className="text-sm text-[#8e4a4a]">{fieldErrors.sourceUrl}</span> : null}
           </label>
           <label className={`${fieldLabelClass} md:col-span-2`}>
-            <span className={eyebrowClass}>Image URL</span>
+            <span className={eyebrowClass}>Image link</span>
             <Input
               className={cn(inputClassName, fieldErrors.imageUrl && inputErrorClass)}
               value={imageUrl}
@@ -1027,15 +1027,15 @@ export function JobEditor({
             {fieldErrors.imageUrl ? <span className="text-sm text-[#8e4a4a]">{fieldErrors.imageUrl}</span> : null}
           </label>
           <div className={`${fieldLabelClass} md:col-span-2`}>
-            <span className={eyebrowClass}>Image upload</span>
+            <span className={eyebrowClass}>Upload an image</span>
             <label className="grid gap-3 rounded-md border border-dashed border-[rgba(160,183,164,0.22)] bg-[rgba(255,255,255,0.82)] px-4 py-4">
               <div className="flex items-start gap-3 text-sm text-[#5c645f]">
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-[rgba(160,183,164,0.16)] bg-[rgba(247,243,236,0.66)] text-[#748d7a]">
                   <Upload className="h-4 w-4" />
                 </span>
                 <div className="grid gap-1">
-                  <strong className="font-medium text-[#334039]">Upload a verified image</strong>
-                  <span>Allowed: JPG, PNG, WEBP, GIF. Max size 10 MB. The backend rechecks the file bytes before saving.</span>
+                  <strong className="font-medium text-[#334039]">Upload a job image</strong>
+                  <span>Allowed: JPG, PNG, WEBP, GIF. Max size 10 MB.</span>
                 </div>
               </div>
               <Input
@@ -1076,14 +1076,14 @@ export function JobEditor({
           <div className="grid gap-4">
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-[rgba(160,183,164,0.12)] bg-[rgba(247,243,236,0.52)] px-3 py-2.5 text-sm text-[#56615c]">
               <span>
-                Recommended format: `Heading: content`, then bullet lines with `•` and detail lines like `📍 Location: ...`.
+                A clear format works best: short headings, short paragraphs, and bullet points for the key details.
               </span>
               <button
                 type="button"
                 className={cn(buttonVariants({ variant: "secondary" }), "h-8 rounded-md px-3 text-xs")}
                 onClick={insertStructuredTemplate}
               >
-                Insert template
+                Use sample text
               </button>
             </div>
             <label className={fieldLabelClass}>
@@ -1118,7 +1118,7 @@ export function JobEditor({
               <div>
                 <div className={eyebrowClass}>Website preview</div>
                 <h3 className="mt-1 text-[0.96rem] font-semibold text-foreground">
-                  Structured job content
+                  How this will look on the website
                 </h3>
               </div>
               <div className="grid max-h-[520px] gap-4 overflow-auto pr-1 text-sm leading-7 text-[#5e6662]">
@@ -1167,11 +1167,11 @@ export function JobEditor({
               <div>
                 <div className={eyebrowClass}>Facebook preview</div>
                 <h3 className="mt-1 text-[0.96rem] font-semibold text-foreground">
-                  Default caption
+                  Suggested post text
                 </h3>
               </div>
               <pre className="m-0 max-h-[520px] overflow-auto whitespace-pre-wrap break-words rounded-md bg-[rgba(255,255,255,0.86)] p-3 text-sm leading-7 text-[#334039]">
-                {facebookPreview || "The default Facebook caption will appear here."}
+                {facebookPreview || "Suggested Facebook post text will appear here."}
               </pre>
             </section>
           </div>
@@ -1182,7 +1182,7 @@ export function JobEditor({
             <div>
               <div className={eyebrowClass}>Image preview</div>
               <h2 className="mt-1 text-[1.02rem] font-semibold tracking-[-0.02em] text-foreground">
-                Listing image
+                Job image
               </h2>
             </div>
             <div className="grid gap-3">
@@ -1195,13 +1195,13 @@ export function JobEditor({
                   />
                 ) : (
                   <div className="flex aspect-[16/10] items-center justify-center px-6 text-center text-sm leading-6 text-[#727975]">
-                    Add an external image URL or upload a local image to preview the listing artwork.
+                    Add an image link or upload an image file to preview how this job will look.
                   </div>
                 )}
               </div>
               <div className="grid gap-2 text-sm text-[#5c645f]">
                 <span>
-                  Priority: uploaded image first, scraped/external image URL second.
+                  If both are added, the uploaded image will be used first.
                 </span>
                 {initialJob?.id && uploadedImageUrl ? (
                   <button
@@ -1211,7 +1211,7 @@ export function JobEditor({
                     onClick={() => void removeUploadedImage(initialJob?.id)}
                   >
                     <XCircle className="h-4 w-4" />
-                    {isRemovingImage ? "Removing uploaded image..." : "Remove uploaded image"}
+                    {isRemovingImage ? "Removing image..." : "Remove image"}
                   </button>
                 ) : null}
               </div>
@@ -1220,16 +1220,16 @@ export function JobEditor({
 
           <div className={panelClass}>
             <div>
-              <div className={eyebrowClass}>Publishing</div>
+              <div className={eyebrowClass}>Visibility</div>
               <h2 className="mt-1 text-[1.02rem] font-semibold tracking-[-0.02em] text-foreground">
-                Workflow
+                Where this job should appear
               </h2>
             </div>
             <label className="flex items-start justify-between gap-4">
               <span className="grid gap-1">
-                <strong className="font-medium text-[#334039]">Active listing</strong>
+                <strong className="font-medium text-[#334039]">Show this job in lists</strong>
                 <small className="text-[0.9rem] leading-6 text-[#727975]">
-                  Show this job in internal and public listings.
+                  Turn this off if you want to hide the job from the website and admin lists.
                 </small>
               </span>
               <input
@@ -1241,9 +1241,9 @@ export function JobEditor({
             </label>
             <label className="flex items-start justify-between gap-4 border-t border-[rgba(160,183,164,0.12)] pt-4">
               <span className="grid gap-1">
-                <strong className="font-medium text-[#334039]">Publish to website now</strong>
+                <strong className="font-medium text-[#334039]">Show on website now</strong>
                 <small className="text-[0.9rem] leading-6 text-[#727975]">
-                  Enable to show immediately on the website. Disable to hold for approval.
+                  Turn this on to show the job on the website right away. Turn it off to keep it waiting for review.
                 </small>
               </span>
               <input
@@ -1257,7 +1257,7 @@ export function JobEditor({
               <span className="grid gap-1">
                 <strong className="font-medium text-[#334039]">Post to Facebook now</strong>
                 <small className="text-[0.9rem] leading-6 text-[#727975]">
-                  Enable to auto-post after save. Disable to keep it for Facebook approval queue.
+                  Turn this on to post after saving. Turn it off to keep it waiting for review.
                 </small>
               </span>
               <input
@@ -1282,7 +1282,7 @@ export function JobEditor({
                 imageUploadError ||
                 imageFileError ||
                 (Object.values(fieldErrors).some(Boolean)
-                  ? "Please complete the required job fields before creating this listing."
+                  ? "Please complete the required job details before saving."
                   : message)}
             </div>
           )}
@@ -1302,8 +1302,8 @@ export function JobEditor({
                   ? "Uploading image..."
                   : "Saving..."
                 : initialJob?.id
-                  ? "Update job"
-                  : "Create job"}
+                  ? "Save changes"
+                  : "Add job"}
             </button>
             {initialJob?.id ? (
               <button
@@ -1312,7 +1312,7 @@ export function JobEditor({
                 disabled={isDeleting}
                 onClick={() => setConfirmDeleteOpen(true)}
               >
-                {isDeleting ? "Deleting..." : "Delete"}
+                {isDeleting ? "Removing..." : "Remove"}
               </button>
             ) : null}
           </div>
@@ -1320,9 +1320,9 @@ export function JobEditor({
       </section>
       <ConfirmModal
         open={confirmDeleteOpen}
-        title="Delete job"
-        description="This will permanently remove this job from the admin panel."
-        confirmLabel="Delete"
+        title="Remove job"
+        description="This will permanently remove this job from the admin dashboard."
+        confirmLabel="Remove"
         isLoading={isDeleting}
         onConfirm={() => void deleteJob()}
         onCancel={() => {

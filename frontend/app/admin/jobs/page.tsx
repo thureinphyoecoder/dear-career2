@@ -57,10 +57,10 @@ export default async function AdminJobsPage({ searchParams }: AdminJobsPageProps
     <div className="grid max-w-none gap-5 xl:pr-6">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-[clamp(1.7rem,2.4vw,2.2rem)] font-semibold leading-none text-foreground">
-          Jobs
+          Job list
         </h1>
         <Link href="/admin/jobs/new" className={cn(buttonVariants(), "rounded-xl")}>
-          Create job
+          Add job
         </Link>
       </div>
       <Card className="rounded-2xl border-border/70 bg-white shadow-none">
@@ -74,10 +74,9 @@ export default async function AdminJobsPage({ searchParams }: AdminJobsPageProps
       {backendOffline ? (
         <Card className="rounded-2xl border-[rgba(204,165,92,0.22)] bg-[rgba(255,251,240,0.96)] shadow-none">
           <CardContent className="grid gap-1 p-4 text-sm text-[#7a6a45]">
-            <strong className="font-medium text-[#6f5f3a]">Backend may be offline</strong>
+            <strong className="font-medium text-[#6f5f3a]">Jobs could not be loaded right now</strong>
             <p className="m-0">
-              No jobs were returned. If your database already has data, start the Django server on
-              port `8000` and refresh this page.
+              Nothing came back from the server. Please refresh in a moment or ask the site administrator to check the server.
             </p>
           </CardContent>
         </Card>

@@ -82,7 +82,7 @@ export function AdminShell({
 
   const navGroups = [
     {
-      label: "Overview",
+      label: "Home",
       icon: LayoutDashboard,
       items: [
         {
@@ -92,48 +92,48 @@ export function AdminShell({
         },
         {
           href: "/admin/analytics",
-          label: "Analytics",
+          label: "Visitor activity",
           active: pathname === "/admin/analytics",
         },
       ],
     },
     {
-      label: "Publishing",
+      label: "Jobs",
       icon: BriefcaseBusiness,
       items: [
         {
           href: "/admin/jobs",
-          label: "Jobs",
+          label: "All jobs",
           active:
             (!isPublishedView && !isDraftedView && pathname === "/admin/jobs") ||
             (pathname?.startsWith("/admin/jobs/") && pathname !== "/admin/jobs/new"),
         },
         {
           href: "/admin/jobs?status=draft",
-          label: "Drafted",
+          label: "Not live yet",
           active: isDraftedView,
           badge: sidebarCounts.draftedJobs,
         },
         {
           href: "/admin/jobs?status=published",
-          label: "Published",
+          label: "Live on website",
           active: isPublishedView,
           badge: sidebarCounts.publishedJobs,
         },
         {
           href: "/admin/approvals",
-          label: "Pending",
+          label: "Needs review",
           active: pathname === "/admin/approvals",
           badge: sidebarCounts.pendingApprovals,
         },
         {
           href: "/admin/reports",
-          label: "Reports",
+          label: "User reports",
           active: pathname === "/admin/reports",
         },
         {
           href: "/admin/jobs/new",
-          label: "Create job",
+          label: "Add job",
           active: pathname === "/admin/jobs/new",
         },
         {
@@ -144,17 +144,17 @@ export function AdminShell({
       ],
     },
     {
-      label: "Source",
+      label: "Import tools",
       icon: FolderKanban,
       items: [
         {
           href: "/admin/sources",
-          label: "Sources",
+          label: "Import sources",
           active: pathname?.startsWith("/admin/sources"),
         },
         {
           href: "/admin/fetch",
-          label: "Fetch settings",
+          label: "Auto import settings",
           active: pathname?.startsWith("/admin/fetch"),
         },
         {

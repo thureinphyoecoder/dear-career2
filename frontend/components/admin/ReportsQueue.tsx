@@ -44,7 +44,7 @@ export function ReportsQueue({ initialReports }: { initialReports: JobReport[] }
         {
           method: "PATCH",
           json: { status },
-          fallbackError: "Unable to update report status.",
+          fallbackError: "Could not update this report.",
         },
       );
 
@@ -53,7 +53,7 @@ export function ReportsQueue({ initialReports }: { initialReports: JobReport[] }
       );
       toast.success("Report updated.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to update report status.");
+      toast.error(error instanceof Error ? error.message : "Could not update this report.");
     } finally {
       setWorkingId(null);
     }
@@ -64,9 +64,9 @@ export function ReportsQueue({ initialReports }: { initialReports: JobReport[] }
       <div className="flex items-center justify-between rounded-xl border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.88)] px-4 py-3">
         <div className="inline-flex items-center gap-2 text-[#4c6354]">
           <ShieldAlert className="h-4 w-4" />
-          <strong className="text-sm">Open reports: {openReports.length}</strong>
+          <strong className="text-sm">Reports to check: {openReports.length}</strong>
         </div>
-        <span className="text-xs uppercase tracking-[0.14em] text-[#8da693]">Moderation queue</span>
+        <span className="text-xs uppercase tracking-[0.14em] text-[#8da693]">Review list</span>
       </div>
 
       {reports.length === 0 ? (
@@ -89,7 +89,7 @@ export function ReportsQueue({ initialReports }: { initialReports: JobReport[] }
                 <div className="grid gap-1">
                   <strong className="text-sm text-[#334039]">{report.job_title}</strong>
                   <span className="text-sm text-[#64706a]">
-                    {report.job_company || "Unknown company"}
+                    {report.job_company || "Company name not available"}
                     {report.job_location ? ` · ${report.job_location}` : ""}
                   </span>
                 </div>
@@ -126,7 +126,7 @@ export function ReportsQueue({ initialReports }: { initialReports: JobReport[] }
                   onClick={() => void updateStatus(report, "reviewed")}
                 >
                   <AlertTriangle className="h-3.5 w-3.5" />
-                  Mark reviewed
+                  Mark as checked
                 </button>
                 <button
                   type="button"
@@ -138,7 +138,7 @@ export function ReportsQueue({ initialReports }: { initialReports: JobReport[] }
                   onClick={() => void updateStatus(report, "resolved")}
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  Resolve
+                  Mark as solved
                 </button>
               </div>
             </article>

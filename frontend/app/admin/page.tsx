@@ -40,15 +40,15 @@ export default async function AdminDashboardPage() {
       icon: ShieldCheck,
     },
     {
-      label: "Pending approvals",
+      label: "Needs review",
       value: snapshot.pending_approvals.length,
-      detail: "Need review",
+      detail: "Waiting for your check",
       icon: FileClock,
     },
     {
-      label: "Sources",
+      label: "Import sources",
       value: snapshot.source_count,
-      detail: "Connected",
+      detail: "Ready to use",
       icon: Database,
     },
     {
@@ -85,14 +85,14 @@ export default async function AdminDashboardPage() {
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,1fr)]">
         <Card className="rounded-2xl border-border/70 bg-white shadow-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-[1rem] font-semibold text-foreground">Pending Approvals</CardTitle>
+            <CardTitle className="text-[1rem] font-semibold text-foreground">Jobs waiting for review</CardTitle>
             <Link href="/admin/approvals" className="text-sm text-[#6f876f] hover:underline">
-              Open queue
+              Open list
             </Link>
           </CardHeader>
           <CardContent className="grid gap-0 p-0">
             {snapshot.pending_approvals.length === 0 ? (
-              <div className="px-6 py-8 text-sm text-[#6d7771]">No items waiting for approval.</div>
+              <div className="px-6 py-8 text-sm text-[#6d7771]">Nothing is waiting for review right now.</div>
             ) : (
               snapshot.pending_approvals.slice(0, 8).map((item) => (
                 <div
@@ -116,13 +116,13 @@ export default async function AdminDashboardPage() {
                         href={`/admin/jobs/${getPendingJobId(item.id)}?returnTo=${encodeURIComponent("/admin/approvals")}`}
                         className={cn(buttonVariants({ variant: "secondary" }), "h-8 rounded-lg px-3 text-xs")}
                       >
-                        View
+                        Open
                       </Link>
                       <Link
                         href={`/admin/jobs/${getPendingJobId(item.id)}?returnTo=${encodeURIComponent("/admin/approvals")}`}
                         className={cn(buttonVariants(), "h-8 rounded-lg px-3 text-xs")}
                       >
-                        Edit
+                        Check details
                       </Link>
                     </div>
                   ) : null}
@@ -142,7 +142,7 @@ export default async function AdminDashboardPage() {
           <CardContent className="grid gap-3">
             {snapshot.notifications.length === 0 ? (
               <div className="rounded-xl border border-[rgba(160,183,164,0.16)] bg-[rgba(247,249,247,0.8)] px-4 py-6 text-sm text-[#6d7771]">
-                No notifications.
+                No updates right now.
               </div>
             ) : (
               snapshot.notifications.slice(0, 6).map((notification) => (

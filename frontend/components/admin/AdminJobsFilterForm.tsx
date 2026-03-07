@@ -24,7 +24,7 @@ export function AdminJobsFilterForm({
     event.preventDefault();
     const trimmedQuery = query.trim();
     if (!trimmedQuery && status === "all") {
-      setError("Enter a search term or choose a status first.");
+      setError("Type a keyword or choose a job stage first.");
       inputRef.current?.focus();
       return;
     }
@@ -55,7 +55,7 @@ export function AdminJobsFilterForm({
               setError("");
             }
           }}
-          placeholder="Search title, company, location, or source"
+          placeholder="Search by job title, company, place, or source"
           aria-invalid={Boolean(error)}
         />
         <select
@@ -69,10 +69,10 @@ export function AdminJobsFilterForm({
             }
           }}
         >
-          <option value="all">All statuses</option>
-          <option value="published">Published</option>
-          <option value="draft">Draft</option>
-          <option value="pending-review">Pending review</option>
+          <option value="all">All job stages</option>
+          <option value="published">Live</option>
+          <option value="draft">Not live yet</option>
+          <option value="pending-review">Needs review</option>
         </select>
         <div className="flex flex-wrap gap-2">
           <button className={cn(buttonVariants(), "rounded-xl")} type="submit">

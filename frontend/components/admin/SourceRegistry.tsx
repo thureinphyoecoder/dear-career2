@@ -21,14 +21,14 @@ import type { FetchSource } from "@/lib/types";
 
 function formatSourceMode(source: FetchSource) {
   if (source.requires_manual_url) {
-    return "Manual URL";
+    return "Paste a job link";
   }
 
   if (source.mode === "rss") {
     return "RSS";
   }
 
-  return source.mode === "html" ? "HTML scraper" : "Manual";
+  return source.mode === "html" ? "Website page" : "Manual";
 }
 
 export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
@@ -88,7 +88,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     const nextErrors = validateSourceCreateFields(newSource);
     setCreateErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
-      const nextError = "Please fix the new source fields.";
+      const nextError = "Please fix the new source details.";
       setGlobalError(nextError);
       setGlobalMessage("");
       toast.error(nextError);
@@ -117,7 +117,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
           mode: "manual",
           default_category: "white-collar",
         },
-        fallbackError: "Unable to create source.",
+        fallbackError: "Could not create this import source.",
       });
       setSourceState((current) => ({ ...current, [created.id]: created }));
       setOpenSourceId(created.id);
@@ -125,11 +125,11 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
         feed_url: "",
       });
       setCreateErrors({});
-      const nextMessage = "Source created. Open Configure to adjust mode or defaults.";
+      const nextMessage = "Import source added. Open it to adjust the details.";
       setGlobalMessage(nextMessage);
       toast.success(nextMessage);
     } catch (error) {
-      const nextError = error instanceof Error ? error.message : "Unable to create source.";
+      const nextError = error instanceof Error ? error.message : "Could not create this import source.";
       const mappedFieldErrors = mapSourceServerErrors(nextError);
       if (mappedFieldErrors.feed_url) {
         setCreateErrors((current) => ({
@@ -156,9 +156,9 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     });
     setFieldErrors((current) => ({ ...current, [sourceId]: nextErrors }));
     if (Object.keys(nextErrors).length > 0) {
-      toast.error("Please fix the highlighted source fields.");
+      toast.error("Please fix the highlighted fields.");
       setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
-      setStatusError((current) => ({ ...current, [sourceId]: "Please fix the highlighted source fields." }));
+      setStatusError((current) => ({ ...current, [sourceId]: "Please fix the highlighted fields." }));
       return;
     }
 
@@ -186,14 +186,14 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
           max_jobs_per_run: source.max_jobs_per_run ?? 25,
           status: source.status,
         },
-        fallbackError: "Unable to save source.",
+        fallbackError: "Could not save this import source.",
       });
       setSourceState((current) => ({ ...current, [sourceId]: updated }));
       setFieldErrors((current) => ({ ...current, [sourceId]: {} }));
-      setStatusMessage((current) => ({ ...current, [sourceId]: "Source updated." }));
-      toast.success("Source updated.");
+      setStatusMessage((current) => ({ ...current, [sourceId]: "Import source updated." }));
+      toast.success("Import source updated.");
     } catch (error) {
-      const nextError = error instanceof Error ? error.message : "Unable to save source.";
+      const nextError = error instanceof Error ? error.message : "Could not save this import source.";
       const mappedFieldErrors = mapSourceServerErrors(nextError);
       if (Object.keys(mappedFieldErrors).length > 0) {
         setFieldErrors((current) => ({
@@ -218,21 +218,21 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     const source = sourceState[sourceId];
     if (!source) return;
     if (source.requires_manual_url || source.mode === "manual") {
-      toast.error("This source is manual-only.");
+      toast.error("This source only works with a job link.");
       setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
       setStatusError((current) => ({
         ...current,
         [sourceId]:
-          "This source is manual-only. Use Create job > Fetch with a job URL, or switch the source to HTML/RSS first.",
+          "This source only works with a pasted job link. Use Add job and paste a job link, or change this source to a website feed first.",
       }));
       return;
     }
     if (!source.feed_url?.trim()) {
-      toast.error("This source has no source URL configured yet.");
+      toast.error("This source does not have a website address yet.");
       setStatusMessage((current) => ({ ...current, [sourceId]: "" }));
       setStatusError((current) => ({
         ...current,
-        [sourceId]: "This source has no source URL configured yet.",
+        [sourceId]: "This source does not have a website address yet.",
       }));
       return;
     }
@@ -250,16 +250,16 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
         updated_count?: number;
       }>(`/api/admin/proxy/jobs/admin/sources/${sourceId}/run`, {
         method: "POST",
-        fallbackError: "Unable to run source.",
+        fallbackError: "Could not check this source right now.",
       });
-      const nextMessage = `Run complete. ${result.fetched_count ?? 0} fetched, ${result.created_count ?? 0} created, ${result.updated_count ?? 0} updated.`;
+      const nextMessage = `Check complete. ${result.fetched_count ?? 0} found, ${result.created_count ?? 0} added, ${result.updated_count ?? 0} updated.`;
       setStatusMessage((current) => ({
         ...current,
         [sourceId]: nextMessage,
       }));
       toast.success(nextMessage);
     } catch (error) {
-      const nextError = error instanceof Error ? error.message : "Unable to run source.";
+      const nextError = error instanceof Error ? error.message : "Could not check this source right now.";
       setStatusError((current) => ({
         ...current,
         [sourceId]: nextError,
@@ -314,7 +314,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
       }>("/api/admin/proxy/jobs/admin/jobs/scrape", {
         method: "POST",
         json: { url: intakeUrl },
-        fallbackError: "Unable to fetch job details from that URL.",
+        fallbackError: "Could not read job details from that link.",
       });
 
       const created = await requestAdmin<{ id: number; title?: string }>(
@@ -342,10 +342,10 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
           requires_website_approval: true,
           requires_facebook_approval: true,
           },
-          fallbackError: "Unable to create a draft job from that URL.",
+          fallbackError: "Could not create a not-live job from that link.",
         },
       );
-      const nextMessage = `Draft created for ${created.title || "the imported job"}. Opening editor...`;
+      const nextMessage = `A not-live job was created for ${created.title || "this imported job"}. Opening it now...`;
       setStatusMessage((current) => ({
         ...current,
         [sourceId]: nextMessage,
@@ -354,7 +354,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
       router.push(`/admin/jobs/${created.id}`);
     } catch (error) {
       const nextError =
-        error instanceof Error ? error.message : "Unable to create a draft job from that URL.";
+        error instanceof Error ? error.message : "Could not create a not-live job from that link.";
       setStatusError((current) => ({
         ...current,
         [sourceId]: nextError,
@@ -375,7 +375,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
     try {
       await requestAdminNoContent(`/api/admin/proxy/jobs/admin/sources/${targetDeleteId}`, {
         method: "DELETE",
-        fallbackError: "Unable to delete source.",
+        fallbackError: "Could not remove this import source.",
       });
 
       setSourceState((current) => {
@@ -384,10 +384,10 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
         return next;
       });
       setOpenSourceId((current) => (current === targetDeleteId ? null : current));
-      setGlobalMessage("Source deleted.");
-      toast.success("Source deleted.");
+      setGlobalMessage("Import source removed.");
+      toast.success("Import source removed.");
     } catch (error) {
-      const nextError = error instanceof Error ? error.message : "Unable to delete source.";
+      const nextError = error instanceof Error ? error.message : "Could not remove this import source.";
       setGlobalError(nextError);
       toast.error(nextError);
     } finally {
@@ -403,11 +403,11 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
         <section className="grid gap-4 rounded-[20px] border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.74)] p-4">
           <div className="flex items-center gap-2 text-[#334039]">
             <Plus className="h-4 w-4" />
-            <strong className="font-medium">New source</strong>
+            <strong className="font-medium">New import source</strong>
           </div>
           <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
             <label className="grid gap-2">
-              <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Source URL</span>
+              <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Website address</span>
               <Input
                 value={newSource.feed_url}
                 onChange={(event) => {
@@ -427,7 +427,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
               onClick={() => void createSource()}
             >
               {creating ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              {creating ? "Creating..." : "Add source"}
+              {creating ? "Adding..." : "Add source"}
             </button>
           </div>
         </section>
@@ -548,11 +548,11 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
                 {isOpen ? (
                   <div className="grid gap-4 border-t border-[rgba(160,183,164,0.16)] pt-4">
                     <div className="rounded-xl border border-[rgba(116,141,122,0.14)] bg-[rgba(144,168,147,0.08)] px-3 py-2 text-sm text-[#4f6354]">
-                      Editing source configuration for <strong>{current.label}</strong>.
+                      Editing import settings for <strong>{current.label}</strong>.
                     </div>
                     {current.requires_manual_url || current.mode === "manual" ? (
                       <div className="grid gap-3 rounded-xl border border-[rgba(160,183,164,0.16)] bg-white px-3 py-3">
-                        <div className="text-sm font-medium text-[#334039]">Manual intake URL</div>
+                        <div className="text-sm font-medium text-[#334039]">Job link</div>
                         <label className="grid gap-2">
                           <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Job URL</span>
                           <div className="relative">
@@ -580,7 +580,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
                             onClick={() => void createDraftFromManualSource(source.id)}
                           >
                             {isIntaking ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                            {isIntaking ? "Creating draft..." : "Create draft from URL"}
+                            {isIntaking ? "Creating..." : "Create not-live job from link"}
                           </button>
                         </div>
                       </div>
@@ -644,7 +644,7 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
                         </select>
                       </label>
                       <label className="grid gap-2">
-                        <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Cadence</span>
+                        <span className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Check every</span>
                         <Input
                           className="bg-[rgba(255,255,255,0.88)]"
                           type="number"
@@ -735,9 +735,9 @@ export function SourceRegistry({ sources }: { sources: FetchSource[] }) {
         </div>
         <ConfirmModal
           open={confirmDeleteOpen}
-          title="Delete source"
-          description="This will remove the selected source and its configuration."
-          confirmLabel="Delete"
+          title="Remove source"
+          description="This will remove the selected import source and its saved settings."
+          confirmLabel="Remove"
           isLoading={deletingId !== null}
           onConfirm={() => void deleteSource()}
           onCancel={() => {

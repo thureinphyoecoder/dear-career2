@@ -51,7 +51,7 @@ export function FetchSettingsForm({
     });
     setFieldErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
-      setError("Please fix the highlighted settings.");
+      setError("Please fix the highlighted fields.");
       setMessage("");
       return;
     }
@@ -63,7 +63,7 @@ export function FetchSettingsForm({
     try {
       const enabledSources = initialSettings.sources.filter((source) => source.enabled);
       if (enabledSources.length === 0) {
-        throw new Error("No enabled sources are available to update.");
+        throw new Error("There are no active import sources to update.");
       }
 
       const responses = await Promise.all(
@@ -88,13 +88,13 @@ export function FetchSettingsForm({
       const failed = responses.find((response) => !response.ok);
       if (failed) {
         throw new Error(
-          normalizeServerError(await failed.text(), "Unable to save fetch settings."),
+          normalizeServerError(await failed.text(), "Could not save these settings."),
         );
       }
 
-      setMessage("Fetch settings updated across enabled sources.");
+      setMessage("Auto import settings updated.");
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Unable to save fetch settings.");
+      setError(saveError instanceof Error ? saveError.message : "Could not save these settings.");
     } finally {
       setIsSaving(false);
     }
@@ -114,7 +114,7 @@ export function FetchSettingsForm({
           Boolean(source.feed_url?.trim()),
       );
       if (!firstRunnableSource) {
-        throw new Error("No auto-fetch source is enabled right now. Configure at least one HTML/RSS source.");
+        throw new Error("No automatic import source is ready yet. Turn on at least one website feed first.");
       }
 
       const response = await fetch(
@@ -126,16 +126,16 @@ export function FetchSettingsForm({
 
       if (!response.ok) {
         throw new Error(
-          normalizeServerError(await response.text(), "Unable to run fetch right now."),
+          normalizeServerError(await response.text(), "Could not check for new jobs right now."),
         );
       }
 
       const result = (await response.json()) as { fetched_count?: number; created_count?: number };
       setMessage(
-        `Fetch complete. ${result.fetched_count ?? 0} fetched, ${result.created_count ?? 0} created.`,
+        `Check complete. ${result.fetched_count ?? 0} found, ${result.created_count ?? 0} added.`,
       );
     } catch (runError) {
-      setError(runError instanceof Error ? runError.message : "Unable to run fetch right now.");
+      setError(runError instanceof Error ? runError.message : "Could not check for new jobs right now.");
     } finally {
       setIsRunning(false);
     }
@@ -147,23 +147,23 @@ export function FetchSettingsForm({
         <CardContent className="grid gap-4 p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <div className={eyebrowClass}>Cadence</div>
-              <h2 className="mt-1 text-[1.02rem] font-semibold tracking-[-0.02em] text-foreground">Fetch schedule</h2>
+              <div className={eyebrowClass}>Schedule</div>
+              <h2 className="mt-1 text-[1.02rem] font-semibold tracking-[-0.02em] text-foreground">When to check for new jobs</h2>
             </div>
             <div className="flex flex-wrap gap-2">
               <button className={buttonVariants({ variant: "secondary" })} type="button" disabled={isSaving} onClick={() => void saveSettings()}>
                 {isSaving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
-                {isSaving ? "Saving..." : "Save settings"}
+                {isSaving ? "Saving..." : "Save changes"}
               </button>
               <button className={buttonVariants()} type="button" disabled={isRunning} onClick={() => void runFetchNow()}>
                 {isRunning ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
-                {isRunning ? "Running..." : "Run fetch now"}
+                {isRunning ? "Checking..." : "Check now"}
               </button>
             </div>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <label className={fieldLabelClass}>
-              <span className={eyebrowClass}>Run every</span>
+              <span className={eyebrowClass}>Check every</span>
               <Input
                 className="bg-[rgba(255,255,255,0.88)]"
                 type="number"
@@ -185,7 +185,7 @@ export function FetchSettingsForm({
               </select>
             </label>
             <label className={fieldLabelClass}>
-              <span className={eyebrowClass}>Max jobs per run</span>
+              <span className={eyebrowClass}>Maximum jobs each time</span>
               <Input
                 className="bg-[rgba(255,255,255,0.88)]"
                 type="number"
@@ -196,7 +196,7 @@ export function FetchSettingsForm({
               {fieldErrors.maxJobsPerRun ? <span className="text-sm text-[#8e4a4a]">{fieldErrors.maxJobsPerRun}</span> : null}
             </label>
             <label className={fieldLabelClass}>
-              <span className={eyebrowClass}>Realtime notifications</span>
+              <span className={eyebrowClass}>Alerts</span>
               <select
                 className={selectClass}
                 value={realtimeNotifications ? "enabled" : "disabled"}
@@ -212,9 +212,9 @@ export function FetchSettingsForm({
       <Card className="border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.92)] shadow-none">
         <CardContent className="grid gap-4 p-5">
           <div>
-            <div className={eyebrowClass}>Publishing</div>
+            <div className={eyebrowClass}>Review flow</div>
             <h2 className="mt-1 text-[1.02rem] font-semibold tracking-[-0.02em] text-foreground">
-              Approval flow
+              What needs approval first
             </h2>
           </div>
           <div className="grid gap-1">
@@ -225,9 +225,9 @@ export function FetchSettingsForm({
               )}
             >
               <span className="grid gap-1">
-                <strong>Website publish approval</strong>
+                <strong>Review before showing on the website</strong>
                 <small className="text-[0.92rem] leading-6 text-[#727975]">
-                  Require approval before a fetched job goes live on the site.
+                  Turn this on if you want to check imported jobs before they appear on the website.
                 </small>
               </span>
               <input
@@ -239,9 +239,9 @@ export function FetchSettingsForm({
             </label>
             <label className="flex items-start justify-between gap-4 border-t border-[rgba(160,183,164,0.16)] py-3">
               <span className="grid gap-1">
-                <strong>Facebook approval</strong>
+                <strong>Review before posting to Facebook</strong>
                 <small className="text-[0.92rem] leading-6 text-[#727975]">
-                  Ask for approval before sending a job to the Facebook page.
+                  Turn this on if you want to approve jobs before they are posted to Facebook.
                 </small>
               </span>
               <input
@@ -253,9 +253,9 @@ export function FetchSettingsForm({
             </label>
             <label className="flex items-start justify-between gap-4 border-t border-[rgba(160,183,164,0.16)] py-3">
               <span className="grid gap-1">
-                <strong>Facebook auto upload</strong>
+                <strong>Post to Facebook automatically</strong>
                 <small className="text-[0.92rem] leading-6 text-[#727975]">
-                  Publish approved jobs to Facebook automatically after website approval.
+                  After a job is approved for the website, also post it to Facebook automatically.
                 </small>
               </span>
               <input

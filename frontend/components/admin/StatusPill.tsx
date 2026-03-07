@@ -8,13 +8,20 @@ const toneClassMap: Record<JobStatus, string> = {
   "pending-review": "bg-[rgba(204,165,92,0.14)] text-[#8a6120] border-[rgba(204,165,92,0.22)]",
 };
 
+const statusLabelMap: Record<JobStatus, string> = {
+  draft: "Not live yet",
+  published: "Live",
+  archived: "Hidden",
+  "pending-review": "Needs review",
+};
+
 export function StatusPill({ status = "draft" }: { status?: JobStatus }) {
   return (
     <Badge
       variant="secondary"
       className={`border px-2.5 py-1 text-[0.72rem] uppercase tracking-[0.1em] ${toneClassMap[status]}`}
     >
-      {status}
+      {statusLabelMap[status]}
     </Badge>
   );
 }

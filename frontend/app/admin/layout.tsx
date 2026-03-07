@@ -18,7 +18,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
       initialFacebookProfile={facebookProfile}
     >
       <AdminShell
-        title="Operations"
+        title="Admin workspace"
         initialDashboardSnapshot={snapshot}
         initialFacebookProfile={facebookProfile}
         initialNotifications={snapshot.notifications}

@@ -22,7 +22,7 @@ const placementOptions: Array<{ value: ManagedAdPlacement; label: string }> = [
 ];
 
 const statusOptions: Array<{ value: ManagedAdStatus; label: string }> = [
-  { value: "draft", label: "Draft" },
+  { value: "draft", label: "Not live yet" },
   { value: "active", label: "Active" },
   { value: "paused", label: "Paused" },
 ];
@@ -91,7 +91,7 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
     });
     setCreateErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
-      setError("Please fix the new ad fields.");
+      setError("Please fix the new ad details.");
       setMessage("");
       return;
     }
@@ -109,14 +109,14 @@ export function AdsManager({ initialAds }: { initialAds: ManagedAd[] }) {
 
       if (!response.ok) {
         const detail = await response.text();
-        throw new Error(normalizeServerError(detail, "Unable to create ad."));
+        throw new Error(normalizeServerError(detail, "Could not create this ad."));
       }
 
       const created = (await response.json()) as ManagedAd;
       setAds((current) => ({ ...current, [created.id]: created }));
       setNewAd(emptyAd);
       setCreateErrors({});
-      setMessage("Ad created.");
+      setMessage("Ad added.");
       setOpenAdId(created.id);
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "Unable to create ad.");

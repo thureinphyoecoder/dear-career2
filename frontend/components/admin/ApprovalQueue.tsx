@@ -20,7 +20,7 @@ function formatRequestedAction(job: Job) {
   const actions: string[] = [];
   if (job.requires_website_approval) actions.push("Website");
   if (job.requires_facebook_approval) actions.push("Facebook");
-  return actions.length > 0 ? actions.join(" + ") : "Review";
+  return actions.length > 0 ? `${actions.join(" + ")} review` : "Review needed";
 }
 
 function formatDate(value?: string) {
@@ -108,7 +108,7 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
 
       if (!response.ok) {
         const detail = await response.text();
-        throw new Error(normalizeServerError(detail, "Unable to approve job."));
+        throw new Error(normalizeServerError(detail, "Could not approve this job."));
       }
 
       if (publishToFacebook) {
@@ -124,7 +124,7 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
 
         if (!publishResponse.ok) {
           const detail = await publishResponse.text();
-          throw new Error(normalizeServerError(detail, "Approved website publish, but Facebook posting failed."));
+          throw new Error(normalizeServerError(detail, "The job was approved for the website, but Facebook posting failed."));
         }
 
         const publishPayload = (await publishResponse.json()) as {
@@ -134,7 +134,7 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
         facebookPostId = String(publishPayload.post_id ?? "").trim();
         facebookPermalinkUrl = String(publishPayload.permalink_url ?? "").trim();
         if (!facebookPostId) {
-          throw new Error("Facebook publish response did not include a post id.");
+          throw new Error("Facebook confirmed the post, but did not send back a post ID.");
         }
       }
 
@@ -153,13 +153,13 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
       removeViewed(job.id);
       const successMessage = publishToFacebook
         ? facebookPermalinkUrl
-          ? `Approved and posted ${job.title} to Facebook.`
-          : `Approved and posted ${job.title} to Facebook. Post ID: ${facebookPostId}`
-        : `Approved ${job.title}.`;
+          ? `${job.title} was approved and posted to Facebook.`
+          : `${job.title} was approved and posted to Facebook. Post ID: ${facebookPostId}`
+        : `${job.title} was approved.`;
       toast.success(successMessage);
     },
     onError: (error) => {
-      const nextError = error instanceof Error ? error.message : "Unable to approve job.";
+      const nextError = error instanceof Error ? error.message : "Could not approve this job.";
       setActionError(nextError);
       toast.error(nextError);
     },
@@ -188,7 +188,7 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
 
       <div className="rounded-2xl border border-border/70 bg-white shadow-none">
         {orderedJobs.length === 0 ? (
-          <p className="m-0 px-4 py-6 text-[0.92rem] text-[#727975] sm:px-6">No approvals waiting.</p>
+          <p className="m-0 px-4 py-6 text-[0.92rem] text-[#727975] sm:px-6">Nothing is waiting for review.</p>
         ) : (
           <>
             {paginatedJobs.map((job, index) => {
@@ -219,7 +219,7 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
                             : "bg-[rgba(116,141,122,0.16)] text-[#4f6354]",
                         )}
                       >
-                        {isViewed ? "Viewed" : "Unviewed"}
+                        {isViewed ? "Opened" : "New"}
                       </span>
                     </div>
                     <span className="text-[0.92rem] text-[#727975]">
@@ -233,7 +233,7 @@ export function ApprovalQueue({ jobs }: { jobs: Job[] }) {
                         onClick={() => markViewed(job.id)}
                         className="font-medium text-[#6f876f] underline-offset-4 hover:underline"
                       >
-                        Review job
+                        Open job
                       </Link>
                     </div>
                   </div>
