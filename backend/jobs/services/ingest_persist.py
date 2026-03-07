@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from urllib.parse import urlparse
 
 from django.db import transaction
 
@@ -38,6 +39,63 @@ QUALITY_KEYWORDS = (
     "benefit",
     "working hours",
 )
+
+
+def _needs_detail_fallback(description: str) -> bool:
+    cleaned = clean_inline_text(description)
+    if not cleaned:
+        return True
+    if cleaned.endswith("..."):
+        return True
+    return len(cleaned) < 500
+
+
+def _readable_proxy_url(source_url: str) -> str:
+    parsed = urlparse(source_url)
+    if not parsed.scheme or not parsed.netloc:
+        return ""
+    return f"https://r.jina.ai/http://{parsed.netloc}{parsed.path}"
+
+
+def _extract_readable_markdown_body(payload: str) -> str:
+    marker = "Markdown Content:"
+    body = payload.split(marker, 1)[1] if marker in payload else payload
+    body = body.replace("\r\n", "\n").strip()
+    if not body:
+        return ""
+
+    lines = [line.rstrip() for line in body.split("\n")]
+    cleaned_lines: list[str] = []
+    previous_blank = False
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            if cleaned_lines and not previous_blank:
+                cleaned_lines.append("")
+            previous_blank = True
+            continue
+        if stripped.startswith(("Title:", "URL Source:")):
+            continue
+        cleaned_lines.append(stripped)
+        previous_blank = False
+
+    return "\n".join(cleaned_lines).strip()
+
+
+def _fetch_readable_description(source_url: str, source: FetchSource) -> str:
+    proxy_url = _readable_proxy_url(source_url)
+    if not proxy_url:
+        return ""
+
+    requests = import_requests()
+    response = requests.get(
+        proxy_url,
+        headers=build_request_headers(source),
+        timeout=30,
+    )
+    response.raise_for_status()
+    return _extract_readable_markdown_body(response.text)
 
 
 def _safe_int(value: Any, fallback: int) -> int:
@@ -174,6 +232,18 @@ def enrich_records_from_detail_pages(
             detail_value = detail_payload.get(field)
             if detail_value:
                 enriched_record[field] = detail_value
+
+        current_description = str(
+            enriched_record.get("description_en") or enriched_record.get("description_mm") or ""
+        )
+        if "unjobs.org" in source.domain and _needs_detail_fallback(current_description):
+            try:
+                readable_description = _fetch_readable_description(source_url, source)
+            except Exception:
+                readable_description = ""
+            if readable_description:
+                enriched_record["description_en"] = readable_description
+                enriched_record["description_mm"] = readable_description
         enriched_records.append(enriched_record)
 
     if len(records) > limit:

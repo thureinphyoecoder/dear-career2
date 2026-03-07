@@ -13,6 +13,7 @@ from .management.commands.seed_fetch_sources import DEFAULT_SOURCES
 from .models import FetchSource, Job
 from .services.images import mirror_remote_job_image
 from .services.ingest import _parse_jobthai_jobs, _source_uses_browser_fetch
+from .services.ingest_persist import _extract_readable_markdown_body
 from .views.shared import build_image_text_job_payload, build_scraped_job_payload
 
 
@@ -87,6 +88,40 @@ class JobApiTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(payload["count"], 1)
+
+    def test_public_job_detail_returns_matching_live_job(self):
+        job = Job.objects.create(
+            title="Readable role",
+            company="Dear Career",
+            location="Bangkok",
+            description_mm="Line one\n\nResponsibilities\n- Ship features",
+            is_active=True,
+            status=Job.WorkflowStatus.PUBLISHED,
+            requires_website_approval=False,
+        )
+
+        response = self.client.get(f"/api/jobs/{job.slug}/")
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["id"], job.id)
+        self.assertEqual(payload["slug"], job.slug)
+        self.assertIn("Responsibilities", payload["description_mm"])
+
+    def test_public_job_detail_hides_jobs_pending_website_approval(self):
+        job = Job.objects.create(
+            title="Hidden detail role",
+            company="Dear Career",
+            location="Bangkok",
+            description_mm="Not public yet",
+            is_active=True,
+            status=Job.WorkflowStatus.PUBLISHED,
+            requires_website_approval=True,
+        )
+
+        response = self.client.get(f"/api/jobs/{job.slug}/")
+
+        self.assertEqual(response.status_code, 404)
 
     def test_job_list_can_include_inactive_jobs_for_admin(self):
         Job.objects.create(
@@ -539,3 +574,27 @@ class BrowserFetchStrategyTests(TestCase):
     def test_source_does_not_use_browser_fetch_by_default(self):
         source = FetchSource(selectors={})
         self.assertFalse(_source_uses_browser_fetch(source))
+
+
+class IngestReadableFallbackTests(TestCase):
+    def test_extract_readable_markdown_body_strips_wrapper_lines(self):
+        payload = """
+Title: Sample Role
+
+URL Source: https://unjobs.org/vacancies/123
+
+Markdown Content:
+The Role:
+This is the main paragraph.
+
+Responsibilities
+* First item
+* Second item
+"""
+
+        body = _extract_readable_markdown_body(payload)
+
+        self.assertEqual(
+            body,
+            "The Role:\nThis is the main paragraph.\n\nResponsibilities\n* First item\n* Second item",
+        )
