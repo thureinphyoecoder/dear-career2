@@ -116,16 +116,21 @@ def serialize_approval_item(job):
     }
 
 
-def serialize_channel_credential(credential):
-    return {
+def serialize_channel_credential(credential, include_secret=False):
+    payload = {
         "platform": credential.platform,
         "account_name": credential.account_name,
+        "app_id": credential.app_id,
+        "app_secret_configured": bool(credential.app_secret),
         "page_id": credential.page_id,
         "connected": bool(credential.page_id and credential.access_token),
         "profile_name": credential.profile_name,
         "profile_image_url": credential.profile_image_url,
         "updated_at": credential.updated_at.isoformat() if credential.updated_at else None,
     }
+    if include_secret:
+        payload["app_secret"] = credential.app_secret
+    return payload
 
 
 def serialize_visitor_summary(payload):

@@ -308,6 +308,8 @@ class ChannelCredential(models.Model):
         unique=True,
     )
     account_name = models.CharField(max_length=120, blank=True)
+    app_id = models.CharField(max_length=120, blank=True)
+    app_secret = models.CharField(max_length=255, blank=True)
     page_id = models.CharField(max_length=120, blank=True)
     access_token = models.TextField(blank=True)
     profile_name = models.CharField(max_length=120, blank=True)

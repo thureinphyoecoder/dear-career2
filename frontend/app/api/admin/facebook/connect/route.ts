@@ -3,15 +3,39 @@ import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
+import { getAdminApiHeaders } from "@/lib/admin-api-auth";
+
 const FACEBOOK_STATE_COOKIE = "dear_career_fb_oauth_state";
 const FACEBOOK_PAGES_COOKIE = "dear_career_fb_oauth_pages";
+const ADMIN_API_BASE_URL =
+  process.env.DJANGO_ADMIN_API_BASE_URL ?? "http://127.0.0.1:8000/api";
 const FACEBOOK_OAUTH_SCOPES = [
   "pages_show_list",
   "pages_manage_posts",
   "pages_read_engagement",
 ].join(",");
 
-function getFacebookAppId() {
+async function getFacebookAppId() {
+  try {
+    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/channels/facebook/`, {
+      cache: "no-store",
+      headers: getAdminApiHeaders(
+        new Headers({
+          accept: "application/json",
+          "x-facebook-config-mode": "internal",
+        }),
+      ),
+    });
+    if (response.ok) {
+      const payload = (await response.json()) as { app_id?: string };
+      if (payload.app_id?.trim()) {
+        return payload.app_id.trim();
+      }
+    }
+  } catch {
+    // Fall back to env-based config below.
+  }
+
   return process.env.FACEBOOK_APP_ID ?? "";
 }
 
@@ -20,7 +44,7 @@ function getBaseUrl(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const appId = getFacebookAppId();
+  const appId = await getFacebookAppId();
   if (!appId) {
     return NextResponse.redirect(new URL("/admin/facebook?error=missing-app-config", request.url));
   }

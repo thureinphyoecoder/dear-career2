@@ -1,9 +1,13 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
+import { getAdminApiHeaders } from "@/lib/admin-api-auth";
+
 const FACEBOOK_STATE_COOKIE = "dear_career_fb_oauth_state";
 const FACEBOOK_PAGES_COOKIE = "dear_career_fb_oauth_pages";
 const GRAPH_API_BASE = "https://graph.facebook.com/v23.0";
+const ADMIN_API_BASE_URL =
+  process.env.DJANGO_ADMIN_API_BASE_URL ?? "http://127.0.0.1:8000/api";
 
 type FacebookPageAccount = {
   id: string;
@@ -27,12 +31,33 @@ type PendingFacebookPageSelection = {
   grantedScopes: string;
 };
 
-function getFacebookAppId() {
-  return process.env.FACEBOOK_APP_ID ?? "";
-}
+async function getFacebookAppConfig() {
+  try {
+    const response = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/channels/facebook/`, {
+      cache: "no-store",
+      headers: getAdminApiHeaders(
+        new Headers({
+          accept: "application/json",
+          "x-facebook-config-mode": "internal",
+        }),
+      ),
+    });
+    if (response.ok) {
+      const payload = (await response.json()) as { app_id?: string; app_secret?: string };
+      const appId = payload.app_id?.trim() ?? "";
+      const appSecret = payload.app_secret?.trim() ?? "";
+      if (appId && appSecret) {
+        return { appId, appSecret };
+      }
+    }
+  } catch {
+    // Fall back to env-based config below.
+  }
 
-function getFacebookAppSecret() {
-  return process.env.FACEBOOK_APP_SECRET ?? "";
+  return {
+    appId: process.env.FACEBOOK_APP_ID ?? "",
+    appSecret: process.env.FACEBOOK_APP_SECRET ?? "",
+  };
 }
 
 function getBaseUrl(request: NextRequest) {
@@ -62,8 +87,7 @@ async function fetchJson<T>(url: URL) {
 }
 
 export async function GET(request: NextRequest) {
-  const appId = getFacebookAppId();
-  const appSecret = getFacebookAppSecret();
+  const { appId, appSecret } = await getFacebookAppConfig();
   if (!appId || !appSecret) {
     return NextResponse.redirect(new URL("/admin/facebook?error=missing-app-config", request.url));
   }

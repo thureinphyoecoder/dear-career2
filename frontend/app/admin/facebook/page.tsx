@@ -49,10 +49,10 @@ export default async function AdminFacebookPage({
     }
   }
 
-  if (!process.env.FACEBOOK_APP_ID) {
+  if (!credential.app_id) {
     missingConfig.push("FACEBOOK_APP_ID");
   }
-  if (!process.env.FACEBOOK_APP_SECRET) {
+  if (!credential.app_secret_configured) {
     missingConfig.push("FACEBOOK_APP_SECRET");
   }
   if (!process.env.NEXT_PUBLIC_APP_URL) {

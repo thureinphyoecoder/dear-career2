@@ -153,6 +153,8 @@ export type ManagedAd = {
 export type FacebookPageCredential = {
   platform: "facebook";
   account_name: string;
+  app_id?: string;
+  app_secret_configured?: boolean;
   page_id: string;
   connected?: boolean;
   profile_name?: string;

@@ -22,7 +22,8 @@ def facebook_channel_credential(request: HttpRequest):
     )
 
     if request.method == "GET":
-        return JsonResponse(serialize_channel_credential(credential))
+        include_secret = request.headers.get("x-facebook-config-mode") == "internal"
+        return JsonResponse(serialize_channel_credential(credential, include_secret=include_secret))
 
     if request.method == "DELETE":
         credential.account_name = ""
@@ -49,6 +50,10 @@ def facebook_channel_credential(request: HttpRequest):
 
     if "account_name" in payload:
         credential.account_name = clean_text_input(payload.get("account_name", ""))
+    if "app_id" in payload:
+        credential.app_id = clean_text_input(payload.get("app_id", ""))
+    if "app_secret" in payload:
+        credential.app_secret = clean_text_input(payload.get("app_secret", ""))
     if "page_id" in payload:
         credential.page_id = clean_text_input(payload.get("page_id", ""))
     if "access_token" in payload:

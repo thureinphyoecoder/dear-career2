@@ -125,6 +125,8 @@ export async function getFacebookCredential(): Promise<FacebookPageCredential> {
       return {
         platform: "facebook",
         account_name: "",
+        app_id: "",
+        app_secret_configured: false,
         page_id: "",
         connected: false,
       };
@@ -135,6 +137,8 @@ export async function getFacebookCredential(): Promise<FacebookPageCredential> {
     return {
       platform: "facebook",
       account_name: "",
+      app_id: "",
+      app_secret_configured: false,
       page_id: "",
       connected: false,
     };
