@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
 const FACEBOOK_STATE_COOKIE = "dear_career_fb_oauth_state";
+const FACEBOOK_PAGES_COOKIE = "dear_career_fb_oauth_pages";
 const FACEBOOK_OAUTH_SCOPES = [
   "pages_show_list",
   "pages_manage_posts",
@@ -44,6 +45,16 @@ export async function GET(request: NextRequest) {
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: 60 * 10,
+    priority: "high",
+  });
+  response.cookies.set({
+    name: FACEBOOK_PAGES_COOKIE,
+    value: "",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
     priority: "high",
   });
   return response;

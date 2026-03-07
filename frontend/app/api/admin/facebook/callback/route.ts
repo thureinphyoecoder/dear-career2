@@ -1,12 +1,9 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-import { getAdminApiHeaders } from "@/lib/admin-api-auth";
-
 const FACEBOOK_STATE_COOKIE = "dear_career_fb_oauth_state";
+const FACEBOOK_PAGES_COOKIE = "dear_career_fb_oauth_pages";
 const GRAPH_API_BASE = "https://graph.facebook.com/v23.0";
-const ADMIN_API_BASE_URL =
-  process.env.DJANGO_ADMIN_API_BASE_URL ?? "http://127.0.0.1:8000/api";
 
 type FacebookPageAccount = {
   id: string;
@@ -23,19 +20,12 @@ type FacebookUserProfile = {
   };
 };
 
-async function verifyPageFeedAccess(pageId: string, accessToken: string) {
-  const verifyUrl = new URL(`${GRAPH_API_BASE}/${pageId}/feed`);
-  verifyUrl.searchParams.set("fields", "id");
-  verifyUrl.searchParams.set("limit", "1");
-  verifyUrl.searchParams.set("access_token", accessToken);
-
-  try {
-    await fetchJson<{ data?: Array<{ id: string }> }>(verifyUrl);
-    return "";
-  } catch (error) {
-    return error instanceof Error ? error.message : "facebook-feed-check-failed";
-  }
-}
+type PendingFacebookPageSelection = {
+  pages: FacebookPageAccount[];
+  profileName: string;
+  profileImageUrl: string;
+  grantedScopes: string;
+};
 
 function getFacebookAppId() {
   return process.env.FACEBOOK_APP_ID ?? "";
@@ -120,54 +110,7 @@ export async function GET(request: NextRequest) {
       throw new Error("No Facebook pages were available for this account.");
     }
 
-    const currentCredentialResponse = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/channels/facebook/`, {
-      cache: "no-store",
-      headers: getAdminApiHeaders(new Headers({ accept: "application/json" })),
-    });
-    const currentCredential = currentCredentialResponse.ok
-      ? ((await currentCredentialResponse.json()) as { page_id?: string })
-      : null;
-
-    const selectedPage =
-      pages.find((page) => page.id === currentCredential?.page_id) || pages[0];
-
-    const saveResponse = await fetch(`${ADMIN_API_BASE_URL}/jobs/admin/channels/facebook/`, {
-      method: "PATCH",
-      headers: getAdminApiHeaders(new Headers({
-        "content-type": "application/json",
-      })),
-      body: JSON.stringify({
-        account_name: selectedPage.name,
-        page_id: selectedPage.id,
-        access_token: selectedPage.access_token,
-        profile_name: profilePayload.name ?? "",
-        profile_image_url: profilePayload.picture?.data?.url ?? "",
-      }),
-    });
-
-    if (!saveResponse.ok) {
-      throw new Error("Facebook page credential could not be saved.");
-    }
-
-    const target = new URL("/admin/facebook?connected=1", request.url);
-    const requiredScopes = ["pages_show_list", "pages_manage_posts", "pages_read_engagement"];
-    const grantedScopeSet = new Set(
-      grantedScopes
-        .split(",")
-        .map((scope) => scope.trim())
-        .filter(Boolean),
-    );
-    const missingScopes = requiredScopes.filter((scope) => !grantedScopeSet.has(scope));
-    if (missingScopes.length > 0) {
-      target.searchParams.set("warning", `Missing Facebook permissions: ${missingScopes.join(", ")}`);
-    } else {
-      const feedCheckError = await verifyPageFeedAccess(selectedPage.id, selectedPage.access_token);
-      if (feedCheckError) {
-        target.searchParams.set("warning", feedCheckError);
-      }
-    }
-
-    const response = NextResponse.redirect(target, 303);
+    const response = NextResponse.redirect(new URL("/admin/facebook?select_page=1", request.url), 303);
     response.headers.set("cache-control", "no-store");
     response.cookies.set({
       name: FACEBOOK_STATE_COOKIE,
@@ -177,6 +120,23 @@ export async function GET(request: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       path: "/",
       maxAge: 0,
+      priority: "high",
+    });
+    response.cookies.set({
+      name: FACEBOOK_PAGES_COOKIE,
+      value: encodeURIComponent(
+        JSON.stringify({
+          pages,
+          profileName: profilePayload.name ?? "",
+          profileImageUrl: profilePayload.picture?.data?.url ?? "",
+          grantedScopes,
+        } satisfies PendingFacebookPageSelection),
+      ),
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 10,
       priority: "high",
     });
     return response;
@@ -190,6 +150,16 @@ export async function GET(request: NextRequest) {
     response.headers.set("cache-control", "no-store");
     response.cookies.set({
       name: FACEBOOK_STATE_COOKIE,
+      value: "",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 0,
+      priority: "high",
+    });
+    response.cookies.set({
+      name: FACEBOOK_PAGES_COOKIE,
       value: "",
       httpOnly: true,
       sameSite: "lax",

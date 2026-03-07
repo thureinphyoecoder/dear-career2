@@ -160,6 +160,11 @@ export type FacebookPageCredential = {
   updated_at?: string;
 };
 
+export type FacebookConnectPageOption = {
+  id: string;
+  name: string;
+};
+
 export type FacebookPagePost = {
   id: string;
   message?: string;

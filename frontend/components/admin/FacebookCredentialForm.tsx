@@ -17,7 +17,12 @@ import { FacebookPublishPanel } from "@/components/admin/FacebookPublishPanel";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import type { FacebookPageCredential, FacebookPagePost, Job } from "@/lib/types";
+import type {
+  FacebookConnectPageOption,
+  FacebookPageCredential,
+  FacebookPagePost,
+  Job,
+} from "@/lib/types";
 
 export function FacebookCredentialForm({
   initialCredential,
@@ -31,6 +36,7 @@ export function FacebookCredentialForm({
   missingConfig = [],
   sessionExpiresAt,
   sessionSnapshotAt,
+  pendingPages = [],
 }: {
   initialCredential: FacebookPageCredential;
   jobs: Job[];
@@ -43,6 +49,7 @@ export function FacebookCredentialForm({
   missingConfig?: string[];
   sessionExpiresAt?: number | null;
   sessionSnapshotAt?: number;
+  pendingPages?: FacebookConnectPageOption[];
 }) {
   const router = useRouter();
   const hasConnectedPage = Boolean(initialCredential.connected || initialCredential.page_id);
@@ -56,6 +63,11 @@ export function FacebookCredentialForm({
   const [showDisconnectedMessage, setShowDisconnectedMessage] = useState(disconnected);
   const [showOauthError, setShowOauthError] = useState(Boolean(oauthError));
   const [showOauthWarning, setShowOauthWarning] = useState(Boolean(oauthWarning));
+  const [selectedPendingPageId, setSelectedPendingPageId] = useState(pendingPages[0]?.id ?? "");
+
+  useEffect(() => {
+    setSelectedPendingPageId(pendingPages[0]?.id ?? "");
+  }, [pendingPages]);
 
   useEffect(() => {
     setShowConnectedMessage(oauthConnected);
@@ -138,6 +150,15 @@ export function FacebookCredentialForm({
     }
     if (value === "facebook-denied") {
       return "Facebook login was cancelled before page access was granted.";
+    }
+    if (value === "facebook-page-selection-expired") {
+      return "Facebook page selection expired. Connect the page again and choose the page you want to use.";
+    }
+    if (value === "facebook-page-selection-invalid") {
+      return "The selected Facebook page is no longer available. Connect again and choose a page.";
+    }
+    if (value === "facebook-page-save-failed") {
+      return "The selected Facebook page could not be saved. Try connecting again.";
     }
     return decodeURIComponent(value.replace(/\+/g, " "));
   }
@@ -279,7 +300,7 @@ export function FacebookCredentialForm({
             </div>
           </div>
 
-          {typeof sessionExpiresAt === "number" ? (
+          {hasConnectedPage && typeof sessionExpiresAt === "number" ? (
             <div className="rounded-md border border-[rgba(116,141,122,0.18)] bg-[rgba(144,168,147,0.08)] px-3 py-3">
               <div className="grid gap-0.5">
                 <span className="text-[0.7rem] font-semibold uppercase tracking-[0.14em] text-[#6d7871]">
@@ -342,6 +363,40 @@ export function FacebookCredentialForm({
             <div className="rounded-md border border-[rgba(116,141,122,0.18)] bg-[rgba(144,168,147,0.08)] px-3 py-3 text-sm text-[#4f6354]">
               Connected page: <strong>{initialCredential.account_name || "Unnamed page"}</strong>
             </div>
+          ) : null}
+
+          {pendingPages.length > 0 ? (
+            <form
+              action="/api/admin/facebook/select-page"
+              method="post"
+              className="grid gap-3 rounded-md border border-[rgba(116,141,122,0.18)] bg-[rgba(144,168,147,0.08)] px-4 py-4"
+            >
+              <div className="grid gap-0.5">
+                <strong className="text-[0.95rem] font-semibold text-[#334039]">
+                  Choose a Facebook page
+                </strong>
+                <span className="text-sm text-[#5f6d65]">
+                  Finish the connection by selecting the page you want to manage.
+                </span>
+              </div>
+              <select
+                name="page_id"
+                value={selectedPendingPageId}
+                onChange={(event) => setSelectedPendingPageId(event.target.value)}
+                className="h-11 rounded-xl border border-[rgba(160,183,164,0.24)] bg-white px-3 text-[0.95rem] text-[#334039] outline-none"
+              >
+                {pendingPages.map((page) => (
+                  <option key={page.id} value={page.id}>
+                    {page.name}
+                  </option>
+                ))}
+              </select>
+              <div className="flex justify-end">
+                <button type="submit" className={cn(buttonVariants(), "rounded-md")}>
+                  Connect selected page
+                </button>
+              </div>
+            </form>
           ) : null}
         </CardContent>
       </Card>
