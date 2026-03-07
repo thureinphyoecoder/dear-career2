@@ -21,6 +21,7 @@ from .views import (
     job_image_ocr_preview,
     job_image_upload,
     job_list,
+    public_job_detail,
     job_report_create,
     job_scrape_preview,
     managed_ad_create,
@@ -33,6 +34,7 @@ from .views import (
 
 urlpatterns = [
     path("", job_list, name="job-list"),
+    path("<slug:slug>/", public_job_detail, name="public-job-detail"),
     path("ads/", public_active_ad_list, name="public-ad-list"),
     path("analytics/visit/", visitor_track, name="visitor-track"),
     path("admin/jobs/create/", job_create, name="job-create"),

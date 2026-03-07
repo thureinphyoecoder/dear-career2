@@ -47,6 +47,18 @@ def job_list(request: HttpRequest):
     return JsonResponse({"count": len(results), "results": results})
 
 
+@require_GET
+def public_job_detail(request: HttpRequest, slug: str):
+    job = get_object_or_404(
+        Job,
+        slug=slug,
+        is_active=True,
+        status=Job.WorkflowStatus.PUBLISHED,
+        requires_website_approval=False,
+    )
+    return JsonResponse(serialize_job(job))
+
+
 @csrf_exempt
 @require_admin_api_auth
 @require_http_methods(["POST"])

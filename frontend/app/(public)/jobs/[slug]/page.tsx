@@ -147,6 +147,10 @@ export default async function PublicJobDetailPage({
   const description = getJobDescription(job);
   const descriptionSections = parseJobDescription(description);
   const descriptionSummary = extractJobSummary(job, 320);
+  const firstRenderedParagraph = descriptionSections[0]?.paragraphs[0]?.trim() ?? "";
+  const showDescriptionSummary =
+    Boolean(descriptionSummary) &&
+    descriptionSummary.trim().toLowerCase() !== firstRenderedParagraph.toLowerCase();
   const displayImageUrl = job.display_image_url || job.image_file_url || job.image_url || "";
   const contactEmail = extractContactEmail(description, job.contact_email);
   const contactPhone = extractContactPhone(description, job.contact_phone);
@@ -267,7 +271,7 @@ export default async function PublicJobDetailPage({
               <BriefcaseBusiness className="h-4 w-4" />
               Job Details
             </div>
-            {descriptionSummary ? (
+            {showDescriptionSummary ? (
               <p className="m-0 text-[1rem] leading-8 text-[#4e5a54]">{descriptionSummary}</p>
             ) : null}
             <div className="grid gap-5 text-[0.98rem] leading-8 text-[#505a56]">

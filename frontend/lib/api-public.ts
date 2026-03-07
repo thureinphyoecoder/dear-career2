@@ -56,8 +56,18 @@ export async function getPublicJobs(): Promise<Job[]> {
 }
 
 export async function getJobBySlug(slug: string): Promise<Job | null> {
-  const jobs = await getPublicJobs();
-  return jobs.find((job) => job.slug === slug) ?? null;
+  try {
+    const response = await fetch(`${API_BASE_URL}/jobs/${slug}/`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) return null;
+
+    const data = (await response.json()) as Job;
+    return normalizeJob(data);
+  } catch {
+    return null;
+  }
 }
 
 export async function getPublicAds(
