@@ -4,6 +4,8 @@ import { AdminClientProvider } from "@/components/admin/AdminClientProvider";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { getAdminDashboardSnapshot, getFacebookCredential } from "@/lib/api-admin";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const [snapshot, facebookProfile] = await Promise.all([
     getAdminDashboardSnapshot(),
