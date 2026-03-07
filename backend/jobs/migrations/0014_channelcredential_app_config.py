@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("jobs", "0013_managedad"),
+        ("jobs", "0013_jobreport"),
     ]
 
     operations = [
