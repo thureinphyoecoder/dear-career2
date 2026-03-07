@@ -370,14 +370,14 @@ The repo includes a production compose file that runs:
 - PostgreSQL
 - Django via `gunicorn`
 - Next.js via `next start`
-- Nginx on port `80`
+- Caddy on ports `80` and `443`
 
 Files:
 
 - `docker-compose.prod.yml`
 - `backend/.env.production.example`
 - `frontend/.env.production.example`
-- `deploy/nginx/dear-career.conf`
+- `deploy/caddy/Caddyfile`
 
 Quick deploy:
 
@@ -395,7 +395,7 @@ The backend API is proxied by Nginx at:
 
 - `/api/jobs/`
 
-The Django admin is exposed by Nginx at:
+The Django admin is exposed by Caddy at:
 
 - `/django-admin/`
 

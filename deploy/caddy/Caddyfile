@@ -1,0 +1,30 @@
+dear.thureinphyo.com {
+    encode gzip zstd
+
+    @static path /static/*
+    handle @static {
+        root * /srv
+        file_server
+    }
+
+    @media path /media/*
+    handle @media {
+        root * /srv
+        file_server
+    }
+
+    @api path /api/jobs/*
+    handle @api {
+        reverse_proxy backend:8000
+    }
+
+    @django path /django-admin* /django-admin/*
+    handle @django {
+        uri replace /django-admin /admin
+        reverse_proxy backend:8000
+    }
+
+    handle {
+        reverse_proxy frontend:3000
+    }
+}
