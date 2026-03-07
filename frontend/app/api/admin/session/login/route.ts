@@ -21,8 +21,12 @@ import {
 } from "@/lib/admin-login-validation";
 import { verifyAdminPassword } from "@/lib/admin-password";
 
+function getAppOrigin(request: NextRequest) {
+  return parseOrigin(process.env.NEXT_PUBLIC_APP_URL ?? "") || request.nextUrl.origin;
+}
+
 function buildRedirect(request: NextRequest, target: string) {
-  return NextResponse.redirect(new URL(target, request.url));
+  return NextResponse.redirect(new URL(target, getAppOrigin(request)));
 }
 
 function wantsJsonResponse(request: NextRequest) {
@@ -38,11 +42,25 @@ function parseOrigin(value: string | null) {
   }
 }
 
+function addOriginVariants(trusted: Set<string>, value: string) {
+  if (!value) return;
+  trusted.add(value);
+  try {
+    const url = new URL(value);
+    const alternate = new URL(value);
+    alternate.protocol = url.protocol === "https:" ? "http:" : "https:";
+    trusted.add(alternate.origin);
+  } catch {
+    // Ignore invalid origins and keep the explicitly configured one.
+  }
+}
+
 function buildTrustedOrigins(request: NextRequest) {
-  const trusted = new Set<string>([request.nextUrl.origin]);
+  const trusted = new Set<string>();
+  addOriginVariants(trusted, request.nextUrl.origin);
   const appUrlOrigin = parseOrigin(process.env.NEXT_PUBLIC_APP_URL ?? "");
   if (appUrlOrigin) {
-    trusted.add(appUrlOrigin);
+    addOriginVariants(trusted, appUrlOrigin);
   }
 
   if (process.env.NODE_ENV !== "production") {
@@ -114,7 +132,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const target = new URL("/admin/login", request.url);
+    const target = new URL("/admin/login", getAppOrigin(request));
     target.searchParams.set("error", "invalid");
     if (redirectTo.startsWith("/")) {
       target.searchParams.set("redirect", redirectTo);
@@ -146,7 +164,7 @@ export async function POST(request: NextRequest) {
         { status: 401 },
       );
     }
-    const target = new URL("/admin/login", request.url);
+    const target = new URL("/admin/login", getAppOrigin(request));
     target.searchParams.set("error", "invalid");
     if (redirectTo.startsWith("/")) {
       target.searchParams.set("redirect", redirectTo);

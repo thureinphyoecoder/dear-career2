@@ -7,6 +7,14 @@ import {
   verifyAdminSessionToken,
 } from "@/lib/admin-auth";
 
+function getAppOrigin(request: NextRequest) {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_APP_URL ?? "").origin;
+  } catch {
+    return request.nextUrl.origin;
+  }
+}
+
 function applySecurityHeaders(response: NextResponse) {
   const isProduction = process.env.NODE_ENV === "production";
   const scriptSrc = isProduction
@@ -64,7 +72,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!isAdminAuthConfigured()) {
-    const loginUrl = new URL("/admin/login", request.url);
+    const loginUrl = new URL("/admin/login", getAppOrigin(request));
     loginUrl.searchParams.set("error", "config");
     return applySecurityHeaders(NextResponse.redirect(loginUrl));
   }
@@ -76,7 +84,7 @@ export async function proxy(request: NextRequest) {
     return applySecurityHeaders(NextResponse.next());
   }
 
-  const loginUrl = new URL("/admin/login", request.url);
+  const loginUrl = new URL("/admin/login", getAppOrigin(request));
   loginUrl.searchParams.set("redirect", `${pathname}${search}`);
   return applySecurityHeaders(NextResponse.redirect(loginUrl));
 }
