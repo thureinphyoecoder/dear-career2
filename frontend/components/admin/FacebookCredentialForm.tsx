@@ -315,10 +315,8 @@ export function FacebookCredentialForm({
                 className={cn(
                   buttonVariants(),
                   "rounded-md",
-                  !oauthReady && "pointer-events-none opacity-50",
                 )}
-                href={oauthReady ? "/api/admin/facebook/connect" : "#"}
-                aria-disabled={!oauthReady}
+                href="/api/admin/facebook/connect"
               >
                 <Link2 className="h-4 w-4" />
                 {buttonLabel}
@@ -512,13 +510,11 @@ export function FacebookCredentialForm({
       <FacebookPublishPanel
         jobs={jobs}
         posts={posts}
-        canPublish={hasConnectedPage && oauthReady}
+        canPublish={hasConnectedPage}
         publishDisabledReason={
-          !oauthReady
-            ? "Complete the Facebook server settings before connecting a page."
-            : !hasConnectedPage
-              ? "Connect a Facebook page to enable posting."
-              : ""
+          !hasConnectedPage
+            ? "Connect a Facebook page to enable posting."
+            : ""
         }
       />
 
