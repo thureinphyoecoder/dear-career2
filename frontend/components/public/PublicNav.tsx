@@ -121,7 +121,7 @@ export function PublicNav() {
                 : "text-[#4f5954] hover:text-[#2f3a34]",
             )}
           >
-            <Bell className="mr-1 h-3.5 w-3.5" />
+            <Bell className="nav-bell-attention mr-1 h-3.5 w-3.5" />
             Job Alert
           </Link>
           <Link
@@ -208,7 +208,7 @@ export function PublicNav() {
             )}
           >
             <span className="inline-flex items-center gap-1.5">
-              <Bell className="h-3.5 w-3.5" />
+              <Bell className="nav-bell-attention h-3.5 w-3.5" />
               Job Alert
             </span>
           </Link>

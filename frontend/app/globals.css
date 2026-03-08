@@ -1311,3 +1311,34 @@ html.is-route-transitioning body {
     transform: translateY(0) scale(1);
   }
 }
+
+@keyframes navBellAttention {
+  0%,
+  82%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  86% {
+    transform: rotate(12deg);
+  }
+
+  90% {
+    transform: rotate(-10deg);
+  }
+
+  94% {
+    transform: rotate(6deg);
+  }
+}
+
+.nav-bell-attention {
+  transform-origin: top center;
+  animation: navBellAttention 2.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-bell-attention {
+    animation: none;
+  }
+}
