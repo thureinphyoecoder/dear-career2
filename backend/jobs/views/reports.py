@@ -69,7 +69,23 @@ def job_report_create(request: HttpRequest):
 @require_admin_api_auth
 @require_http_methods(["GET"])
 def admin_report_list(request: HttpRequest):
-    reports = list(JobReport.objects.select_related("job")[:100])
+    status = clean_text_input(request.GET.get("status")).lower()
+    valid_statuses = {choice[0] for choice in JobReport.StatusChoices.choices}
+    if status and status not in valid_statuses:
+        return HttpResponseBadRequest("Invalid status. Use open, reviewed, or resolved.")
+
+    raw_limit = clean_text_input(request.GET.get("limit")) or "100"
+    try:
+        limit = int(raw_limit)
+    except (TypeError, ValueError):
+        return HttpResponseBadRequest("limit must be an integer.")
+    limit = max(1, min(limit, 300))
+
+    queryset = JobReport.objects.select_related("job")
+    if status:
+        queryset = queryset.filter(status=status)
+
+    reports = list(queryset[:limit])
     return JsonResponse({"count": len(reports), "results": [serialize_job_report(item) for item in reports]})
 
 

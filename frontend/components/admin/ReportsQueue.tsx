@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertTriangle, CheckCircle2, Clock3, ShieldAlert } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { requestAdmin } from "@/lib/admin-client";
@@ -15,6 +15,7 @@ const REASON_LABEL: Record<JobReport["reason"], string> = {
   duplicate: "Duplicate",
   other: "Other",
 };
+const REPORTS_REFRESH_INTERVAL_MS = 12000;
 
 function formatTime(value?: string) {
   if (!value) return "";
@@ -30,17 +31,74 @@ function formatTime(value?: string) {
 export function ReportsQueue({ initialReports }: { initialReports: JobReport[] }) {
   const [reports, setReports] = useState(initialReports);
   const [workingId, setWorkingId] = useState<number | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const isMountedRef = useRef(true);
 
   const openReports = useMemo(
     () => reports.filter((report) => report.status === "open"),
     [reports],
   );
 
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let refreshTimer: ReturnType<typeof setInterval> | null = null;
+
+    async function refreshReports() {
+      if (workingId !== null) {
+        return;
+      }
+
+      setIsRefreshing(true);
+      try {
+        const payload = await requestAdmin<{ count: number; results: JobReport[] }>(
+          "/api/admin/proxy/jobs/admin/reports/?limit=200",
+          {
+            fallbackError: "Could not refresh reports.",
+          },
+        );
+        if (isMountedRef.current) {
+          setReports(payload.results);
+        }
+      } catch {
+        // Keep the previous list and retry on the next interval.
+      } finally {
+        if (isMountedRef.current) {
+          setIsRefreshing(false);
+        }
+      }
+    }
+
+    void refreshReports();
+    refreshTimer = setInterval(() => {
+      void refreshReports();
+    }, REPORTS_REFRESH_INTERVAL_MS);
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        void refreshReports();
+      }
+    }
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      if (refreshTimer) {
+        clearInterval(refreshTimer);
+      }
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [workingId]);
+
   async function updateStatus(report: JobReport, status: JobReportStatus) {
     setWorkingId(report.id);
     try {
       const updated = await requestAdmin<JobReport>(
-        `/api/admin/proxy/jobs/admin/reports/${report.id}`,
+        `/api/admin/proxy/jobs/admin/reports/${report.id}/`,
         {
           method: "PATCH",
           json: { status },
@@ -66,7 +124,9 @@ export function ReportsQueue({ initialReports }: { initialReports: JobReport[] }
           <ShieldAlert className="h-4 w-4" />
           <strong className="text-sm">Reports to check: {openReports.length}</strong>
         </div>
-        <span className="text-xs uppercase tracking-[0.14em] text-[#8da693]">Review list</span>
+        <span className="text-xs uppercase tracking-[0.14em] text-[#8da693]">
+          {isRefreshing ? "Syncing..." : "Live updates"}
+        </span>
       </div>
 
       {reports.length === 0 ? (
