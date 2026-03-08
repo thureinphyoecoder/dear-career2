@@ -17,7 +17,6 @@ export default async function AdminFacebookPage({
     connected?: string;
     disconnected?: string;
     error?: string;
-    warning?: string;
     select_page?: string;
   }>;
 }) {
@@ -25,19 +24,13 @@ export default async function AdminFacebookPage({
   const sessionToken = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
   const rawPendingPages = cookieStore.get(FACEBOOK_PAGES_COOKIE)?.value ?? "";
   const adminSession = parseAdminSessionToken(sessionToken);
-  const sessionSnapshotAt = Date.now();
   const [credential, postsState, jobs] = await Promise.all([
     getFacebookCredential(),
     getFacebookPagePostsState(),
     getAdminJobs(),
   ]);
   const params = await searchParams;
-  const missingConfig: string[] = [];
   let pendingPages: FacebookConnectPageOption[] = [];
-  const effectiveAppId = (credential.app_id || process.env.FACEBOOK_APP_ID || "").trim();
-  const hasAppSecret =
-    Boolean(credential.app_secret_configured) ||
-    Boolean((process.env.FACEBOOK_APP_SECRET || "").trim());
 
   if (rawPendingPages) {
     try {
@@ -53,13 +46,6 @@ export default async function AdminFacebookPage({
     }
   }
 
-  if (!effectiveAppId) {
-    missingConfig.push("FACEBOOK_APP_ID");
-  }
-  if (!hasAppSecret) {
-    missingConfig.push("FACEBOOK_APP_SECRET");
-  }
-
   return (
     <div className="grid max-w-none gap-6 xl:pr-6">
       <FacebookCredentialForm
@@ -70,10 +56,7 @@ export default async function AdminFacebookPage({
         oauthConnected={params.connected === "1"}
         disconnected={params.disconnected === "1"}
         oauthError={params.error}
-        oauthWarning={params.warning}
-        missingConfig={missingConfig}
         sessionExpiresAt={adminSession?.expiresAt}
-        sessionSnapshotAt={sessionSnapshotAt}
         pendingPages={params.select_page === "1" ? pendingPages : []}
       />
     </div>
