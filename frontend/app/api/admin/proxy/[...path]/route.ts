@@ -4,10 +4,11 @@ import { getAdminApiHeaders } from "@/lib/admin-api-auth";
 
 const ADMIN_API_BASE_URL =
   process.env.DJANGO_ADMIN_API_BASE_URL ?? "http://127.0.0.1:8000/api";
-const ADMIN_PROXY_READ_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 35000 : 2000;
-const ADMIN_PROXY_WRITE_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 20000 : 20000;
-const ADMIN_PROXY_OCR_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 120000 : 120000;
-const ADMIN_PROXY_SCRAPE_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 45000 : 45000;
+const ADMIN_PROXY_READ_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 90000 : 8000;
+const ADMIN_PROXY_WRITE_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 60000 : 30000;
+const ADMIN_PROXY_OCR_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 180000 : 180000;
+const ADMIN_PROXY_SCRAPE_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 120000 : 120000;
+const ADMIN_PROXY_RETRY_COUNT = process.env.NODE_ENV === "production" ? 1 : 0;
 
 function getProxyTimeoutMs(request: NextRequest, normalizedPath: string) {
   if (normalizedPath.endsWith("jobs/ocr")) {
@@ -69,13 +70,31 @@ async function proxyRequest(
         ? undefined
         : Buffer.from(await request.arrayBuffer());
 
-    const response = await fetch(target, {
-      method: request.method,
-      cache: "no-store",
-      signal: wantsEventStream ? undefined : AbortSignal.timeout(timeoutMs),
-      headers,
-      body: requestBody,
-    });
+    const canRetry = !wantsEventStream && (request.method === "GET" || request.method === "HEAD");
+    let response: Response | null = null;
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= (canRetry ? ADMIN_PROXY_RETRY_COUNT : 0); attempt += 1) {
+      try {
+        const attemptTimeoutMs = attempt === 0 ? timeoutMs : Math.min(timeoutMs * 2, 180000);
+        response = await fetch(target, {
+          method: request.method,
+          cache: "no-store",
+          signal: wantsEventStream ? undefined : AbortSignal.timeout(attemptTimeoutMs),
+          headers,
+          body: requestBody,
+        });
+        break;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error("Proxy request failed.");
+        if (attempt >= (canRetry ? ADMIN_PROXY_RETRY_COUNT : 0)) {
+          throw lastError;
+        }
+      }
+    }
+    if (!response) {
+      throw lastError ?? new Error("Proxy request failed.");
+    }
     const contentType = response.headers.get("content-type") ?? "application/json";
 
     if (contentType.includes("text/event-stream")) {

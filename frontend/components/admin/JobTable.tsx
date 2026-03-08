@@ -105,7 +105,15 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
 
       <Card className="rounded-2xl border-border/70 bg-white shadow-none">
         <CardContent className="overflow-x-auto p-0">
-          <table className="w-full border-collapse text-left">
+          <table className="w-full min-w-[1080px] table-fixed border-collapse text-left">
+            <colgroup>
+              <col className="w-[53%]" />
+              <col className="w-[9%]" />
+              <col className="w-[8%]" />
+              <col className="w-[11%]" />
+              <col className="w-[14%]" />
+              <col className="w-[5%]" />
+            </colgroup>
             <thead className="bg-[#fafbfa]">
               <tr>
                 <th className="border-b border-border/70 px-5 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Role</th>
@@ -127,19 +135,33 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
               jobRows.map((job) => (
                 <tr key={job.id} className="hover:bg-[#fafcfb]">
                   <td className="border-b border-border/60 px-5 py-4 align-top">
-                    <div className="grid gap-1">
-                      <strong className="font-medium text-[#334039]">{job.title}</strong>
-                      <span className="text-[0.92rem] text-[#727975]">
+                    <div className="grid min-w-0 gap-1">
+                      <strong className="truncate font-medium text-[#334039]" title={job.title}>
+                        {job.title}
+                      </strong>
+                      <span className="truncate text-[0.92rem] text-[#727975]" title={`${job.company} · ${job.location || "Thailand"}`}>
                         {job.company} · {job.location || "Thailand"}
                       </span>
                     </div>
                   </td>
-                  <td className="border-b border-border/60 px-5 py-4 align-top capitalize">{formatCategory(job.category)}</td>
-                  <td className="border-b border-border/60 px-5 py-4 align-top">{job.source || "Added by hand"}</td>
+                  <td className="border-b border-border/60 px-5 py-4 align-top capitalize">
+                    <span className="block truncate" title={formatCategory(job.category)}>
+                      {formatCategory(job.category)}
+                    </span>
+                  </td>
+                  <td className="border-b border-border/60 px-5 py-4 align-top">
+                    <span className="block truncate" title={job.source || "Added by hand"}>
+                      {job.source || "Added by hand"}
+                    </span>
+                  </td>
                   <td className="border-b border-border/60 px-5 py-4 align-top">
                     <StatusPill status={job.status ?? "published"} />
                   </td>
-                  <td className="border-b border-border/60 px-5 py-4 align-top">{formatDate(job.updated_at ?? job.created_at)}</td>
+                  <td className="border-b border-border/60 px-5 py-4 align-top">
+                    <span className="block truncate" title={formatDate(job.updated_at ?? job.created_at)}>
+                      {formatDate(job.updated_at ?? job.created_at)}
+                    </span>
+                  </td>
                   <td className="border-b border-border/60 px-5 py-4 align-top">
                     <div className="flex items-center justify-end gap-2">
                       {(job.status ?? "published") === "draft" ? (

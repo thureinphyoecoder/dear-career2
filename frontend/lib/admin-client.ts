@@ -10,15 +10,32 @@ type AdminRequestOptions = {
   fallbackError: string;
 };
 
+function shouldRetry(method: AdminRequestOptions["method"], status: number) {
+  return (method ?? "GET") === "GET" && (status === 502 || status === 504);
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function requestAdmin<T>(
   url: string,
   { method = "GET", json, body, fallbackError }: AdminRequestOptions,
 ): Promise<T> {
-  const response = await fetch(url, {
+  let response = await fetch(url, {
     method,
     headers: json ? { "content-type": "application/json" } : undefined,
     body: json ? JSON.stringify(json) : body,
   });
+
+  if (shouldRetry(method, response.status)) {
+    await sleep(550);
+    response = await fetch(url, {
+      method,
+      headers: json ? { "content-type": "application/json" } : undefined,
+      body: json ? JSON.stringify(json) : body,
+    });
+  }
 
   if (!response.ok) {
     const detail = await response.text();
