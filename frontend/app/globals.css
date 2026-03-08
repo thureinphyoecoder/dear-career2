@@ -285,7 +285,7 @@ a {
 
 .hero-sprout-part {
   opacity: 0;
-  transition: opacity 0.26s ease;
+  transition: opacity 0.42s cubic-bezier(0.22, 0.8, 0.28, 1);
 }
 
 .hero-logo-ground {
