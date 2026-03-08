@@ -181,6 +181,7 @@ export function JobEditor({
   returnTo?: string;
 }) {
   const router = useRouter();
+  const initialDescription = initialJob?.description_mm ?? initialJob?.description_en ?? "";
   const [title, setTitle] = useState(initialJob?.title ?? "");
   const [company, setCompany] = useState(initialJob?.company ?? "");
   const [location, setLocation] = useState(initialJob?.location ?? "");
@@ -193,8 +194,7 @@ export function JobEditor({
   const [source, setSource] = useState(initialJob?.source ?? "manual");
   const [sourceUrl, setSourceUrl] = useState(initialJob?.source_url ?? "");
   const [intakeUrl, setIntakeUrl] = useState(initialJob?.source_url ?? "");
-  const [descriptionMm, setDescriptionMm] = useState(initialJob?.description_mm ?? "");
-  const [descriptionEn, setDescriptionEn] = useState(initialJob?.description_en ?? "");
+  const [description, setDescription] = useState(initialDescription);
   const [isActive, setIsActive] = useState(initialJob?.is_active ?? true);
   const [requiresWebsiteApproval, setRequiresWebsiteApproval] = useState(
     initialJob?.requires_website_approval ?? false,
@@ -243,7 +243,7 @@ export function JobEditor({
     title,
     company,
     location,
-    descriptionMm,
+    descriptionMm: description,
     sourceUrl,
     imageUrl,
     contactEmail,
@@ -263,14 +263,14 @@ export function JobEditor({
       salary: salary.trim(),
       source_url: sourceUrl.trim(),
       image_url: imagePreviewUrl || imageUrl.trim(),
-      description_mm: descriptionMm.trim(),
-      description_en: descriptionEn.trim(),
+      description_mm: description.trim(),
+      description_en: description.trim(),
     }),
-    [company, descriptionEn, descriptionMm, employmentType, imagePreviewUrl, imageUrl, location, salary, sourceUrl, title],
+    [company, description, employmentType, imagePreviewUrl, imageUrl, location, salary, sourceUrl, title],
   );
   const previewSections = useMemo(
-    () => parseJobDescription(descriptionMm.trim() || descriptionEn.trim()),
-    [descriptionEn, descriptionMm],
+    () => parseJobDescription(description.trim()),
+    [description],
   );
   const previewFacts = useMemo(
     () => extractJobFacts(previewJob as Job),
@@ -387,18 +387,11 @@ export function JobEditor({
       setContactPhone(nextContactPhone);
     }
 
-    const nextDescriptionEn = scraped.description_en?.trim();
-    if (nextDescriptionEn) {
-      nextFetchedFields.push("English description");
-      nextPreview.push({ label: "English description", value: summarizeIntakeValue(nextDescriptionEn) });
-      setDescriptionEn(nextDescriptionEn);
-    }
-
-    const nextDescriptionMm = scraped.description_mm?.trim() || nextDescriptionEn;
-    if (nextDescriptionMm) {
-      nextFetchedFields.push("Myanmar description");
-      nextPreview.push({ label: "Myanmar description", value: summarizeIntakeValue(nextDescriptionMm) });
-      setDescriptionMm(nextDescriptionMm);
+    const nextDescription = scraped.description_mm?.trim() || scraped.description_en?.trim();
+    if (nextDescription) {
+      nextFetchedFields.push("description");
+      nextPreview.push({ label: "Description", value: summarizeIntakeValue(nextDescription) });
+      setDescription(nextDescription);
     }
 
     const nextImageUrl = scraped.image_url?.trim();
@@ -544,7 +537,7 @@ export function JobEditor({
       title,
       company,
       location,
-      descriptionMm,
+      descriptionMm: description,
       sourceUrl,
       imageUrl,
       contactEmail,
@@ -587,8 +580,8 @@ export function JobEditor({
       source: source.trim() || "manual",
       source_url: sourceUrl.trim(),
       image_url: imageUrl.trim(),
-      description_mm: descriptionMm.trim(),
-      description_en: descriptionEn.trim(),
+      description_mm: description.trim(),
+      description_en: description.trim(),
       is_active: isActive,
       requires_website_approval: nextRequiresWebsiteApproval,
       requires_facebook_approval: nextRequiresFacebookApproval,
@@ -678,19 +671,8 @@ export function JobEditor({
   }
 
   function insertStructuredTemplate() {
-    if (!descriptionEn.trim() && !descriptionMm.trim()) {
-      setDescriptionEn(STRUCTURED_DESCRIPTION_TEMPLATE);
-      setDescriptionMm(STRUCTURED_DESCRIPTION_TEMPLATE);
-      clearFieldError("descriptionMm");
-      return;
-    }
-
-    if (!descriptionEn.trim()) {
-      setDescriptionEn(STRUCTURED_DESCRIPTION_TEMPLATE);
-    }
-
-    if (!descriptionMm.trim()) {
-      setDescriptionMm(STRUCTURED_DESCRIPTION_TEMPLATE);
+    if (!description.trim()) {
+      setDescription(STRUCTURED_DESCRIPTION_TEMPLATE);
       clearFieldError("descriptionMm");
     }
   }
@@ -1101,30 +1083,21 @@ export function JobEditor({
               </button>
             </div>
             <label className={fieldLabelClass}>
-              <span className={eyebrowClass}>Myanmar description</span>
+              <span className={eyebrowClass}>Description (English or Myanmar)</span>
               <Textarea
                 className={cn(
                   "min-h-[220px] rounded-md border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.9)] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0",
                   fieldErrors.descriptionMm && inputErrorClass,
                 )}
-                value={descriptionMm}
+                value={description}
                 onChange={(event) => {
-                  setDescriptionMm(event.target.value);
+                  setDescription(event.target.value);
                   clearFieldError("descriptionMm");
                 }}
-                placeholder="Myanmar copy..."
+                placeholder="Job description..."
                 aria-invalid={Boolean(fieldErrors.descriptionMm)}
               />
               {fieldErrors.descriptionMm ? <span className="text-sm text-[#8e4a4a]">{fieldErrors.descriptionMm}</span> : null}
-            </label>
-            <label className={fieldLabelClass}>
-              <span className={eyebrowClass}>English description</span>
-              <Textarea
-                className="min-h-[220px] rounded-md border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.9)] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                value={descriptionEn}
-                onChange={(event) => setDescriptionEn(event.target.value)}
-                placeholder="English copy..."
-              />
             </label>
           </div>
           <div className="grid gap-4 2xl:grid-cols-2">

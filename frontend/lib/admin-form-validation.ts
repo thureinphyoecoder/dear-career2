@@ -28,7 +28,7 @@ export const jobEditorSchema = z.object({
   title: z.string().trim().min(1, "Enter a job title."),
   company: z.string().trim().min(1, "Enter a company name."),
   location: z.string().trim().min(1, "Enter a location."),
-  descriptionMm: z.string().trim().min(1, "Enter a Myanmar description."),
+  descriptionMm: z.string().trim().min(1, "Enter a description."),
   sourceUrl: optionalUrlField,
   imageUrl: optionalImageUrlField,
   contactEmail: optionalEmailField,
