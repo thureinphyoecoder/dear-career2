@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, Clock3, Database, FileClock, Globe, ShieldCheck } from "lucide-react";
+import { Bell, Database, FileClock, Globe, ShieldCheck } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,12 +17,6 @@ function formatDateTime(value?: string) {
   }).format(parsed);
 }
 
-const toneClassMap = {
-  info: "border-[rgba(123,148,167,0.26)] bg-[rgba(123,148,167,0.1)] text-[#4a6677]",
-  success: "border-[rgba(98,152,116,0.24)] bg-[rgba(98,152,116,0.1)] text-[#2f6341]",
-  warning: "border-[rgba(196,149,88,0.3)] bg-[rgba(196,149,88,0.12)] text-[#7a5b2f]",
-} as const;
-
 function getPendingJobId(value: string) {
   const match = value.match(/(\d+)$/);
   return match?.[1] ?? "";
@@ -30,31 +24,26 @@ function getPendingJobId(value: string) {
 
 export default async function AdminDashboardPage() {
   const snapshot = await getAdminDashboardSnapshot();
-  const visitorSummary = snapshot.visitor_summary;
 
   const statItems = [
     {
       label: "Live jobs",
       value: snapshot.published_jobs,
-      detail: `${snapshot.total_jobs} total`,
       icon: ShieldCheck,
     },
     {
       label: "Pending",
       value: snapshot.pending_approvals.length,
-      detail: "Waiting for review",
       icon: FileClock,
     },
     {
       label: "Import sources",
       value: snapshot.source_count,
-      detail: "Ready to use",
       icon: Database,
     },
     {
       label: "Visitors",
       value: snapshot.total_visitors,
-      detail: `${visitorSummary?.today_visitors ?? 0} today`,
       icon: Globe,
     },
   ] as const;
@@ -67,16 +56,15 @@ export default async function AdminDashboardPage() {
         </Link>
       </header>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {statItems.map((item) => (
           <Card key={item.label} className="rounded-2xl border-border/70 bg-white shadow-none">
-            <CardContent className="grid gap-2 p-5">
+            <CardContent className="grid gap-1 p-4">
               <div className="inline-flex items-center justify-between gap-3 text-[#6a766f]">
                 <span className="text-[0.78rem] uppercase tracking-[0.12em]">{item.label}</span>
                 <item.icon className="h-4 w-4" />
               </div>
-              <strong className="text-[2rem] font-semibold leading-none text-[#334039]">{item.value}</strong>
-              <span className="text-[0.86rem] text-[#727975]">{item.detail}</span>
+              <strong className="text-[1.85rem] font-semibold leading-none text-[#334039]">{item.value}</strong>
             </CardContent>
           </Card>
         ))}
@@ -87,42 +75,27 @@ export default async function AdminDashboardPage() {
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-[1rem] font-semibold text-foreground">Pending jobs</CardTitle>
             <Link href="/admin/approvals" className="text-sm text-[#6f876f] hover:underline">
-              Open list
+              View all
             </Link>
           </CardHeader>
           <CardContent className="grid gap-0 p-0">
             {snapshot.pending_approvals.length === 0 ? (
-              <div className="px-6 py-8 text-sm text-[#6d7771]">Nothing is waiting for review right now.</div>
+              <div className="px-6 py-6 text-sm text-[#6d7771]">No pending jobs.</div>
             ) : (
-              snapshot.pending_approvals.slice(0, 8).map((item) => (
+              snapshot.pending_approvals.slice(0, 6).map((item) => (
                 <div
                   key={item.id}
-                  className="grid gap-1 border-t border-border/60 px-6 py-4 first:border-t-0"
+                  className="grid gap-2 border-t border-border/60 px-6 py-3 first:border-t-0"
                 >
-                  <strong className="font-medium text-[#334039]">{item.title}</strong>
-                  <span className="text-sm text-[#727975]">{item.company}</span>
-                  <div className="flex flex-wrap items-center gap-2 text-[0.8rem] text-[#7a847e]">
-                    <span className="rounded-full border border-[rgba(141,166,147,0.2)] px-2.5 py-0.5 uppercase tracking-[0.08em]">
-                      {item.requested_action.replace("-", " ")}
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <Clock3 className="h-3.5 w-3.5" />
-                      {formatDateTime(item.requested_at)}
-                    </span>
-                  </div>
+                  <strong className="line-clamp-1 font-medium text-[#334039]">{item.title}</strong>
+                  <span className="text-xs text-[#7a847e]">{formatDateTime(item.requested_at)}</span>
                   {getPendingJobId(item.id) ? (
-                    <div className="mt-1 flex items-center gap-2">
-                      <Link
-                        href={`/admin/jobs/${getPendingJobId(item.id)}`}
-                        className={cn(buttonVariants({ variant: "secondary" }), "h-8 rounded-lg px-3 text-xs")}
-                      >
-                        Open
-                      </Link>
+                    <div className="mt-0.5 flex items-center gap-2">
                       <Link
                         href={`/admin/jobs/${getPendingJobId(item.id)}?returnTo=${encodeURIComponent("/admin/approvals")}`}
                         className={cn(buttonVariants(), "h-8 rounded-lg px-3 text-xs")}
                       >
-                        Check details
+                        Review
                       </Link>
                     </div>
                   ) : null}
@@ -139,29 +112,18 @@ export default async function AdminDashboardPage() {
               Notifications
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-3">
+          <CardContent className="grid gap-2">
             {snapshot.notifications.length === 0 ? (
-              <div className="rounded-xl border border-[rgba(160,183,164,0.16)] bg-[rgba(247,249,247,0.8)] px-4 py-6 text-sm text-[#6d7771]">
-                No updates right now.
+              <div className="rounded-xl border border-[rgba(160,183,164,0.16)] bg-[rgba(247,249,247,0.8)] px-4 py-4 text-sm text-[#6d7771]">
+                No notifications.
               </div>
             ) : (
               snapshot.notifications.slice(0, 6).map((notification) => (
                 <article
                   key={notification.id}
-                  className="grid gap-1 rounded-xl border border-border/60 bg-[rgba(250,252,250,0.92)] px-4 py-3"
+                  className="grid gap-1 rounded-xl border border-border/60 bg-[rgba(250,252,250,0.92)] px-4 py-2.5"
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <strong className="text-sm text-[#334039]">{notification.title}</strong>
-                    <span
-                      className={cn(
-                        "rounded-full border px-2 py-0.5 text-[0.68rem] uppercase tracking-[0.1em]",
-                        toneClassMap[notification.tone],
-                      )}
-                    >
-                      {notification.tone}
-                    </span>
-                  </div>
-                  <p className="m-0 text-sm leading-6 text-[#68726c]">{notification.detail}</p>
+                  <strong className="line-clamp-1 text-sm text-[#334039]">{notification.title}</strong>
                   <span className="text-[0.78rem] text-[#86918a]">{formatDateTime(notification.created_at)}</span>
                 </article>
               ))
