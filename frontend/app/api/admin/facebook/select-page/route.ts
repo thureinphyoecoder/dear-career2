@@ -21,27 +21,6 @@ type PendingFacebookPageSelection = {
   grantedScopes: string;
 };
 
-async function verifyPageFeedAccess(pageId: string, accessToken: string) {
-  const verifyUrl = new URL(`${GRAPH_API_BASE}/${pageId}/feed`);
-  verifyUrl.searchParams.set("fields", "id");
-  verifyUrl.searchParams.set("limit", "1");
-  verifyUrl.searchParams.set("access_token", accessToken);
-
-  const response = await fetch(verifyUrl, { cache: "no-store" });
-  const body = await response.text();
-
-  if (response.ok) {
-    return "";
-  }
-
-  try {
-    const parsed = JSON.parse(body) as { error?: { message?: string } };
-    return parsed.error?.message || "facebook-feed-check-failed";
-  } catch {
-    return body || "facebook-feed-check-failed";
-  }
-}
-
 function buildRedirect(request: NextRequest, path: string) {
   return NextResponse.redirect(new URL(path, request.url), 303);
 }
@@ -94,22 +73,6 @@ export async function POST(request: NextRequest) {
   }
 
   const target = new URL("/admin/facebook?connected=1", request.url);
-  const requiredScopes = ["pages_show_list", "pages_manage_posts", "pages_read_engagement"];
-  const grantedScopeSet = new Set(
-    String(pending.grantedScopes ?? "")
-      .split(",")
-      .map((scope) => scope.trim())
-      .filter(Boolean),
-  );
-  const missingScopes = requiredScopes.filter((scope) => !grantedScopeSet.has(scope));
-  if (missingScopes.length > 0) {
-    target.searchParams.set("warning", `Missing Facebook permissions: ${missingScopes.join(", ")}`);
-  } else {
-    const feedCheckError = await verifyPageFeedAccess(selectedPage.id, selectedPage.access_token);
-    if (feedCheckError) {
-      target.searchParams.set("warning", feedCheckError);
-    }
-  }
 
   const response = NextResponse.redirect(target, 303);
   response.cookies.set({
