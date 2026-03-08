@@ -112,6 +112,16 @@ DB_PORT=55433
 ADMIN_API_SHARED_SECRET=replace-me
 FACEBOOK_PAGE_ID=
 FACEBOOK_PAGE_ACCESS_TOKEN=
+
+# Email (Job Alert notifications)
+DJANGO_EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+DJANGO_EMAIL_HOST=smtp.gmail.com
+DJANGO_EMAIL_PORT=587
+DJANGO_EMAIL_HOST_USER=your-gmail@gmail.com
+DJANGO_EMAIL_HOST_PASSWORD=your-gmail-app-password
+DJANGO_EMAIL_USE_TLS=True
+DJANGO_DEFAULT_FROM_EMAIL=Dear Career <your-gmail@gmail.com>
+DJANGO_JOB_ALERT_FROM_EMAIL=Dear Career Alerts <your-gmail@gmail.com>
 ```
 
 Admin API authentication:

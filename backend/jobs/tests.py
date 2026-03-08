@@ -314,7 +314,9 @@ class JobAlertSubscriptionTests(TestCase):
     def setUp(self):
         self.client = Client()
 
-    def test_subscribe_creates_new_record(self):
+    @patch("jobs.views.job_alerts.send_mail")
+    def test_subscribe_creates_new_record(self, mock_send_mail):
+        mock_send_mail.return_value = 1
         response = self.client.post(
             "/api/jobs/job-alert-subscribe/",
             data=json.dumps({"email": "candidate@example.com", "source": "cv-guide"}),
@@ -325,6 +327,7 @@ class JobAlertSubscriptionTests(TestCase):
         payload = response.json()
         self.assertEqual(payload["detail"], "Job alert subscribed.")
         self.assertTrue(JobAlertSubscriber.objects.filter(email="candidate@example.com").exists())
+        mock_send_mail.assert_called_once()
 
     def test_subscribe_is_idempotent_for_existing_email(self):
         JobAlertSubscriber.objects.create(
@@ -344,7 +347,9 @@ class JobAlertSubscriptionTests(TestCase):
         self.assertEqual(payload["detail"], "You are already subscribed.")
         self.assertEqual(JobAlertSubscriber.objects.filter(email="candidate@example.com").count(), 1)
 
-    def test_subscribe_normalizes_email_and_reactivates(self):
+    @patch("jobs.views.job_alerts.send_mail")
+    def test_subscribe_normalizes_email_and_reactivates(self, mock_send_mail):
+        mock_send_mail.return_value = 1
         JobAlertSubscriber.objects.create(
             email="candidate@example.com",
             source="public",
@@ -364,6 +369,20 @@ class JobAlertSubscriptionTests(TestCase):
         subscriber = JobAlertSubscriber.objects.get(email="candidate@example.com")
         self.assertTrue(subscriber.is_active)
         self.assertEqual(subscriber.source, "job-alert-page")
+        mock_send_mail.assert_called_once()
+
+    @patch("jobs.views.job_alerts.send_mail")
+    def test_subscribe_returns_502_when_email_delivery_fails(self, mock_send_mail):
+        mock_send_mail.side_effect = RuntimeError("smtp unavailable")
+
+        response = self.client.post(
+            "/api/jobs/job-alert-subscribe/",
+            data=json.dumps({"email": "candidate@example.com", "source": "job-alert-page"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 502)
+        self.assertFalse(JobAlertSubscriber.objects.filter(email="candidate@example.com").exists())
 
 
 class FetchSourceApiTests(TestCase):

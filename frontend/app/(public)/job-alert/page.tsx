@@ -26,7 +26,7 @@ export default function JobAlertPage() {
           Get new jobs by email
         </h1>
         <p className="m-0 text-sm leading-7 text-[#5f6b64]">
-          Email တစ်ခုထည့်ပြီး subscribe လုပ်ထားပါ။ Matching jobs အသစ်တင်တိုင်း admin dashboard မှာ subscriber list ထဲကိုဝင်မယ်။
+          Email တစ်ခုထည့်ပြီး subscribe လုပ်ထားပါ။ Job alert အသစ်ရှိတိုင်း Gmail inbox ကိုတိုက်ရိုက်ပို့ပေးမယ်။
         </p>
       </section>
 
