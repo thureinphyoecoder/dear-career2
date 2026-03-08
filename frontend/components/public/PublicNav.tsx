@@ -61,9 +61,9 @@ export function PublicNav() {
   const jobsActive = pathname === "/" ? homeSection === "jobs" : pathname?.startsWith("/jobs");
 
   return (
-    <nav className="fixed left-0 right-0 top-0 z-20 px-2 py-3 sm:px-4 sm:py-4">
-      <div className="mx-auto grid w-full max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-[1.4rem] border border-[rgba(160,183,164,0.14)] bg-[rgba(255,255,255,0.72)] px-3 py-2 backdrop-blur sm:grid-cols-[auto_1fr_auto] sm:gap-8 sm:px-4">
-        <BrandLogo compact inline className="nav-brand-logo min-w-0 max-w-[170px] sm:max-w-none" />
+    <nav className="fixed left-0 right-0 top-0 z-20 bg-transparent px-3 py-3 sm:px-6 sm:py-4">
+      <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[auto_1fr_auto] sm:gap-8">
+        <BrandLogo compact inline className="nav-brand-logo min-w-0" />
         <div className="hidden items-center justify-center gap-1 sm:flex">
           <Link
             href="/"
@@ -102,7 +102,7 @@ export function PublicNav() {
         <div className="flex items-center justify-end gap-2">
           <button
             type="button"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(160,183,164,0.22)] bg-white/70 text-[#4f5954] sm:hidden"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(160,183,164,0.2)] bg-[rgba(255,255,255,0.48)] text-[#4f5954] backdrop-blur sm:hidden"
             onClick={() => setMobileOpen((current) => !current)}
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileOpen}
@@ -125,7 +125,7 @@ export function PublicNav() {
       {mobileOpen ? (
         <div
           id="public-mobile-menu"
-          className="mx-auto mt-2 grid w-full max-w-6xl gap-1 rounded-2xl border border-[rgba(160,183,164,0.2)] bg-[rgba(255,255,255,0.94)] p-2 shadow-soft sm:hidden"
+          className="mt-2 grid w-full gap-1 rounded-2xl border border-[rgba(160,183,164,0.2)] bg-[rgba(255,255,255,0.94)] p-2 shadow-soft sm:hidden"
         >
           <Link
             href="/"

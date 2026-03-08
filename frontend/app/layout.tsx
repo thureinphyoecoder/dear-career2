@@ -10,7 +10,7 @@ const siteUrl = getSiteUrl();
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Dear Career | Curated Thailand Jobs",
+    default: "Dear Career",
     template: "%s | Dear Career",
   },
   description:
@@ -22,16 +22,21 @@ export const metadata: Metadata = {
     type: "website",
     url: "/",
     siteName: "Dear Career",
-    title: "Dear Career | Curated Thailand Jobs",
+    title: "Dear Career",
     description:
       "Discover curated NGO, white-collar, and blue-collar jobs in Thailand with clean, verified listings.",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Dear Career | Curated Thailand Jobs",
+    title: "Dear Career",
     description:
       "Discover curated NGO, white-collar, and blue-collar jobs in Thailand with clean, verified listings.",
+  },
+  icons: {
+    icon: "/logoflat.svg?v=20260308c",
+    shortcut: "/logoflat.svg?v=20260308c",
+    apple: "/logoflat.svg?v=20260308c",
   },
 };
 

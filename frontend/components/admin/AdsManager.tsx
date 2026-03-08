@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import type { ManagedAd, ManagedAdPlacement, ManagedAdStatus } from "@/lib/types";
 
 const placementOptions: Array<{ value: ManagedAdPlacement; label: string }> = [
+  { value: "home-hero", label: "Home hero" },
   { value: "jobs-search", label: "Jobs search" },
   { value: "jobs-inline", label: "Jobs inline" },
   { value: "jobs-detail", label: "Job detail" },

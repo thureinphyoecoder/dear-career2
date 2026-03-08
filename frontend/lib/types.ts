@@ -5,7 +5,7 @@ export type FetchSiteMode = "html" | "rss" | "manual";
 export type FetchRunState = "healthy" | "warning" | "paused";
 export type NotificationTone = "info" | "success" | "warning";
 export type PublishChannel = "website" | "facebook";
-export type ManagedAdPlacement = "jobs-inline" | "jobs-detail" | "jobs-search";
+export type ManagedAdPlacement = "home-hero" | "jobs-inline" | "jobs-detail" | "jobs-search";
 export type ManagedAdStatus = "draft" | "active" | "paused";
 
 export type Job = {

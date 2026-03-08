@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { SproutMark } from "@/components/public/SproutMark";
 import { cn } from "@/lib/utils";
 
 export function BrandLogo({
@@ -12,67 +11,67 @@ export function BrandLogo({
   compact?: boolean;
   className?: string;
   inline?: boolean;
-  href?: string;
+  href?: string | null;
 }) {
   const isAdminLogo = className?.includes("admin-brand-logo");
+  const isNavLogo = className?.includes("nav-brand-logo");
+  const wrapperSizeClass = isAdminLogo
+    ? "w-[clamp(126px,12vw,166px)]"
+    : isNavLogo
+      ? "w-[clamp(138px,11vw,172px)]"
+      : compact
+        ? "w-[clamp(152px,15vw,210px)]"
+        : "w-[clamp(190px,20vw,280px)]";
   const textStyle = {
     fontSize: isAdminLogo
-      ? "clamp(1.7rem, 3vw, 2.2rem)"
+      ? "clamp(1.5rem, 2.4vw, 2.1rem)"
       : compact
-        ? "clamp(2.1rem, 5vw, 3rem)"
-        : "clamp(3.2rem, 7vw, 5.5rem)",
+        ? "clamp(1.85rem, 3.2vw, 2.7rem)"
+        : "clamp(2.4rem, 4vw, 3.8rem)",
     lineHeight: isAdminLogo ? 0.92 : compact ? 0.9 : 0.86,
   } satisfies CSSProperties;
 
   const logo = (
     <div
       className={cn(
-        "inline-flex items-center gap-4 text-[#454c49]",
+        "inline-flex items-center gap-3.5 text-[#454c49]",
         compact && "gap-2.5",
         isAdminLogo && "gap-2",
+        wrapperSizeClass,
         className,
       )}
     >
-      <SproutMark
+      <img src="/logoflat.svg" alt="" aria-hidden="true" className="h-auto w-[30%] shrink-0" />
+      <span
         className={cn(
-          "h-auto shrink-0",
-          inline ? "w-16" : compact ? "w-[72px]" : "w-40",
-          className?.includes("nav-brand-logo") && "w-16",
-          isAdminLogo && "w-[74px]",
+          "grid font-serif font-normal leading-[0.8] tracking-[-0.045em]",
+          inline && "flex items-baseline gap-[0.08em] leading-none",
         )}
-      />
-      <div className={cn("grid items-end", inline && "flex items-center")}>
-        <div
+        style={textStyle}
+      >
+        <span
           className={cn(
-            "grid font-serif font-normal leading-[0.8] tracking-[-0.045em]",
-            inline && "flex items-baseline gap-[0.08em] leading-none",
+            "block italic font-medium opacity-95",
+            inline
+              ? "inline-block translate-y-[-0.08em] text-[0.72em] tracking-[-0.055em]"
+              : "translate-x-[0.08em] text-[0.8em] tracking-[-0.05em]",
           )}
-          style={textStyle}
         >
-          <span
-            className={cn(
-              "block italic font-medium opacity-95",
-              inline
-                ? "inline-block translate-y-[-0.08em] text-[0.72em] tracking-[-0.055em]"
-                : "translate-x-[0.08em] text-[0.8em] tracking-[-0.05em]",
-            )}
-          >
-            dear
-          </span>
-          <span
-            className={cn(
-              inline ? "inline-block text-[1em] tracking-[-0.085em]" : "block text-[1em] tracking-[-0.075em]",
-            )}
-          >
-            career
-          </span>
-        </div>
-      </div>
+          dear
+        </span>
+        <span
+          className={cn(
+            inline ? "inline-block text-[1em] tracking-[-0.085em]" : "block text-[1em] tracking-[-0.075em]",
+          )}
+        >
+          career
+        </span>
+      </span>
     </div>
   );
 
   return href ? (
-    <Link href={href} className="inline-flex">
+    <Link href={href} className={cn("inline-flex", inline && "items-center")}>
       {logo}
     </Link>
   ) : (

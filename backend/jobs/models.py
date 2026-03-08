@@ -351,6 +351,7 @@ class VisitorEvent(models.Model):
 
 class ManagedAd(models.Model):
     class PlacementChoices(models.TextChoices):
+        HOME_HERO = "home-hero", "Home hero"
         JOBS_INLINE = "jobs-inline", "Jobs inline"
         JOBS_DETAIL = "jobs-detail", "Job detail"
         JOBS_SEARCH = "jobs-search", "Jobs search"
