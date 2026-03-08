@@ -1,4 +1,4 @@
-export type JobStatus = "draft" | "published" | "archived" | "pending-review";
+export type JobStatus = "draft" | "published" | "pending-review";
 export type JobCategory = "ngo" | "white-collar" | "blue-collar";
 export type FetchIntervalUnit = "minutes" | "hours";
 export type FetchSiteMode = "html" | "rss" | "manual";

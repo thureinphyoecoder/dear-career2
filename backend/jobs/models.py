@@ -24,7 +24,6 @@ class Job(models.Model):
     class WorkflowStatus(models.TextChoices):
         DRAFT = "draft", "Draft"
         PUBLISHED = "published", "Published"
-        ARCHIVED = "archived", "Archived"
         PENDING_REVIEW = "pending-review", "Pending Review"
 
     title = models.CharField(max_length=255)

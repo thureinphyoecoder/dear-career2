@@ -31,7 +31,6 @@ const categoryOptions: Array<{ value: JobCategory; label: string }> = [
 const statusOptions: Array<{ value: JobStatus; label: string }> = [
   { value: "draft", label: "Draft" },
   { value: "published", label: "Published" },
-  { value: "archived", label: "Hidden" },
   { value: "pending-review", label: "Pending" },
 ];
 
