@@ -177,13 +177,13 @@ export function AdminShell({
     <div
       className={cn(
         "grid min-h-screen bg-[#f8f9f8] transition-[grid-template-columns]",
-        sidebarCollapsed ? "lg:grid-cols-[92px_1fr]" : "lg:grid-cols-[280px_1fr]",
+        sidebarCollapsed ? "md:grid-cols-[92px_1fr]" : "md:grid-cols-[280px_1fr]",
       )}
     >
       <aside
         className={cn(
           "border-b border-border/60 bg-[#f5f7f5] px-4 py-4 transition-all sm:px-5 sm:py-5 lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r",
-          sidebarCollapsed && "lg:px-3",
+          sidebarCollapsed && "md:px-3",
         )}
       >
         <div className="flex h-full flex-col gap-6 lg:overflow-y-auto">
