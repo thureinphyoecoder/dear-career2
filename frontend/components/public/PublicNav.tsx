@@ -59,6 +59,7 @@ export function PublicNav() {
 
   const homeActive = pathname === "/" ? homeSection === "home" : pathname === "/";
   const jobsActive = pathname === "/" ? homeSection === "jobs" : pathname?.startsWith("/jobs");
+  const contactActive = pathname === "/contact";
 
   return (
     <nav className="fixed left-0 right-0 top-0 z-20 bg-transparent px-3 py-3 sm:px-6 sm:py-4">
@@ -97,6 +98,17 @@ export function PublicNav() {
             )}
           >
             About
+          </Link>
+          <Link
+            href="/contact"
+            className={cn(
+              linkClass,
+              contactActive
+                ? "text-[#2f3a34] after:w-[62%]"
+                : "text-[#4f5954] hover:text-[#2f3a34]",
+            )}
+          >
+            Contact
           </Link>
         </div>
         <div className="flex items-center justify-end gap-2">
@@ -153,6 +165,15 @@ export function PublicNav() {
             )}
           >
             About
+          </Link>
+          <Link
+            href="/contact"
+            className={cn(
+              "rounded-xl px-3 py-2 text-sm font-medium",
+              contactActive ? "bg-[rgba(141,166,147,0.14)] text-[#2f3a34]" : "text-[#4f5954]",
+            )}
+          >
+            Contact
           </Link>
           <Link
             href="/admin/login"
