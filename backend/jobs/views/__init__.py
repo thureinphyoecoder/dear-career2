@@ -1,6 +1,7 @@
 from .ads import managed_ad_create, managed_ad_detail, managed_ad_list, public_active_ad_list
 from .analytics import admin_dashboard_snapshot, visitor_summary, visitor_track
 from .channels import facebook_channel_credential, facebook_page_posts, facebook_publish_job
+from .cv_guide import admin_cv_guide_content, public_cv_guide_content
 from .feedback import feedback_create
 from .jobs import (
     job_create,
@@ -35,6 +36,7 @@ __all__ = [
     "facebook_channel_credential",
     "facebook_page_posts",
     "facebook_publish_job",
+    "admin_cv_guide_content",
     "feedback_create",
     "fetch_run_list",
     "fetch_source_create",
@@ -51,6 +53,7 @@ __all__ = [
     "managed_ad_create",
     "managed_ad_detail",
     "managed_ad_list",
+    "public_cv_guide_content",
     "public_active_ad_list",
     "public_job_detail",
     "visitor_summary",

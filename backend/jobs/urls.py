@@ -7,6 +7,7 @@ from .views import (
     admin_notification_stream,
     admin_report_detail,
     admin_report_list,
+    admin_cv_guide_content,
     facebook_page_posts,
     facebook_publish_job,
     facebook_channel_credential,
@@ -28,6 +29,7 @@ from .views import (
     managed_ad_detail,
     managed_ad_list,
     public_active_ad_list,
+    public_cv_guide_content,
     visitor_summary,
     visitor_track,
 )
@@ -35,6 +37,7 @@ from .views import (
 urlpatterns = [
     path("", job_list, name="job-list"),
     path("ads/", public_active_ad_list, name="public-ad-list"),
+    path("cv-guide/", public_cv_guide_content, name="public-cv-guide-content"),
     path("analytics/visit/", visitor_track, name="visitor-track"),
     path("admin/jobs/create/", job_create, name="job-create"),
     path("admin/jobs/scrape/", job_scrape_preview, name="job-scrape-preview"),
@@ -44,6 +47,7 @@ urlpatterns = [
     path("admin/dashboard/", admin_dashboard_snapshot, name="admin-dashboard-snapshot"),
     path("admin/analytics/visitors/", visitor_summary, name="visitor-summary"),
     path("admin/ads/", managed_ad_list, name="managed-ad-list"),
+    path("admin/cv-guide/", admin_cv_guide_content, name="admin-cv-guide-content"),
     path("admin/ads/create/", managed_ad_create, name="managed-ad-create"),
     path("admin/ads/<int:ad_id>/", managed_ad_detail, name="managed-ad-detail"),
     path("admin/channels/facebook/", facebook_channel_credential, name="facebook-channel-credential"),

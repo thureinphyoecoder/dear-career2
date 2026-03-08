@@ -3,6 +3,7 @@ from django.contrib import admin
 from .models import (
     AdminNotification,
     ChannelCredential,
+    CvGuideContent,
     FeedbackMessage,
     FetchRun,
     FetchSource,
@@ -114,3 +115,9 @@ class ManagedAdAdmin(admin.ModelAdmin):
     list_display = ("title", "placement", "status", "sort_order", "updated_at")
     list_filter = ("placement", "status")
     search_fields = ("title", "description", "href")
+
+
+@admin.register(CvGuideContent)
+class CvGuideContentAdmin(admin.ModelAdmin):
+    list_display = ("key", "title", "updated_at")
+    search_fields = ("key", "title", "guide_text")

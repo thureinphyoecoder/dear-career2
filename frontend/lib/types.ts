@@ -8,6 +8,15 @@ export type PublishChannel = "website" | "facebook";
 export type ManagedAdPlacement = "home-hero" | "jobs-inline" | "jobs-detail" | "jobs-search";
 export type ManagedAdStatus = "draft" | "active" | "paused";
 
+export type CvGuideContent = {
+  id: number;
+  key: string;
+  title: string;
+  intro: string;
+  guide_text: string;
+  updated_at?: string;
+};
+
 export type Job = {
   id: number;
   title: string;

@@ -12,7 +12,7 @@ export default async function AdminReportsPage() {
           Job Reports
         </h1>
         <p className="max-w-[54ch] text-[0.92rem] leading-6 text-[#727975]">
-          Review user-submitted reports from job detail pages and mark each item as reviewed or resolved.
+          Review user-submitted reports from job detail pages and mark each item as handled.
         </p>
       </header>
       <ReportsQueue initialReports={reports} />

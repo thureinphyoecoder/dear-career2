@@ -101,6 +101,11 @@ export function AdminShell({
           label: "Visitor activity",
           active: pathname === "/admin/analytics",
         },
+        {
+          href: "/admin/cv-guide",
+          label: "CV guide",
+          active: pathname === "/admin/cv-guide",
+        },
       ],
     },
     {

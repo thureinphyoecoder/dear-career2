@@ -178,3 +178,14 @@ def serialize_managed_ad(ad):
         "created_at": ad.created_at.isoformat() if ad.created_at else None,
         "updated_at": ad.updated_at.isoformat() if ad.updated_at else None,
     }
+
+
+def serialize_cv_guide_content(content):
+    return {
+        "id": content.id,
+        "key": content.key,
+        "title": content.title,
+        "intro": content.intro,
+        "guide_text": content.guide_text,
+        "updated_at": content.updated_at.isoformat() if content.updated_at else None,
+    }

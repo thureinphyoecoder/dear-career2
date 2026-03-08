@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, CheckCircle2, Clock3, ShieldAlert } from "lucide-react";
+import { CheckCircle2, Clock3, ShieldAlert } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -94,14 +94,14 @@ export function ReportsQueue({ initialReports }: { initialReports: JobReport[] }
     };
   }, [workingId]);
 
-  async function updateStatus(report: JobReport, status: JobReportStatus) {
+  async function markHandled(report: JobReport) {
     setWorkingId(report.id);
     try {
       const updated = await requestAdmin<JobReport>(
         `/api/admin/proxy/jobs/admin/reports/${report.id}/`,
         {
           method: "PATCH",
-          json: { status },
+          json: { status: "resolved" as JobReportStatus },
           fallbackError: "Could not update this report.",
         },
       );
@@ -179,26 +179,14 @@ export function ReportsQueue({ initialReports }: { initialReports: JobReport[] }
                 <button
                   type="button"
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs",
-                    (workingId === report.id || report.status !== "open") && "opacity-60",
-                  )}
-                  disabled={workingId === report.id || report.status !== "open"}
-                  onClick={() => void updateStatus(report, "reviewed")}
-                >
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  Mark as checked
-                </button>
-                <button
-                  type="button"
-                  className={cn(
                     "inline-flex items-center gap-1.5 rounded-full border border-[rgba(116,141,122,0.28)] bg-[rgba(144,168,147,0.1)] px-3 py-1.5 text-xs text-[#3d5746]",
                     (workingId === report.id || report.status === "resolved") && "opacity-60",
                   )}
                   disabled={workingId === report.id || report.status === "resolved"}
-                  onClick={() => void updateStatus(report, "resolved")}
+                  onClick={() => void markHandled(report)}
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  Mark as solved
+                  Mark as handled
                 </button>
               </div>
             </article>

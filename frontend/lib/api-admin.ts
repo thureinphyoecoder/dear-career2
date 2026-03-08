@@ -11,6 +11,7 @@ import type {
   ManagedAd,
   JobReport,
   VisitorSummary,
+  CvGuideContent,
 } from "@/lib/types";
 import { getAdminApiHeaders } from "@/lib/admin-api-auth";
 
@@ -316,5 +317,19 @@ export async function getAdminJobReports(): Promise<JobReport[]> {
     return data.results;
   } catch {
     return [];
+  }
+}
+
+export async function getAdminCvGuideContent(): Promise<CvGuideContent | null> {
+  try {
+    const response = await fetchAdmin(`${ADMIN_API_BASE_URL}/jobs/admin/cv-guide/`);
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return (await response.json()) as CvGuideContent;
+  } catch {
+    return null;
   }
 }

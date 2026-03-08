@@ -388,3 +388,17 @@ class ManagedAd(models.Model):
 
     def __str__(self):
         return f"{self.title} · {self.placement}"
+
+
+class CvGuideContent(models.Model):
+    key = models.SlugField(unique=True, max_length=50, default="default")
+    title = models.CharField(max_length=180, default="CV Guide: Design Better, Write Clearer")
+    intro = models.TextField(default="Use this guide to build a clean CV that recruiters can scan quickly and trust.")
+    guide_text = models.TextField(blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["key"]
+
+    def __str__(self):
+        return f"CV Guide · {self.key}"

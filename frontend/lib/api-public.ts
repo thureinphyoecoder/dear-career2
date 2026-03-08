@@ -1,4 +1,4 @@
-import type { Job, JobsResponse, ManagedAd, ManagedAdPlacement } from "@/lib/types";
+import type { CvGuideContent, Job, JobsResponse, ManagedAd, ManagedAdPlacement } from "@/lib/types";
 
 function getPublicApiBaseUrl() {
   if (typeof window === "undefined") {
@@ -88,5 +88,19 @@ export async function getPublicAds(
     return data.results;
   } catch {
     return [];
+  }
+}
+
+export async function getPublicCvGuideContent(): Promise<CvGuideContent | null> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/jobs/cv-guide/`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) return null;
+
+    return (await response.json()) as CvGuideContent;
+  } catch {
+    return null;
   }
 }
