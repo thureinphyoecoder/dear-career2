@@ -265,10 +265,6 @@ export function buildFacebookPostMessage(job: Job) {
     lines.push("", ...cleanedDescriptionLines);
   }
 
-  if (job.source_url) {
-    lines.push("", `Apply: ${job.source_url}`);
-  }
-
   return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 

@@ -64,8 +64,7 @@ def normalize_employment_type(value: str) -> str:
 
 def default_description(source: FetchSource, title: str, company: str) -> str:
     return (
-        f"{title} at {company}. Imported automatically from {source.label}. "
-        "Open the source URL for full job details."
+        f"{title} at {company}. Imported automatically from {source.label}."
     )
 
 

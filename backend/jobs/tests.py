@@ -376,7 +376,7 @@ class JobContentFormattingTests(TestCase):
         self.assertIn("Responsibilities", message)
         self.assertIn("- Capture professional photos and videos.", message)
         self.assertIn("Requirements", message)
-        self.assertIn("Apply: https://example.com/jobs/photo-video", message)
+        self.assertNotIn("Apply:", message)
 
     def test_build_scraped_job_payload_extracts_image_url(self):
         payload = build_scraped_job_payload(

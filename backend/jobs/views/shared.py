@@ -709,7 +709,7 @@ def build_scraped_job_payload(url: str, html: str) -> dict:
     image_url = urljoin(url, raw_image_url) if raw_image_url else ""
 
     if not description:
-        description = f"{title} at {company or 'Manual source'}. Open the source URL for the full posting."
+        description = f"{title} at {company or 'Manual source'}."
 
     return {
         "title": title,

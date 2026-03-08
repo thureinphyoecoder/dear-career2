@@ -117,7 +117,7 @@ def _effective_run_limit(source: FetchSource) -> int:
 
 def _is_default_description(description: str) -> bool:
     lowered = description.lower()
-    return "imported automatically from" in lowered and "open the source url" in lowered
+    return "imported automatically from" in lowered
 
 
 def _looks_spammy(record: dict[str, Any]) -> bool:

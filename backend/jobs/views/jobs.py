@@ -43,7 +43,7 @@ def job_list(request: HttpRequest):
             requires_website_approval=False,
         )
     )
-    results = [serialize_job(job) for job in jobs]
+    results = [serialize_job(job, include_source_url=include_inactive) for job in jobs]
     return JsonResponse({"count": len(results), "results": results})
 
 
@@ -56,7 +56,7 @@ def public_job_detail(request: HttpRequest, slug: str):
         status=Job.WorkflowStatus.PUBLISHED,
         requires_website_approval=False,
     )
-    return JsonResponse(serialize_job(job))
+    return JsonResponse(serialize_job(job, include_source_url=False))
 
 
 @csrf_exempt

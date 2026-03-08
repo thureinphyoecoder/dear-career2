@@ -12,8 +12,9 @@ def _job_uploaded_image_url(job):
         return ""
 
 
-def serialize_job(job):
+def serialize_job(job, *, include_source_url=True):
     uploaded_image_url = _job_uploaded_image_url(job)
+    source_url = job.source_url if include_source_url else ""
     return {
         "id": job.id,
         "title": job.title,
@@ -26,7 +27,7 @@ def serialize_job(job):
         "contact_email": job.contact_email,
         "contact_phone": job.contact_phone,
         "source": job.source,
-        "source_url": job.source_url,
+        "source_url": source_url,
         "image_url": job.image_url,
         "image_file_url": uploaded_image_url,
         "display_image_url": uploaded_image_url or job.image_url,

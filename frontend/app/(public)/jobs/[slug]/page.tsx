@@ -166,7 +166,6 @@ export default async function PublicJobDetailPage({
     hiringOrganization: {
       "@type": "Organization",
       name: job.company,
-      sameAs: job.source_url || undefined,
       logo: displayImageUrl || undefined,
     },
     jobLocation: {

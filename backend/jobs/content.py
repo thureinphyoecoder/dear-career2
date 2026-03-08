@@ -163,9 +163,6 @@ def build_facebook_post_message(job) -> str:
         lines.append("")
         lines.extend(cleaned_description_lines[:40])
 
-    if job.source_url:
-        lines.extend(["", f"Apply: {job.source_url}"])
-
     compact: list[str] = []
     previous_blank = False
     for line in lines:
