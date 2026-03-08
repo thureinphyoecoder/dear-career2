@@ -64,6 +64,11 @@ export function AdminShell({
     normalizeFacebookProfile(facebookProfileFromStore) ??
     normalizeFacebookProfile(initialFacebookProfile);
   const [headerImageFailed, setHeaderImageFailed] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+    Home: true,
+    Jobs: true,
+    "Import tools": true,
+  });
 
   useEffect(() => {
     if (dashboardQuery.data) {
@@ -209,17 +214,36 @@ export function AdminShell({
                     sidebarCollapsed ? "justify-center gap-0 px-2" : "gap-3",
                   )}
                 >
-                  <group.icon size={16} strokeWidth={1.9} />
-                  {!sidebarCollapsed ? <span className="font-medium">{group.label}</span> : null}
-                  {!sidebarCollapsed ? (
-                    <ChevronDown
-                      size={16}
-                      strokeWidth={1.9}
-                      className="ml-auto rotate-180 text-[#6f7a73]"
-                    />
-                  ) : null}
+                  <button
+                    type="button"
+                    className={cn(
+                      "flex w-full items-center",
+                      sidebarCollapsed ? "justify-center gap-0" : "gap-3",
+                    )}
+                    onClick={() =>
+                      setExpandedGroups((current) => ({
+                        ...current,
+                        [group.label]: !current[group.label],
+                      }))
+                    }
+                    aria-expanded={expandedGroups[group.label] !== false}
+                    aria-label={`${group.label} section`}
+                  >
+                    <group.icon size={16} strokeWidth={1.9} />
+                    {!sidebarCollapsed ? <span className="font-medium">{group.label}</span> : null}
+                    {!sidebarCollapsed ? (
+                      <ChevronDown
+                        size={16}
+                        strokeWidth={1.9}
+                        className={cn(
+                          "ml-auto text-[#6f7a73] transition-transform",
+                          expandedGroups[group.label] !== false ? "rotate-180" : "rotate-0",
+                        )}
+                      />
+                    ) : null}
+                  </button>
                 </div>
-                {!sidebarCollapsed ? (
+                {!sidebarCollapsed && expandedGroups[group.label] !== false ? (
                   <div className="ml-4 grid gap-1 border-l border-[#d8e2da] pb-1 pl-4 pt-1">
                     {group.items.map((item) => (
                       <Link
