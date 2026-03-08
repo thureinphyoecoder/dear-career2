@@ -17,23 +17,38 @@ function playNotificationSound() {
   }).webkitAudioContext;
   if (!AudioContextClass) return;
 
-  const audioContext = new AudioContextClass();
-  const oscillator = audioContext.createOscillator();
-  const gainNode = audioContext.createGain();
+  const contextStore = window as typeof window & { __dcNotificationAudioContext?: AudioContext };
+  const audioContext = contextStore.__dcNotificationAudioContext ?? new AudioContextClass();
+  contextStore.__dcNotificationAudioContext = audioContext;
+  if (audioContext.state === "suspended") {
+    void audioContext.resume();
+  }
 
-  oscillator.type = "sine";
-  oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
-  oscillator.frequency.exponentialRampToValueAtTime(660, audioContext.currentTime + 0.18);
-  gainNode.gain.setValueAtTime(0.0001, audioContext.currentTime);
-  gainNode.gain.exponentialRampToValueAtTime(0.06, audioContext.currentTime + 0.02);
-  gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.22);
+  const now = audioContext.currentTime;
+  const master = audioContext.createGain();
+  master.gain.setValueAtTime(0.0001, now);
+  master.gain.exponentialRampToValueAtTime(0.03, now + 0.02);
+  master.gain.exponentialRampToValueAtTime(0.0001, now + 0.38);
+  master.connect(audioContext.destination);
 
-  oscillator.connect(gainNode);
-  gainNode.connect(audioContext.destination);
-  oscillator.start(audioContext.currentTime);
-  oscillator.stop(audioContext.currentTime + 0.22);
-  oscillator.onended = () => {
-    void audioContext.close();
+  const base = audioContext.createOscillator();
+  base.type = "triangle";
+  base.frequency.setValueAtTime(740, now);
+  base.frequency.exponentialRampToValueAtTime(590, now + 0.22);
+  base.connect(master);
+
+  const sparkle = audioContext.createOscillator();
+  sparkle.type = "sine";
+  sparkle.frequency.setValueAtTime(1120, now + 0.015);
+  sparkle.frequency.exponentialRampToValueAtTime(840, now + 0.24);
+  sparkle.connect(master);
+
+  base.start(now);
+  sparkle.start(now + 0.015);
+  base.stop(now + 0.36);
+  sparkle.stop(now + 0.26);
+  sparkle.onended = () => {
+    master.disconnect();
   };
 }
 
