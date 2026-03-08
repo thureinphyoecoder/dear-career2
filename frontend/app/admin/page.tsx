@@ -113,7 +113,7 @@ export default async function AdminDashboardPage() {
                   {getPendingJobId(item.id) ? (
                     <div className="mt-1 flex items-center gap-2">
                       <Link
-                        href={`/admin/jobs/${getPendingJobId(item.id)}?returnTo=${encodeURIComponent("/admin/approvals")}`}
+                        href={`/admin/jobs/${getPendingJobId(item.id)}`}
                         className={cn(buttonVariants({ variant: "secondary" }), "h-8 rounded-lg px-3 text-xs")}
                       >
                         Open

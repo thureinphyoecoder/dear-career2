@@ -558,8 +558,7 @@ export function JobEditor({
     setError("");
     setMessage("");
     const isFromApprovals = safeReturnTo === "/admin/approvals";
-    const nextStatus: JobStatus =
-      isFromApprovals && status === "pending-review" ? "draft" : status;
+    const nextStatus: JobStatus = isFromApprovals ? "published" : status;
     const nextRequiresWebsiteApproval = isFromApprovals
       ? false
       : requiresWebsiteApproval;
@@ -606,7 +605,7 @@ export function JobEditor({
       }
       const nextMessage = isEdit
         ? isFromApprovals
-          ? "Job reviewed and moved to Draft."
+          ? "Job reviewed and posted."
           : "Job updated."
         : "Job created.";
       setMessage(nextMessage);
@@ -1289,7 +1288,9 @@ export function JobEditor({
                   ? "Uploading image..."
                   : "Saving..."
                 : initialJob?.id
-                  ? "Save changes"
+                  ? safeReturnTo === "/admin/approvals"
+                    ? "Post"
+                    : "Save changes"
                   : "Add job"}
             </button>
             {initialJob?.id ? (
