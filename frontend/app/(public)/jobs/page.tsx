@@ -163,65 +163,74 @@ export default async function PublicJobsPage({
           buttonClassName={cn(buttonVariants({ variant: "secondary" }), "h-[50px] px-4 sm:h-[52px] sm:px-5")}
         />
 
-      {query ? (
-        <div className="mt-4 text-sm leading-7 text-[#727975]">
-          Showing results for "<span className="font-medium text-foreground">{displayQuery}</span>"
-        </div>
-      ) : null}
-
-        {hasAnyJobs ? (
-          <div className="mt-5 flex flex-wrap items-center gap-2 border-b border-[rgba(160,183,164,0.12)] pb-4 text-sm sm:gap-3">
-            {jobsByCategory.map((section) => (
-              <Link
-                key={section.key}
-                href={createJobsHref({ category: section.key })}
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-full border px-3 py-2 transition-colors",
-                  activeCategory === section.key
-                    ? "border-[rgba(160,183,164,0.3)] bg-[rgba(160,183,164,0.08)]"
-                    : "border-transparent hover:border-[rgba(160,183,164,0.14)] hover:bg-[rgba(255,255,255,0.52)]",
-                )}
-              >
-                <span
-                  className={cn(
-                    "text-[0.72rem] uppercase tracking-[0.16em]",
-                    activeCategory === section.key
-                      ? "text-foreground"
-                      : "text-[#8da693]",
-                  )}
-                >
-                  {section.title}
-                </span>
-                <span
-                  className={cn(
-                    "inline-flex min-w-8 items-center justify-center rounded-full border px-2.5 py-1 text-[0.72rem] font-medium uppercase tracking-[0.12em]",
-                    activeCategory === section.key
-                      ? "border-[rgba(160,183,164,0.22)] bg-white text-[#454c49]"
-                      : "border-[rgba(160,183,164,0.16)] text-[#454c49]",
-                  )}
-                >
-                  {section.jobs.length}
-                </span>
-              </Link>
-            ))}
-            {activeCategory ? (
-              <Link
-                href={createJobsHref({ category: null })}
-                className="inline-flex items-center px-2 text-[0.72rem] uppercase tracking-[0.16em] text-[#8da693] transition-colors hover:text-foreground"
-              >
-                Clear
-              </Link>
-            ) : null}
+        {query ? (
+          <div className="mt-4 text-sm leading-7 text-[#727975]">
+            Showing results for "<span className="font-medium text-foreground">{displayQuery}</span>"
           </div>
         ) : null}
 
-        <JobsInfiniteResults
-          jobs={filteredJobs}
-          hasAnyJobs={hasAnyJobs}
-          activeCategory={activeCategory}
-          inlineAd={inlineAd}
-          displayQuery={displayQuery}
-        />
+        <div className="mt-5 grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-6">
+          {hasAnyJobs ? (
+            <aside className="lg:sticky lg:top-28 lg:self-start">
+              <div className="rounded-2xl border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.56)] p-3 sm:p-4">
+                <div className="mb-3 text-[0.72rem] uppercase tracking-[0.16em] text-[#8da693]">
+                  Categories
+                </div>
+                <div className="grid gap-2">
+                  {jobsByCategory.map((section) => (
+                    <Link
+                      key={section.key}
+                      href={createJobsHref({ category: section.key })}
+                      className={cn(
+                        "flex items-center justify-between rounded-xl border px-3 py-2.5 transition-colors",
+                        activeCategory === section.key
+                          ? "border-[rgba(160,183,164,0.3)] bg-[rgba(160,183,164,0.08)]"
+                          : "border-[rgba(160,183,164,0.12)] hover:border-[rgba(160,183,164,0.24)] hover:bg-[rgba(255,255,255,0.72)]",
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "text-[0.72rem] uppercase tracking-[0.16em]",
+                          activeCategory === section.key ? "text-foreground" : "text-[#8da693]",
+                        )}
+                      >
+                        {section.title}
+                      </span>
+                      <span
+                        className={cn(
+                          "inline-flex min-w-8 items-center justify-center rounded-full border px-2.5 py-1 text-[0.72rem] font-medium uppercase tracking-[0.12em]",
+                          activeCategory === section.key
+                            ? "border-[rgba(160,183,164,0.22)] bg-white text-[#454c49]"
+                            : "border-[rgba(160,183,164,0.16)] text-[#454c49]",
+                        )}
+                      >
+                        {section.jobs.length}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+                {activeCategory ? (
+                  <Link
+                    href={createJobsHref({ category: null })}
+                    className="mt-3 inline-flex items-center px-1 text-[0.72rem] uppercase tracking-[0.16em] text-[#8da693] transition-colors hover:text-foreground"
+                  >
+                    Clear filter
+                  </Link>
+                ) : null}
+              </div>
+            </aside>
+          ) : null}
+
+          <div className="min-w-0">
+            <JobsInfiniteResults
+              jobs={filteredJobs}
+              hasAnyJobs={hasAnyJobs}
+              activeCategory={activeCategory}
+              inlineAd={inlineAd}
+              displayQuery={displayQuery}
+            />
+          </div>
+        </div>
       </main>
     </JobsParallaxScene>
   );

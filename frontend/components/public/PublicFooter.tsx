@@ -108,7 +108,15 @@ export function PublicFooter() {
             <span className="leading-6">
               Copyright {new Date().getFullYear()}{" "}
               <span className="font-semibold tracking-[0.04em] text-foreground">Dear Career</span>. Developed by{" "}
-              <span className="font-serif text-[1.02rem] italic text-foreground">Thurein Phyoe</span>.
+              <a
+                href="https://thureinphyo.com"
+                target="_blank"
+                rel="noreferrer"
+                className="font-serif text-[1.02rem] italic text-foreground underline-offset-4 transition-colors hover:text-[#6f8574] hover:underline"
+              >
+                Thurein Phyoe
+              </a>
+              .
             </span>
           </div>
         </div>
