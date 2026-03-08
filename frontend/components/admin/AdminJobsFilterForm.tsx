@@ -23,11 +23,6 @@ export function AdminJobsFilterForm({
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmedQuery = query.trim();
-    if (!trimmedQuery && status === "all") {
-      setError("Type a keyword or choose a job stage first.");
-      inputRef.current?.focus();
-      return;
-    }
 
     const next = new URLSearchParams();
     if (trimmedQuery) {
@@ -69,10 +64,10 @@ export function AdminJobsFilterForm({
             }
           }}
         >
-          <option value="all">All job stages</option>
-          <option value="published">Live</option>
-          <option value="draft">Not live yet</option>
-          <option value="pending-review">Needs review</option>
+          <option value="all">All</option>
+          <option value="pending-review">Pending</option>
+          <option value="draft">Draft</option>
+          <option value="published">Published</option>
         </select>
         <div className="flex flex-wrap gap-2">
           <button className={cn(buttonVariants(), "rounded-xl")} type="submit">

@@ -29,10 +29,10 @@ const categoryOptions: Array<{ value: JobCategory; label: string }> = [
 ];
 
 const statusOptions: Array<{ value: JobStatus; label: string }> = [
-  { value: "draft", label: "Not live yet" },
-  { value: "published", label: "Live on website" },
+  { value: "draft", label: "Draft" },
+  { value: "published", label: "Published" },
   { value: "archived", label: "Hidden" },
-  { value: "pending-review", label: "Needs review" },
+  { value: "pending-review", label: "Pending" },
 ];
 
 const employmentTypeOptions = [
@@ -613,7 +613,7 @@ export function JobEditor({
       }
       const nextMessage = isEdit
         ? isFromApprovals
-          ? "Job reviewed and moved to Not live yet."
+          ? "Job reviewed and moved to Draft."
           : "Job updated."
         : "Job created.";
       setMessage(nextMessage);

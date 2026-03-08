@@ -40,9 +40,9 @@ export default async function AdminDashboardPage() {
       icon: ShieldCheck,
     },
     {
-      label: "Needs review",
+      label: "Pending",
       value: snapshot.pending_approvals.length,
-      detail: "Waiting for your check",
+      detail: "Waiting for review",
       icon: FileClock,
     },
     {
@@ -85,7 +85,7 @@ export default async function AdminDashboardPage() {
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,1fr)]">
         <Card className="rounded-2xl border-border/70 bg-white shadow-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-[1rem] font-semibold text-foreground">Jobs waiting for review</CardTitle>
+            <CardTitle className="text-[1rem] font-semibold text-foreground">Pending jobs</CardTitle>
             <Link href="/admin/approvals" className="text-sm text-[#6f876f] hover:underline">
               Open list
             </Link>

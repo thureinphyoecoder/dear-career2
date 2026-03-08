@@ -47,7 +47,8 @@ export function AdminShell({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isPublishedView = pathname === "/admin/jobs" && searchParams?.get("status") === "published";
-  const isDraftedView = pathname === "/admin/jobs" && searchParams?.get("status") === "draft";
+  const isDraftView = pathname === "/admin/jobs" && searchParams?.get("status") === "draft";
+  const isPendingView = pathname === "/admin/jobs" && searchParams?.get("status") === "pending-review";
   const djangoAdminUrl =
     process.env.NEXT_PUBLIC_DJANGO_ADMIN_URL ?? "http://127.0.0.1:8000/admin/";
   const sidebarCollapsed = useAdminShellStore((state) => state.sidebarCollapsed);
@@ -105,25 +106,26 @@ export function AdminShell({
           href: "/admin/jobs",
           label: "All jobs",
           active:
-            (!isPublishedView && !isDraftedView && pathname === "/admin/jobs") ||
+            (!isPublishedView && !isDraftView && !isPendingView && pathname === "/admin/jobs") ||
             (pathname?.startsWith("/admin/jobs/") && pathname !== "/admin/jobs/new"),
+          badge: sidebarCounts.allJobs,
         },
         {
           href: "/admin/jobs?status=draft",
-          label: "Not live yet",
-          active: isDraftedView,
+          label: "Draft",
+          active: isDraftView,
           badge: sidebarCounts.draftedJobs,
         },
         {
           href: "/admin/jobs?status=published",
-          label: "Live on website",
+          label: "Published",
           active: isPublishedView,
           badge: sidebarCounts.publishedJobs,
         },
         {
-          href: "/admin/approvals",
-          label: "Needs review",
-          active: pathname === "/admin/approvals",
+          href: "/admin/jobs?status=pending-review",
+          label: "Pending",
+          active: pathname === "/admin/approvals" || isPendingView,
           badge: sidebarCounts.pendingApprovals,
         },
         {

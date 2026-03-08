@@ -5,6 +5,7 @@ import { create } from "zustand";
 import type { AdminDashboardSnapshot, FacebookPageCredential } from "@/lib/types";
 
 type SidebarCounts = {
+  allJobs: number;
   publishedJobs: number;
   draftedJobs: number;
   pendingApprovals: number;
@@ -31,6 +32,7 @@ function normalizeFacebookProfile(profile?: FacebookPageCredential | null) {
 export const useAdminShellStore = create<AdminShellState>((set) => ({
   sidebarCollapsed: false,
   sidebarCounts: {
+    allJobs: 0,
     publishedJobs: 0,
     draftedJobs: 0,
     pendingApprovals: 0,
@@ -50,6 +52,7 @@ export const useAdminShellStore = create<AdminShellState>((set) => ({
     set((state) => ({
       sidebarCounts: snapshot
         ? {
+            allJobs: snapshot.total_jobs,
             publishedJobs: snapshot.published_jobs,
             draftedJobs: snapshot.draft_jobs,
             pendingApprovals: snapshot.pending_approvals.length,

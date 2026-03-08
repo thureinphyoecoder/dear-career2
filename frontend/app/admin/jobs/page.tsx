@@ -1,6 +1,7 @@
 import { AdminJobsFilterForm } from "@/components/admin/AdminJobsFilterForm";
 import Link from "next/link";
 
+import { AdminLiveRefresh } from "@/components/admin/AdminLiveRefresh";
 import { JobTable } from "@/components/admin/JobTable";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,6 +44,7 @@ export default async function AdminJobsPage({ searchParams }: AdminJobsPageProps
   const safePage = Math.min(currentPage, totalPages);
   const paginatedJobs = filteredJobs.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const backendOffline = jobs.length === 0;
+  const hasActiveFilter = Boolean(query) || status !== "all";
 
   function buildPageHref(page: number) {
     const next = new URLSearchParams();
@@ -55,6 +57,7 @@ export default async function AdminJobsPage({ searchParams }: AdminJobsPageProps
 
   return (
     <div className="grid max-w-none gap-5 xl:pr-6">
+      <AdminLiveRefresh />
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-[clamp(1.7rem,2.4vw,2.2rem)] font-semibold leading-none text-foreground">
           Job list
@@ -67,7 +70,9 @@ export default async function AdminJobsPage({ searchParams }: AdminJobsPageProps
         <CardContent className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
           <AdminJobsFilterForm initialQuery={query} initialStatus={status} />
           <div className="text-[0.82rem] uppercase tracking-[0.08em] text-[#727975] lg:text-right">
-            {paginatedJobs.length} shown
+            {hasActiveFilter
+              ? `${filteredJobs.length} matches · ${jobs.length} total`
+              : `${jobs.length} total`}
           </div>
         </CardContent>
       </Card>

@@ -34,6 +34,8 @@ export function useAdminDashboardQuery(initialData?: AdminDashboardSnapshot) {
       ),
     initialData,
     staleTime: 5_000,
+    refetchInterval: 15_000,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -49,6 +51,8 @@ export function useAdminJobsQuery(initialData: Job[]) {
     },
     initialData,
     staleTime: 5_000,
+    refetchInterval: 15_000,
+    refetchOnWindowFocus: true,
   });
 }
 

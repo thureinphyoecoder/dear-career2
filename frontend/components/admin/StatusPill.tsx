@@ -9,10 +9,10 @@ const toneClassMap: Record<JobStatus, string> = {
 };
 
 const statusLabelMap: Record<JobStatus, string> = {
-  draft: "Not live yet",
-  published: "Live",
+  draft: "Draft",
+  published: "Published",
   archived: "Hidden",
-  "pending-review": "Needs review",
+  "pending-review": "Pending",
 };
 
 export function StatusPill({ status = "draft" }: { status?: JobStatus }) {
