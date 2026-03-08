@@ -21,6 +21,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
       changeFrequency: "monthly",
     },
+    {
+      url: `${baseUrl}/cv-guide`,
+      priority: 0.6,
+      changeFrequency: "monthly",
+    },
+    {
+      url: `${baseUrl}/contact`,
+      priority: 0.5,
+      changeFrequency: "monthly",
+    },
   ];
 
   try {
