@@ -244,6 +244,20 @@ class FeedbackMessage(models.Model):
         return f"{self.subject} · {self.email}"
 
 
+class JobAlertSubscriber(models.Model):
+    email = models.EmailField(unique=True)
+    is_active = models.BooleanField(default=True)
+    source = models.CharField(max_length=64, default="public")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return self.email
+
+
 class JobReport(models.Model):
     class StatusChoices(models.TextChoices):
         OPEN = "open", "Open"

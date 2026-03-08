@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 
+import { JobAlertSubscribeForm } from "@/components/public/JobAlertSubscribeForm";
 import { absoluteUrl } from "@/lib/seo";
 import { getPublicCvGuideContent } from "@/lib/api-public";
 
@@ -24,7 +26,7 @@ const cvTemplates = [
     name: "Single Column Standard",
     description:
       "Summary, Skills, Experience, Education ကို ATS-safe order နဲ့ ရိုးရှင်းစွာစီထားတဲ့ format.",
-    accent: "bg-[#5f7a67]",
+    image: "/images/cv-templates/single-column-standard.png",
     useFor: "Junior to Mid level",
   },
   {
@@ -32,7 +34,7 @@ const cvTemplates = [
     name: "Impact Focused",
     description:
       "Action verb + metric result bullet တွေကို ဦးစားပေးထားတဲ့ experienced role template.",
-    accent: "bg-[#6f876f]",
+    image: "/images/cv-templates/impact-focused.png",
     useFor: "Mid to Senior level",
   },
   {
@@ -40,7 +42,7 @@ const cvTemplates = [
     name: "Role Tailored",
     description:
       "JD keyword တွေကို role အလိုက်ပြောင်းထည့်ဖို့ optimize လုပ်ထားတဲ့ version.",
-    accent: "bg-[#7d8c73]",
+    image: "/images/cv-templates/role-tailored.png",
     useFor: "Role specific apply",
   },
 ] as const;
@@ -98,23 +100,16 @@ export default async function CvGuidePage() {
           <article key={template.name} className="grid gap-3 rounded-2xl border border-[rgba(160,183,164,0.2)] bg-white p-5">
             <p className="m-0 text-xs uppercase tracking-[0.16em] text-[#8da693]">Template {index + 1}</p>
             <h2 className="m-0 text-base font-semibold text-[#334039]">{template.name}</h2>
-            <div className="rounded-xl border border-[rgba(160,183,164,0.2)] bg-[#fbfcfb] p-3">
-              <div className="mb-2 flex items-center gap-2">
-                <span className={`h-2.5 w-2.5 rounded-full ${template.accent}`} />
-                <span className="text-[10px] uppercase tracking-[0.14em] text-[#6e7b73]">{template.tag}</span>
-              </div>
-              <div className="grid gap-1.5 text-[10px] leading-4 text-[#4e5c55]">
-                <p className="m-0 font-semibold uppercase tracking-[0.09em]">Name Surname | Phone | Email</p>
-                <p className="m-0 font-semibold uppercase tracking-[0.09em]">Summary</p>
-                <p className="m-0">Software Engineer with 5+ years of experience in scalable web apps.</p>
-                <p className="m-0 font-semibold uppercase tracking-[0.09em]">Skills</p>
-                <p className="m-0">React, Next.js, TypeScript, REST APIs, Tailwind CSS</p>
-                <p className="m-0 font-semibold uppercase tracking-[0.09em]">Experience</p>
-                <p className="m-0">• Developed admin dashboard, reduced task time by 30%.</p>
-                <p className="m-0">• Collaborated with design/backend to ship 10+ features.</p>
-                <p className="m-0 font-semibold uppercase tracking-[0.09em]">Education</p>
-              </div>
+            <div className="overflow-hidden rounded-xl border border-[rgba(160,183,164,0.2)] bg-[#fbfcfb]">
+              <Image
+                src={template.image}
+                alt={`${template.name} CV template preview`}
+                width={1100}
+                height={1500}
+                className="h-auto w-full object-cover"
+              />
             </div>
+            <p className="m-0 text-[10px] uppercase tracking-[0.14em] text-[#6e7b73]">{template.tag}</p>
             <p className="m-0 text-xs uppercase tracking-[0.14em] text-[#7d8a82]">Best for: {template.useFor}</p>
             <p className="m-0 text-sm leading-7 text-[#5f6b64]">{template.description}</p>
           </article>
@@ -137,19 +132,20 @@ export default async function CvGuidePage() {
         </section>
       ))}
 
-      <section className="flex flex-wrap items-center gap-3 rounded-[1.5rem] border border-[rgba(160,183,164,0.2)] bg-white p-6">
+      <section className="grid gap-4 rounded-[1.5rem] border border-[rgba(160,183,164,0.2)] bg-white p-6">
+        <h2 className="m-0 text-[1.08rem] font-semibold text-[#334039]">Job Alert Subscribe</h2>
+        <p className="m-0 text-sm leading-7 text-[#5f6b64]">
+          CV နဲ့ကိုက်ညီတဲ့ jobs အသစ်တင်တိုင်း email နဲ့သိနိုင်အောင် subscribe လုပ်ပါ။
+        </p>
+        <JobAlertSubscribeForm source="cv-guide" />
+        <div className="flex flex-wrap items-center gap-3">
         <Link
           href="/jobs?q=frontend%20react%20typescript"
           className="inline-flex h-11 items-center rounded-xl bg-[#5f7a67] px-5 text-sm font-semibold text-white transition hover:bg-[#506a59]"
         >
           Browse Jobs with Keywords
         </Link>
-        <Link
-          href="/feedback"
-          className="inline-flex h-11 items-center rounded-xl border border-[rgba(160,183,164,0.3)] px-5 text-sm font-semibold text-[#334039] transition hover:bg-[rgba(160,183,164,0.08)]"
-        >
-          Request CV / Job Alert Update
-        </Link>
+        </div>
       </section>
     </main>
   );

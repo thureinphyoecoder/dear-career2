@@ -82,12 +82,12 @@ export default function ContactPage() {
           <Link href="/feedback" className={cn(buttonVariants(), "rounded-xl px-5")}>
             Start Advertising Request
           </Link>
-          <a
-            href="mailto:hello@dearcareer.cc?subject=Advertising%20Inquiry"
+          <Link
+            href="/feedback?subject=Advertising%20Inquiry"
             className={cn(buttonVariants({ variant: "secondary" }), "rounded-xl px-5")}
           >
             Contact Sales by Email
-          </a>
+          </Link>
         </div>
       </section>
     </main>

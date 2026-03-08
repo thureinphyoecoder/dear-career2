@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { Bell, Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -61,6 +61,7 @@ export function PublicNav() {
   const jobsActive = pathname === "/" ? homeSection === "jobs" : pathname?.startsWith("/jobs");
   const contactActive = pathname === "/contact";
   const cvGuideActive = pathname === "/cv-guide";
+  const jobAlertActive = pathname === "/job-alert";
 
   return (
     <nav className="fixed left-0 right-0 top-0 z-20 bg-transparent px-3 py-3 sm:px-6 sm:py-4">
@@ -110,6 +111,18 @@ export function PublicNav() {
             )}
           >
             CV Guide
+          </Link>
+          <Link
+            href="/job-alert"
+            className={cn(
+              linkClass,
+              jobAlertActive
+                ? "text-[#2f3a34] after:w-[62%]"
+                : "text-[#4f5954] hover:text-[#2f3a34]",
+            )}
+          >
+            <Bell className="mr-1 h-3.5 w-3.5" />
+            Job Alert
           </Link>
           <Link
             href="/contact"
@@ -186,6 +199,18 @@ export function PublicNav() {
             )}
           >
             CV Guide
+          </Link>
+          <Link
+            href="/job-alert"
+            className={cn(
+              "rounded-xl px-3 py-2 text-sm font-medium",
+              jobAlertActive ? "bg-[rgba(141,166,147,0.14)] text-[#2f3a34]" : "text-[#4f5954]",
+            )}
+          >
+            <span className="inline-flex items-center gap-1.5">
+              <Bell className="h-3.5 w-3.5" />
+              Job Alert
+            </span>
           </Link>
           <Link
             href="/contact"
