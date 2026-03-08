@@ -12,6 +12,18 @@ import { cn } from "@/lib/utils";
 
 function playNotificationSound() {
   if (typeof window === "undefined") return;
+  const nowMs = Date.now();
+  const soundState = window as typeof window & {
+    __dcNotificationLastSoundAt?: number;
+  };
+  if (
+    typeof soundState.__dcNotificationLastSoundAt === "number" &&
+    nowMs - soundState.__dcNotificationLastSoundAt < 2800
+  ) {
+    return;
+  }
+  soundState.__dcNotificationLastSoundAt = nowMs;
+
   const AudioContextClass = window.AudioContext || (window as typeof window & {
     webkitAudioContext?: typeof AudioContext;
   }).webkitAudioContext;
@@ -26,30 +38,18 @@ function playNotificationSound() {
 
   const now = audioContext.currentTime;
   const master = audioContext.createGain();
+  const tone = audioContext.createOscillator();
   master.gain.setValueAtTime(0.0001, now);
-  master.gain.exponentialRampToValueAtTime(0.03, now + 0.02);
-  master.gain.exponentialRampToValueAtTime(0.0001, now + 0.38);
+  master.gain.exponentialRampToValueAtTime(0.0045, now + 0.01);
+  master.gain.exponentialRampToValueAtTime(0.0001, now + 0.07);
+  tone.type = "sine";
+  tone.frequency.setValueAtTime(880, now);
+  tone.frequency.exponentialRampToValueAtTime(740, now + 0.06);
+  tone.connect(master);
   master.connect(audioContext.destination);
-
-  const base = audioContext.createOscillator();
-  base.type = "triangle";
-  base.frequency.setValueAtTime(740, now);
-  base.frequency.exponentialRampToValueAtTime(590, now + 0.22);
-  base.connect(master);
-
-  const sparkle = audioContext.createOscillator();
-  sparkle.type = "sine";
-  sparkle.frequency.setValueAtTime(1120, now + 0.015);
-  sparkle.frequency.exponentialRampToValueAtTime(840, now + 0.24);
-  sparkle.connect(master);
-
-  base.start(now);
-  sparkle.start(now + 0.015);
-  base.stop(now + 0.36);
-  sparkle.stop(now + 0.26);
-  sparkle.onended = () => {
-    master.disconnect();
-  };
+  tone.start(now);
+  tone.stop(now + 0.08);
+  tone.onended = () => master.disconnect();
 }
 
 function formatRelativeTime(value?: string) {
