@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { BadgeCheck } from "lucide-react";
 
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { AdvertisingRequestForm } from "@/components/public/AdvertisingRequestForm";
 import { absoluteUrl } from "@/lib/seo";
 
 export const metadata: Metadata = {
@@ -53,17 +51,7 @@ export default function ContactPage() {
             We normally respond within 1 business day.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Link href="/feedback" className={cn(buttonVariants(), "rounded-xl px-5")}>
-            Start Advertising Request
-          </Link>
-          <Link
-            href="/feedback?subject=Advertising%20Inquiry"
-            className={cn(buttonVariants({ variant: "secondary" }), "rounded-xl px-5")}
-          >
-            Contact Sales by Email (Internal Form)
-          </Link>
-        </div>
+        <AdvertisingRequestForm />
       </section>
     </main>
   );
