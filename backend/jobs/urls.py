@@ -34,7 +34,6 @@ from .views import (
 
 urlpatterns = [
     path("", job_list, name="job-list"),
-    path("<slug:slug>/", public_job_detail, name="public-job-detail"),
     path("ads/", public_active_ad_list, name="public-ad-list"),
     path("analytics/visit/", visitor_track, name="visitor-track"),
     path("admin/jobs/create/", job_create, name="job-create"),
@@ -66,4 +65,5 @@ urlpatterns = [
     path("admin/sources/<int:source_id>/", fetch_source_update, name="fetch-source-update"),
     path("admin/sources/<int:source_id>/run/", fetch_source_run, name="fetch-source-run"),
     path("admin/runs/", fetch_run_list, name="fetch-run-list"),
+    path("<slug:slug>/", public_job_detail, name="public-job-detail"),
 ]
