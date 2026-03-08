@@ -86,8 +86,8 @@ export default async function CvGuidePage() {
   const sections = splitGuideSections(content?.guide_text || "");
 
   return (
-    <main className="mx-auto grid max-w-5xl gap-6 px-4 pb-20 pt-32">
-      <header className="grid gap-3 rounded-[1.7rem] border border-[rgba(160,183,164,0.2)] bg-white p-6 sm:p-8">
+    <main className="mx-auto grid max-w-4xl gap-8 px-4 pb-20 pt-32">
+      <header className="grid gap-3 border-b border-[rgba(160,183,164,0.22)] pb-6">
         <div className="text-xs uppercase tracking-[0.16em] text-[#8da693]">Career Toolkit</div>
         <h1 className="m-0 font-serif text-[clamp(2rem,3.4vw,3.4rem)] leading-[0.96] tracking-[-0.03em] text-[#334039]">
           {title}
@@ -95,11 +95,15 @@ export default async function CvGuidePage() {
         <p className="m-0 max-w-[72ch] text-sm leading-7 text-[#5f6b64]">{intro}</p>
       </header>
 
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4">
+        <h2 className="m-0 text-[1.08rem] font-semibold text-[#334039]">CV Template Previews</h2>
+        <p className="m-0 text-sm leading-7 text-[#5f6b64]">
+          ATS-friendly, single-column format တွေကို role အလိုက်ရွေးသုံးပါ။
+        </p>
         {cvTemplates.map((template, index) => (
-          <article key={template.name} className="grid gap-3 rounded-2xl border border-[rgba(160,183,164,0.2)] bg-white p-5">
+          <article key={template.name} className="grid gap-3 border-b border-[rgba(160,183,164,0.18)] pb-5">
             <p className="m-0 text-xs uppercase tracking-[0.16em] text-[#8da693]">Template {index + 1}</p>
-            <h2 className="m-0 text-base font-semibold text-[#334039]">{template.name}</h2>
+            <h3 className="m-0 text-base font-semibold text-[#334039]">{template.name}</h3>
             <div className="overflow-hidden rounded-xl border border-[rgba(160,183,164,0.2)] bg-[#fbfcfb]">
               <Image
                 src={template.image}
@@ -116,35 +120,33 @@ export default async function CvGuidePage() {
         ))}
       </section>
 
-      {sections.map((section) => (
-        <section
-          key={section.title}
-          className="grid gap-3 rounded-[1.5rem] border border-[rgba(160,183,164,0.2)] bg-white p-6"
-        >
-          <h2 className="m-0 text-[1.08rem] font-semibold text-[#334039]">{section.title}</h2>
-          <div className="grid gap-2 text-sm leading-7 text-[#5f6b64]">
-            {section.lines.map((line, index) => (
-              <p key={`${section.title}-${index}`} className="m-0">
-                {line}
-              </p>
-            ))}
+      <section className="grid gap-5">
+        <h2 className="m-0 text-[1.08rem] font-semibold text-[#334039]">CV Writing Guide</h2>
+        {sections.map((section) => (
+          <div key={section.title} className="grid gap-2">
+            <h3 className="m-0 text-base font-semibold text-[#334039]">{section.title}</h3>
+            <ul className="m-0 grid gap-1 pl-5 text-sm leading-7 text-[#5f6b64]">
+              {section.lines.map((line, index) => (
+                <li key={`${section.title}-${index}`}>{line}</li>
+              ))}
+            </ul>
           </div>
-        </section>
-      ))}
+        ))}
+      </section>
 
-      <section className="grid gap-4 rounded-[1.5rem] border border-[rgba(160,183,164,0.2)] bg-white p-6">
+      <section className="grid gap-4 border-t border-[rgba(160,183,164,0.22)] pt-6">
         <h2 className="m-0 text-[1.08rem] font-semibold text-[#334039]">Job Alert Subscribe</h2>
         <p className="m-0 text-sm leading-7 text-[#5f6b64]">
           CV နဲ့ကိုက်ညီတဲ့ jobs အသစ်တင်တိုင်း email နဲ့သိနိုင်အောင် subscribe လုပ်ပါ။
         </p>
         <JobAlertSubscribeForm source="cv-guide" />
         <div className="flex flex-wrap items-center gap-3">
-        <Link
-          href="/jobs?q=frontend%20react%20typescript"
-          className="inline-flex h-11 items-center rounded-xl bg-[#5f7a67] px-5 text-sm font-semibold text-white transition hover:bg-[#506a59]"
-        >
-          Browse Jobs with Keywords
-        </Link>
+          <Link
+            href="/jobs?q=frontend%20react%20typescript"
+            className="inline-flex h-11 items-center rounded-xl bg-[#5f7a67] px-5 text-sm font-semibold text-white transition hover:bg-[#506a59]"
+          >
+            Browse Jobs with Keywords
+          </Link>
         </div>
       </section>
     </main>
