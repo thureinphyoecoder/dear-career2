@@ -564,6 +564,15 @@ export function JobEditor({
     setIsSaving(true);
     setError("");
     setMessage("");
+    const isFromApprovals = safeReturnTo === "/admin/approvals";
+    const nextStatus: JobStatus =
+      isFromApprovals && status === "pending-review" ? "draft" : status;
+    const nextRequiresWebsiteApproval = isFromApprovals
+      ? false
+      : requiresWebsiteApproval;
+    const nextRequiresFacebookApproval = isFromApprovals
+      ? false
+      : requiresFacebookApproval;
 
     const payload = {
       title: title.trim(),
@@ -573,7 +582,7 @@ export function JobEditor({
       salary: salary.trim(),
       contact_email: contactEmail.trim(),
       contact_phone: contactPhone.trim(),
-      status,
+      status: nextStatus,
       category,
       source: source.trim() || "manual",
       source_url: sourceUrl.trim(),
@@ -581,8 +590,8 @@ export function JobEditor({
       description_mm: descriptionMm.trim(),
       description_en: descriptionEn.trim(),
       is_active: isActive,
-      requires_website_approval: requiresWebsiteApproval,
-      requires_facebook_approval: requiresFacebookApproval,
+      requires_website_approval: nextRequiresWebsiteApproval,
+      requires_facebook_approval: nextRequiresFacebookApproval,
     };
 
     try {
@@ -602,11 +611,16 @@ export function JobEditor({
       } else {
         applyJobImageState(result);
       }
-      const nextMessage = isEdit ? "Job updated." : "Job created.";
+      const nextMessage = isEdit
+        ? isFromApprovals
+          ? "Job reviewed and moved to Not live yet."
+          : "Job updated."
+        : "Job created.";
       setMessage(nextMessage);
       toast.success(nextMessage);
       if (isEdit && safeReturnTo) {
         router.push(safeReturnTo);
+        router.refresh();
         return;
       }
       router.push(`/admin/jobs/${result.id}`);
