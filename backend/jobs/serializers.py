@@ -14,8 +14,7 @@ def _job_uploaded_image_url(job):
 
 def serialize_job(job, *, include_source_url=True):
     uploaded_image_url = _job_uploaded_image_url(job)
-    source_url = job.source_url if include_source_url else ""
-    return {
+    payload = {
         "id": job.id,
         "title": job.title,
         "slug": job.slug,
@@ -27,7 +26,6 @@ def serialize_job(job, *, include_source_url=True):
         "contact_email": job.contact_email,
         "contact_phone": job.contact_phone,
         "source": job.source,
-        "source_url": source_url,
         "image_url": job.image_url,
         "image_file_url": uploaded_image_url,
         "display_image_url": uploaded_image_url or job.image_url,
@@ -41,6 +39,9 @@ def serialize_job(job, *, include_source_url=True):
         "created_at": job.created_at.isoformat() if job.created_at else None,
         "updated_at": job.updated_at.isoformat() if job.updated_at else None,
     }
+    if include_source_url:
+        payload["source_url"] = job.source_url
+    return payload
 
 
 def serialize_fetch_source(source):
