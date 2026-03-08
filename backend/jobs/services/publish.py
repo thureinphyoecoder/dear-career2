@@ -32,15 +32,14 @@ def publish_job(job: Job, *, channel: str = "website", message: str = "") -> dic
                 "reason": "requests is not installed",
             }
 
-        page_id = getattr(settings, "FACEBOOK_PAGE_ID", "")
-        access_token = getattr(settings, "FACEBOOK_PAGE_ACCESS_TOKEN", "")
+        credential = ChannelCredential.objects.filter(
+            platform=ChannelCredential.PlatformChoices.FACEBOOK
+        ).first()
+        page_id = credential.page_id if credential else ""
+        access_token = credential.access_token if credential else ""
         if not page_id or not access_token:
-            credential = ChannelCredential.objects.filter(
-                platform=ChannelCredential.PlatformChoices.FACEBOOK
-            ).first()
-            if credential:
-                page_id = page_id or credential.page_id
-                access_token = access_token or credential.access_token
+            page_id = page_id or getattr(settings, "FACEBOOK_PAGE_ID", "")
+            access_token = access_token or getattr(settings, "FACEBOOK_PAGE_ACCESS_TOKEN", "")
         if not page_id or not access_token:
             return {
                 "job_id": job.id,

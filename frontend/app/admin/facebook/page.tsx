@@ -34,6 +34,10 @@ export default async function AdminFacebookPage({
   const params = await searchParams;
   const missingConfig: string[] = [];
   let pendingPages: FacebookConnectPageOption[] = [];
+  const effectiveAppId = (credential.app_id || process.env.FACEBOOK_APP_ID || "").trim();
+  const hasAppSecret =
+    Boolean(credential.app_secret_configured) ||
+    Boolean((process.env.FACEBOOK_APP_SECRET || "").trim());
 
   if (rawPendingPages) {
     try {
@@ -49,14 +53,11 @@ export default async function AdminFacebookPage({
     }
   }
 
-  if (!credential.app_id) {
+  if (!effectiveAppId) {
     missingConfig.push("FACEBOOK_APP_ID");
   }
-  if (!credential.app_secret_configured) {
+  if (!hasAppSecret) {
     missingConfig.push("FACEBOOK_APP_SECRET");
-  }
-  if (!process.env.NEXT_PUBLIC_APP_URL) {
-    missingConfig.push("NEXT_PUBLIC_APP_URL");
   }
 
   return (
