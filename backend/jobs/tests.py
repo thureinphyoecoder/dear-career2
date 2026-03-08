@@ -10,7 +10,7 @@ from django.test.utils import override_settings
 from .admin_api import get_admin_api_key
 from .content import build_facebook_post_message, normalize_rich_text
 from .management.commands.seed_fetch_sources import DEFAULT_SOURCES
-from .models import FetchSource, Job
+from .models import FetchSource, Job, JobAlertSubscriber
 from .services.images import mirror_remote_job_image
 from .services.ingest import _parse_jobthai_jobs, _source_uses_browser_fetch
 from .services.ingest_persist import _extract_readable_markdown_body
@@ -308,6 +308,62 @@ class JobApiTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("Missing uploaded file: image", response.content.decode("utf-8"))
+
+
+class JobAlertSubscriptionTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    def test_subscribe_creates_new_record(self):
+        response = self.client.post(
+            "/api/jobs/job-alert-subscribe/",
+            data=json.dumps({"email": "candidate@example.com", "source": "cv-guide"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        self.assertEqual(payload["detail"], "Job alert subscribed.")
+        self.assertTrue(JobAlertSubscriber.objects.filter(email="candidate@example.com").exists())
+
+    def test_subscribe_is_idempotent_for_existing_email(self):
+        JobAlertSubscriber.objects.create(
+            email="candidate@example.com",
+            source="public",
+            is_active=True,
+        )
+
+        response = self.client.post(
+            "/api/jobs/job-alert-subscribe/",
+            data=json.dumps({"email": "candidate@example.com", "source": "public"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["detail"], "You are already subscribed.")
+        self.assertEqual(JobAlertSubscriber.objects.filter(email="candidate@example.com").count(), 1)
+
+    def test_subscribe_normalizes_email_and_reactivates(self):
+        JobAlertSubscriber.objects.create(
+            email="candidate@example.com",
+            source="public",
+            is_active=False,
+        )
+
+        response = self.client.post(
+            "/api/jobs/job-alert-subscribe/",
+            data=json.dumps({"email": " Candidate@Example.com ", "source": "job-alert-page"}),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["detail"], "Job alert subscribed.")
+
+        subscriber = JobAlertSubscriber.objects.get(email="candidate@example.com")
+        self.assertTrue(subscriber.is_active)
+        self.assertEqual(subscriber.source, "job-alert-page")
 
 
 class FetchSourceApiTests(TestCase):

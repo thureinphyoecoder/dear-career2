@@ -17,6 +17,8 @@ The project supports:
 - One-click publish from Drafted jobs (`Publish + Post`)
 - Facebook post drafting/publishing support
 - Managed ad slots and visitor analytics
+- Public CV Guide page with admin-editable content
+- Job Alert email subscription (stored in backend)
 - SEO metadata + dynamic sitemap + JobPosting structured data
 
 ## Stack
@@ -58,7 +60,9 @@ The project supports:
 - Homepage with featured jobs and inline ad placement
 - `/jobs` listing page with search
 - Job detail pages by slug
-- Visitor tracking and feedback endpoints
+- `/cv-guide` with ATS-focused writing/design guidance
+- `/job-alert` email subscription page
+- Visitor tracking, feedback, and job-alert subscription endpoints
 
 ### Admin site
 
@@ -131,6 +135,11 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 FACEBOOK_APP_ID=
 FACEBOOK_APP_SECRET=
 ```
+
+Production note:
+
+- Set `NEXT_PUBLIC_SITE_URL` to your public domain (for canonical/OG URLs), for example:
+  - `NEXT_PUBLIC_SITE_URL=https://dear.thureinphyo.com`
 
 For admin session/login in Docker, `frontend/.env.docker` also includes:
 
@@ -232,6 +241,23 @@ Some are fully fetchable, and some are intentionally manual-only.
 
 ```bash
 python manage.py seed_job_categories
+```
+
+## Quality Checks
+
+Frontend:
+
+```bash
+cd frontend
+npm run build
+```
+
+Backend:
+
+```bash
+cd backend
+python manage.py check
+python manage.py test jobs
 ```
 
 ### Run all enabled fetches

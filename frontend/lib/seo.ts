@@ -1,8 +1,12 @@
 export function getSiteUrl() {
+  const fallback =
+    process.env.NODE_ENV === "production"
+      ? "https://dear.thureinphyo.com"
+      : "http://localhost:3000";
   const raw =
     process.env.NEXT_PUBLIC_SITE_URL ??
     process.env.NEXT_PUBLIC_BASE_URL ??
-    "http://localhost:3000";
+    fallback;
   return raw.replace(/\/+$/, "");
 }
 
