@@ -1,3 +1,5 @@
+import logging
+
 from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
 from django.core.validators import validate_email
@@ -9,6 +11,24 @@ from django.conf import settings
 from ..models import JobAlertSubscriber
 from ..validation import clean_text_input
 from .shared import load_json_body
+
+
+logger = logging.getLogger(__name__)
+
+
+def _send_subscription_email(email: str, subject: str, body: str) -> bool:
+    try:
+        send_mail(
+            subject=subject,
+            message=body,
+            from_email=settings.JOB_ALERT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+    except Exception:
+        logger.exception("Job alert subscribe email delivery failed", extra={"email": email})
+        return False
+    return True
 
 
 @csrf_exempt
@@ -44,19 +64,16 @@ def job_alert_subscribe(request: HttpRequest):
     )
 
     if created:
-        try:
-            send_mail(
-                subject=email_subject,
-                message=email_body,
-                from_email=settings.JOB_ALERT_FROM_EMAIL,
-                recipient_list=[email],
-                fail_silently=False,
-            )
-        except Exception:
-            subscriber.delete()
+        email_sent = _send_subscription_email(email, email_subject, email_body)
+        if not email_sent:
             return JsonResponse(
-                {"detail": "Subscription failed: email delivery is unavailable right now."},
-                status=502,
+                {
+                    "detail": (
+                        "Job alert subscribed. Confirmation email could not be sent right now, "
+                        "but you are already subscribed."
+                    )
+                },
+                status=201,
             )
         return JsonResponse({"detail": "Job alert subscribed.", "id": subscriber.pk}, status=201)
 
@@ -64,18 +81,16 @@ def job_alert_subscribe(request: HttpRequest):
         subscriber.is_active = True
         subscriber.source = source
         subscriber.save(update_fields=["is_active", "source", "updated_at"])
-        try:
-            send_mail(
-                subject=email_subject,
-                message=email_body,
-                from_email=settings.JOB_ALERT_FROM_EMAIL,
-                recipient_list=[email],
-                fail_silently=False,
-            )
-        except Exception:
+        email_sent = _send_subscription_email(email, email_subject, email_body)
+        if not email_sent:
             return JsonResponse(
-                {"detail": "Subscription saved, but email delivery is unavailable right now."},
-                status=502,
+                {
+                    "detail": (
+                        "Job alert subscribed. Confirmation email could not be sent right now, "
+                        "but you are already subscribed."
+                    )
+                },
+                status=200,
             )
         return JsonResponse({"detail": "Job alert subscribed.", "id": subscriber.pk}, status=200)
 

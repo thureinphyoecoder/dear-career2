@@ -372,7 +372,7 @@ class JobAlertSubscriptionTests(TestCase):
         mock_send_mail.assert_called_once()
 
     @patch("jobs.views.job_alerts.send_mail")
-    def test_subscribe_returns_502_when_email_delivery_fails(self, mock_send_mail):
+    def test_subscribe_succeeds_when_email_delivery_fails(self, mock_send_mail):
         mock_send_mail.side_effect = RuntimeError("smtp unavailable")
 
         response = self.client.post(
@@ -381,8 +381,10 @@ class JobAlertSubscriptionTests(TestCase):
             content_type="application/json",
         )
 
-        self.assertEqual(response.status_code, 502)
-        self.assertFalse(JobAlertSubscriber.objects.filter(email="candidate@example.com").exists())
+        self.assertEqual(response.status_code, 201)
+        payload = response.json()
+        self.assertIn("already subscribed", payload["detail"])
+        self.assertTrue(JobAlertSubscriber.objects.filter(email="candidate@example.com").exists())
 
 
 class FetchSourceApiTests(TestCase):
