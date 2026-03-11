@@ -14,7 +14,7 @@ export function PublicNav() {
   const [homeSection, setHomeSection] = useState<"home" | "jobs">("home");
   const [mobileOpen, setMobileOpen] = useState(false);
   const linkClass =
-    "relative inline-flex items-center px-3 pb-2.5 pt-2 text-[0.96rem] font-medium transition-colors sm:px-4 sm:text-[1rem] after:absolute after:bottom-0 after:left-1/2 after:h-px after:w-0 after:-translate-x-1/2 after:bg-[rgba(141,166,147,0.7)] after:transition-all";
+    "relative inline-flex items-center px-3 pb-2.5 pt-2 text-[0.88rem] font-medium transition-colors sm:px-4 sm:text-[0.92rem] after:absolute after:bottom-0 after:left-1/2 after:h-px after:w-0 after:-translate-x-1/2 after:bg-[rgba(141,166,147,0.7)] after:transition-all";
 
   useEffect(() => {
     if (pathname !== "/") {
