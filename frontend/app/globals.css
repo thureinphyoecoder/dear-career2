@@ -834,12 +834,13 @@ html.is-route-transitioning body {
   }
 
   .hero-sprout-single {
-    width: min(84vw, 500px);
-    min-width: 220px;
-    max-width: calc(70vh * 0.92);
+    width: min(72vw, 420px);
+    min-width: 200px;
+    max-width: calc(62vh * 0.9);
+    opacity: 0.86;
     transform: translate(
       calc(-50% + var(--hero-drag-x) * 0.38),
-      calc(var(--hero-drag-y) * 0.2 + var(--hero-scroll-y) * 0.12)
+      calc(38px + var(--hero-drag-y) * 0.16 + var(--hero-scroll-y) * 0.1)
     );
   }
 }
