@@ -114,8 +114,8 @@ export function JobsSearchForm({
       noValidate
     >
       {category ? <input type="hidden" name="category" value={category} /> : null}
-      <div className={cn("flex items-center gap-2", shellClassName)}>
-        <label className="relative block flex-1" htmlFor="jobs-search-input">
+      <div className={cn("flex flex-col gap-2 sm:flex-row sm:items-center", shellClassName)}>
+        <label className="relative block w-full flex-1" htmlFor="jobs-search-input">
           <span
             className="pointer-events-none absolute left-5 top-1/2 z-10 -translate-y-1/2 text-[#727975]/82"
             aria-hidden="true"
@@ -140,7 +140,7 @@ export function JobsSearchForm({
             aria-invalid={Boolean(error)}
           />
         </label>
-        <Button type="submit" size="lg" variant="ghost" className={buttonClassName}>
+        <Button type="submit" size="lg" variant="ghost" className={cn("w-full sm:w-auto", buttonClassName)}>
           {buttonLabel}
         </Button>
       </div>
