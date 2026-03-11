@@ -10,7 +10,6 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
-  Shield,
 } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
@@ -49,8 +48,6 @@ export function AdminShell({
   const isPublishedView = pathname === "/admin/jobs" && searchParams?.get("status") === "published";
   const isDraftView = pathname === "/admin/jobs" && searchParams?.get("status") === "draft";
   const isPendingView = pathname === "/admin/jobs" && searchParams?.get("status") === "pending-review";
-  const djangoAdminUrl =
-    process.env.NEXT_PUBLIC_DJANGO_ADMIN_URL ?? "/django-admin/";
   const sidebarCollapsed = useAdminShellStore((state) => state.sidebarCollapsed);
   const setSidebarCollapsed = useAdminShellStore((state) => state.setSidebarCollapsed);
   const sidebarCounts = useAdminShellStore((state) => state.sidebarCounts);
@@ -280,23 +277,6 @@ export function AdminShell({
                 ) : null}
               </div>
             ))}
-          </div>
-
-          <div className="mt-auto grid gap-2 pt-4">
-            <a
-              className={cn(
-                buttonVariants({ variant: "secondary" }),
-                "w-full justify-center rounded-xl bg-white",
-                sidebarCollapsed && "px-0",
-              )}
-              href={djangoAdminUrl}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Open Django admin"
-            >
-              <Shield size={16} strokeWidth={1.9} />
-              {!sidebarCollapsed ? "Django admin" : null}
-            </a>
           </div>
         </div>
       </aside>
