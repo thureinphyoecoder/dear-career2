@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { isValidEmail, normalizeServerError } from "@/lib/form-validation";
+import { trackLeadConversion } from "@/lib/tracking";
 
 type FormState = {
   name: string;
@@ -89,6 +90,7 @@ export function AdvertisingRequestForm() {
       setStatus("success");
       setMessage(next);
       toast.success(next);
+      trackLeadConversion("advertising_request_submit");
       setForm(initialState);
     } catch {
       const next = "Unable to send advertising request right now.";

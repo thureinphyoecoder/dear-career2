@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { normalizeServerError } from "@/lib/form-validation";
+import { trackLeadConversion } from "@/lib/tracking";
 import {
   mapFeedbackServerErrors,
   validateFeedbackFormFields,
@@ -91,6 +92,7 @@ export function FeedbackForm() {
       const nextMessage = payload.detail ?? "Feedback received.";
       setMessage(nextMessage);
       toast.success(nextMessage);
+      trackLeadConversion("feedback_submit");
       setForm(initialState);
       setFieldErrors({});
     } catch {

@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { GoogleTagScripts } from "@/components/public/GoogleTagScripts";
 import { Toaster } from "@/components/ui/sonner";
 import { getSiteUrl } from "@/lib/seo";
 
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
+        <GoogleTagScripts />
         {children}
         <Toaster />
       </body>

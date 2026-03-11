@@ -144,12 +144,20 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 FACEBOOK_APP_ID=
 FACEBOOK_APP_SECRET=
+NEXT_PUBLIC_GA4_MEASUREMENT_ID=
+NEXT_PUBLIC_GOOGLE_ADS_ID=
+NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL_JOB_ALERT=
+NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL_FEEDBACK=
+NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL_AD_REQUEST=
 ```
 
 Production note:
 
 - Set `NEXT_PUBLIC_SITE_URL` to your public domain (for canonical/OG URLs), for example:
   - `NEXT_PUBLIC_SITE_URL=https://dear.thureinphyo.com`
+- For conversion tracking, set Google IDs/labels from Google Ads:
+  - `NEXT_PUBLIC_GOOGLE_ADS_ID` format: `AW-XXXXXXXXX`
+  - Conversion labels per form for job alert, feedback, and advertising request
 
 For admin session/login in Docker, `frontend/.env.docker` also includes:
 

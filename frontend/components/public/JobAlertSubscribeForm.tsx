@@ -6,6 +6,7 @@ import { Bell, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { isValidEmail, normalizeServerError } from "@/lib/form-validation";
+import { trackLeadConversion } from "@/lib/tracking";
 
 type Props = {
   source?: string;
@@ -46,6 +47,7 @@ export function JobAlertSubscribeForm({ source = "public-nav" }: Props) {
 
       setStatus("success");
       setMessage(payload.detail ?? "Subscribed to job alerts.");
+      trackLeadConversion("job_alert_subscribe");
       setEmail("");
     } catch {
       setStatus("error");
