@@ -50,7 +50,7 @@ export function AdminShell({
   const isDraftView = pathname === "/admin/jobs" && searchParams?.get("status") === "draft";
   const isPendingView = pathname === "/admin/jobs" && searchParams?.get("status") === "pending-review";
   const djangoAdminUrl =
-    process.env.NEXT_PUBLIC_DJANGO_ADMIN_URL ?? "http://127.0.0.1:8000/admin/";
+    process.env.NEXT_PUBLIC_DJANGO_ADMIN_URL ?? "/django-admin/";
   const sidebarCollapsed = useAdminShellStore((state) => state.sidebarCollapsed);
   const setSidebarCollapsed = useAdminShellStore((state) => state.setSidebarCollapsed);
   const sidebarCounts = useAdminShellStore((state) => state.sidebarCounts);
