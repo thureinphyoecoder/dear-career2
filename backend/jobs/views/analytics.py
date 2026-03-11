@@ -79,21 +79,25 @@ def visitor_summary(request: HttpRequest):
 def admin_dashboard_snapshot(request: HttpRequest):
     today = timezone.localdate()
     last_7_days = today - timedelta(days=6)
+    published_filter = (
+        Q(is_active=True)
+        & Q(status=Job.WorkflowStatus.PUBLISHED)
+        & Q(requires_website_approval=False)
+        & Q(requires_facebook_approval=False)
+    )
+    draft_filter = Q(status=Job.WorkflowStatus.DRAFT)
+    pending_filter = ~published_filter & ~draft_filter
 
     job_counts = Job.objects.aggregate(
         total_jobs=Count("id"),
         published_jobs=Count(
             "id",
-            filter=Q(is_active=True)
-            & Q(status=Job.WorkflowStatus.PUBLISHED)
-            & Q(requires_website_approval=False),
+            filter=published_filter,
         ),
-        draft_jobs=Count("id", filter=Q(status=Job.WorkflowStatus.DRAFT)),
+        draft_jobs=Count("id", filter=draft_filter),
         pending_count=Count(
             "id",
-            filter=Q(status=Job.WorkflowStatus.PENDING_REVIEW)
-            | Q(requires_website_approval=True)
-            | Q(requires_facebook_approval=True),
+            filter=pending_filter,
         ),
     )
 
@@ -122,11 +126,7 @@ def admin_dashboard_snapshot(request: HttpRequest):
     )
 
     pending_jobs = list(
-        Job.objects.filter(
-            Q(status=Job.WorkflowStatus.PENDING_REVIEW)
-            | Q(requires_website_approval=True)
-            | Q(requires_facebook_approval=True)
-        )
+        Job.objects.filter(pending_filter)
         .order_by("-updated_at")[:12]
     )
     notifications = list(
@@ -140,6 +140,7 @@ def admin_dashboard_snapshot(request: HttpRequest):
             "total_jobs": job_counts["total_jobs"] or 0,
             "published_jobs": job_counts["published_jobs"] or 0,
             "draft_jobs": job_counts["draft_jobs"] or 0,
+            "pending_count": job_counts["pending_count"] or 0,
             "source_count": len(sources),
             "total_visitors": visitor_counts["total_visitors"] or 0,
             "active_ads": active_ads,

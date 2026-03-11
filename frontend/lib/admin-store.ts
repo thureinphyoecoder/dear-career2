@@ -55,7 +55,7 @@ export const useAdminShellStore = create<AdminShellState>((set) => ({
             allJobs: snapshot.total_jobs,
             publishedJobs: snapshot.published_jobs,
             draftedJobs: snapshot.draft_jobs,
-            pendingApprovals: snapshot.pending_approvals.length,
+            pendingApprovals: snapshot.pending_count,
           }
         : state.sidebarCounts,
     })),

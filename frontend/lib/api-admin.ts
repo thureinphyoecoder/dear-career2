@@ -45,15 +45,15 @@ function emptyVisitorSummary(): VisitorSummary {
 }
 
 function buildApprovalsFromJobs(jobs: Job[]): ApprovalItem[] {
+  const isPublished = (job: Job) =>
+    (job.status ?? "published") === "published" &&
+    job.is_active !== false &&
+    job.requires_website_approval !== true &&
+    job.requires_facebook_approval !== true;
+  const isDraft = (job: Job) => (job.status ?? "published") === "draft";
+
   return jobs
-    .filter((job) => {
-      const status = job.status ?? "published";
-      return (
-        status === "pending-review" ||
-        job.requires_website_approval === true ||
-        job.requires_facebook_approval === true
-      );
-    })
+    .filter((job) => !isPublished(job) && !isDraft(job))
     .slice(0, 20)
     .map((job) => {
       let requestedAction: ApprovalItem["requested_action"] = "manual-review";
@@ -244,6 +244,7 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
         total_jobs: snapshot.total_jobs,
         published_jobs: snapshot.published_jobs,
         draft_jobs: snapshot.draft_jobs,
+        pending_count: snapshot.pending_count,
         source_count: snapshot.source_count,
         total_visitors: snapshot.total_visitors,
         active_ads: snapshot.active_ads,
@@ -270,14 +271,17 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     (job) =>
       (job.status ?? "published") === "published" &&
       job.is_active !== false &&
-      job.requires_website_approval !== true,
+      job.requires_website_approval !== true &&
+      job.requires_facebook_approval !== true,
   ).length;
   const draftJobs = jobs.filter((job) => (job.status ?? "published") === "draft").length;
+  const pendingCount = Math.max(0, jobs.length - publishedJobs - draftJobs);
 
   return {
     total_jobs: jobs.length,
     published_jobs: publishedJobs,
     draft_jobs: draftJobs,
+    pending_count: pendingCount,
     source_count: sources.length,
     total_visitors: visitors.total_visitors,
     active_ads: ads.filter((ad) => ad.status === "active").length,

@@ -33,7 +33,7 @@ export default async function AdminDashboardPage() {
     },
     {
       label: "Pending",
-      value: snapshot.pending_approvals.length,
+      value: snapshot.pending_count,
       icon: FileClock,
     },
     {

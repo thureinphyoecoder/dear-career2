@@ -95,6 +95,7 @@ export type AdminDashboardSnapshot = {
   total_jobs: number;
   published_jobs: number;
   draft_jobs: number;
+  pending_count: number;
   source_count: number;
   total_visitors: number;
   active_ads: number;
