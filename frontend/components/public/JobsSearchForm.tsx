@@ -141,7 +141,7 @@ export function JobsSearchForm({
           />
         </label>
         <Button type="submit" size="lg" variant="ghost" className={buttonClassName}>
-          {liveSearch ? "Go" : buttonLabel}
+          {buttonLabel}
         </Button>
       </div>
       {error ? <p className={cn("text-sm text-[#8e4a4a]", errorClassName)}>{error}</p> : null}
