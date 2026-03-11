@@ -52,17 +52,17 @@ const FALLBACK_INLINE_AD: SponsoredAdLike = {
 
 function SponsoredJobLikeCard({ ad }: { ad: SponsoredAdLike }) {
   return (
-    <Card className="group relative h-full overflow-hidden rounded-[1.65rem] border-[rgba(132,157,138,0.2)] bg-[linear-gradient(150deg,rgba(255,251,244,0.96),rgba(243,248,240,0.82))] shadow-[0_12px_30px_rgba(119,145,125,0.1)] transition-all duration-300 hover:-translate-y-1 hover:border-[rgba(116,141,122,0.34)] hover:shadow-[0_20px_40px_rgba(119,145,125,0.16)]">
+    <Card className="group relative overflow-hidden rounded-[1.65rem] border-[rgba(132,157,138,0.2)] bg-[linear-gradient(150deg,rgba(255,251,244,0.96),rgba(243,248,240,0.82))] shadow-[0_12px_30px_rgba(119,145,125,0.1)] transition-all duration-300 hover:-translate-y-1 hover:border-[rgba(116,141,122,0.34)] hover:shadow-[0_20px_40px_rgba(119,145,125,0.16)]">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-[linear-gradient(180deg,rgba(160,183,164,0.14),transparent)]" />
-      <CardContent className="relative grid h-full gap-4 p-5 pt-5">
+      <CardContent className="relative grid gap-3.5 p-5 pt-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">{ad.eyebrow || "Sponsored"}</Badge>
             <Badge variant="secondary">Ad</Badge>
           </div>
         </div>
-        <h3 className="m-0 text-[1.2rem] font-semibold leading-[1.32] text-foreground">{ad.title}</h3>
-        <p className="m-0 line-clamp-3 text-[0.95rem] leading-7 text-[#6c7672]">{ad.description}</p>
+        <h3 className="m-0 line-clamp-2 text-[1.08rem] font-semibold leading-[1.35] text-foreground">{ad.title}</h3>
+        <p className="m-0 line-clamp-2 text-[0.92rem] leading-6 text-[#6c7672]">{ad.description}</p>
         <div className="mt-auto flex items-end justify-end gap-4 border-t border-[rgba(160,183,164,0.12)] pt-4">
           <a
             href={ad.href}
@@ -203,8 +203,8 @@ export function JobsInfiniteResults({
     <>
       {visibleSections.map((section) =>
         section.jobs.length > 0 ? (
-          <section key={section.key} className="mt-10 grid gap-5">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <section key={section.key} className="mt-8 grid gap-4">
+            <div className="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
               {section.jobs.flatMap((job) => {
                 cardCount += 1;
                 const items = [

@@ -14,7 +14,7 @@ export function PublicNav() {
   const [homeSection, setHomeSection] = useState<"home" | "jobs">("home");
   const [mobileOpen, setMobileOpen] = useState(false);
   const linkClass =
-    "relative inline-flex items-center px-3 pb-2.5 pt-2 text-[0.88rem] font-medium transition-colors sm:px-4 sm:text-[0.92rem] after:absolute after:bottom-0 after:left-1/2 after:h-px after:w-0 after:-translate-x-1/2 after:bg-[rgba(141,166,147,0.7)] after:transition-all";
+    "relative inline-flex items-center px-3 pb-2.5 pt-2 text-[0.96rem] font-medium transition-colors sm:px-4 sm:text-[1rem] after:absolute after:bottom-0 after:left-1/2 after:h-px after:w-0 after:-translate-x-1/2 after:bg-[rgba(141,166,147,0.7)] after:transition-all";
 
   useEffect(() => {
     if (pathname !== "/") {
@@ -81,9 +81,17 @@ export function PublicNav() {
   const contactActive = pathname === "/contact";
   const cvGuideActive = pathname === "/cv-guide";
   const jobAlertActive = pathname === "/job-alert";
+  const showSolidNav = pathname !== "/";
 
   return (
-    <nav className="fixed left-0 right-0 top-0 z-20 bg-transparent px-3 py-3 sm:px-6 sm:py-4">
+    <nav
+      className={cn(
+        "fixed left-0 right-0 top-0 z-20 px-3 py-3 sm:px-6 sm:py-4",
+        showSolidNav
+          ? "border-b border-[rgba(160,183,164,0.14)] bg-[rgba(251,249,245,0.92)] backdrop-blur-md"
+          : "bg-transparent",
+      )}
+    >
       <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[auto_1fr_auto] sm:gap-8">
         <BrandLogo compact inline className="nav-brand-logo min-w-0" />
         <div className="hidden items-center justify-center gap-1 sm:flex">
@@ -112,7 +120,7 @@ export function PublicNav() {
           <Link
             href="/about"
             className={cn(
-              "relative inline-flex items-center px-3 pb-2.5 pt-2 text-[0.88rem] font-medium transition-colors after:absolute after:bottom-0 after:left-1/2 after:h-px after:w-0 after:-translate-x-1/2 after:bg-[rgba(141,166,147,0.7)] after:transition-all sm:px-4 sm:text-[0.92rem]",
+              "relative inline-flex items-center px-3 pb-2.5 pt-2 text-[0.96rem] font-medium transition-colors after:absolute after:bottom-0 after:left-1/2 after:h-px after:w-0 after:-translate-x-1/2 after:bg-[rgba(141,166,147,0.7)] after:transition-all sm:px-4 sm:text-[1rem]",
               pathname === "/about"
                 ? "text-[#2f3a34] after:w-[62%]"
                 : "text-[#4f5954] hover:text-[#2f3a34]",
