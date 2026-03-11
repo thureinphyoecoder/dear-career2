@@ -4,6 +4,8 @@
 venv/
 backend/.env
 frontend/.env.local
+backend/.env.production
+frontend/.env.production
 
 # Python
 __pycache__/
@@ -19,3 +21,4 @@ frontend/.next/
 backend/staticfiles/
 backend/media/
 frontend/tsconfig.tsbuildinfo
+openresume-theme-*.tgz
