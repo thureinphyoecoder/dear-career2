@@ -22,31 +22,50 @@ export function PublicNav() {
       return;
     }
 
-    const heroSection = document.getElementById("home-hero-section");
-    const jobsSection = document.getElementById("home-jobs-section");
-    if (!heroSection || !jobsSection) {
-      return;
-    }
+    let rafId = 0;
+    let observerBound = false;
+    const observer = new IntersectionObserver(
+      () => {
+        cancelAnimationFrame(rafId);
+        rafId = window.requestAnimationFrame(updateHomeSection);
+      },
+      {
+        threshold: [0, 0.2, 0.45, 0.7],
+        rootMargin: "-84px 0px -35% 0px",
+      },
+    );
+
+    const bindObserver = () => {
+      if (observerBound) return;
+      const heroSection = document.getElementById("home-hero-section");
+      const jobsSection = document.getElementById("home-jobs-section");
+      if (!jobsSection) return;
+
+      if (heroSection) {
+        observer.observe(heroSection);
+      }
+      observer.observe(jobsSection);
+      observerBound = true;
+    };
 
     const updateHomeSection = () => {
+      bindObserver();
+      const jobsSection = document.getElementById("home-jobs-section");
+      if (!jobsSection) {
+        return;
+      }
+
       const anchor = window.innerHeight * 0.4;
       const jobsTop = jobsSection.getBoundingClientRect().top;
       setHomeSection(jobsTop <= anchor ? "jobs" : "home");
     };
 
     updateHomeSection();
-
-    const observer = new IntersectionObserver(updateHomeSection, {
-      threshold: [0, 0.2, 0.45, 0.7],
-      rootMargin: "-84px 0px -35% 0px",
-    });
-
-    observer.observe(heroSection);
-    observer.observe(jobsSection);
     window.addEventListener("scroll", updateHomeSection, { passive: true });
     window.addEventListener("resize", updateHomeSection);
 
     return () => {
+      cancelAnimationFrame(rafId);
       observer.disconnect();
       window.removeEventListener("scroll", updateHomeSection);
       window.removeEventListener("resize", updateHomeSection);

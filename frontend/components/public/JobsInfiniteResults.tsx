@@ -47,7 +47,7 @@ const FALLBACK_INLINE_AD: SponsoredAdLike = {
   description:
     "Place your brand inside curated job cards and reach active candidates every day.",
   cta_label: "Advertise now",
-  href: "/feedback",
+  href: "/contact",
 };
 
 function SponsoredJobLikeCard({ ad }: { ad: SponsoredAdLike }) {
@@ -204,7 +204,7 @@ export function JobsInfiniteResults({
       {visibleSections.map((section) =>
         section.jobs.length > 0 ? (
           <section key={section.key} className="mt-10 grid gap-5">
-            <div className="grid gap-4 xl:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {section.jobs.flatMap((job) => {
                 cardCount += 1;
                 const items = [
@@ -235,7 +235,7 @@ export function JobsInfiniteResults({
 
       <div ref={sentinelRef} className="mt-6 flex min-h-12 items-center justify-center">
         {isLoadingMore ? (
-          <div className="grid w-full gap-4 pt-2 xl:grid-cols-2">
+          <div className="grid w-full gap-4 pt-2 md:grid-cols-2 lg:grid-cols-3">
             <JobCardLoadingSkeleton />
             <JobCardLoadingSkeleton />
           </div>
