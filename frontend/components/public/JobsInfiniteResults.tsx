@@ -11,6 +11,7 @@ import type { Job, JobCategory, ManagedAd } from "@/lib/types";
 const INITIAL_BATCH = 6;
 const BATCH_SIZE = 6;
 const LOAD_MORE_DELAY_MS = 520;
+const JOBS_GRID_CLASS = "grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3";
 
 function JobCardLoadingSkeleton() {
   return (
@@ -179,11 +180,11 @@ export function JobsInfiniteResults({
   return (
     <>
       <section className="mt-10 grid gap-5">
-        <div className="grid gap-4 md:[grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
+        <div className={JOBS_GRID_CLASS}>
           {visibleJobs.flatMap((job) => {
             cardCount += 1;
             const items = [
-              <div key={job.id} className="h-full">
+              <div key={job.id} className="h-full min-w-0">
                 <JobCard job={job} />
               </div>,
             ];
@@ -195,7 +196,7 @@ export function JobsInfiniteResults({
               sponsoredAd?.href
             ) {
               items.push(
-                <div key={`inline-job-like-ad-${job.id}`} className="h-full">
+                <div key={`inline-job-like-ad-${job.id}`} className="h-full min-w-0">
                   <SponsoredJobLikeCard ad={sponsoredAd} />
                 </div>,
               );
@@ -208,7 +209,7 @@ export function JobsInfiniteResults({
 
       <div ref={sentinelRef} className="mt-6 flex min-h-12 items-center justify-center">
         {isLoadingMore ? (
-          <div className="grid w-full gap-4 pt-2 md:[grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
+          <div className={`${JOBS_GRID_CLASS} w-full pt-2`}>
             <JobCardLoadingSkeleton />
             <JobCardLoadingSkeleton />
           </div>
