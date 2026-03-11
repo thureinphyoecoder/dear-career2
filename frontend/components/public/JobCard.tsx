@@ -53,7 +53,7 @@ export function JobCard({ job }: { job: Job }) {
   return (
     <Card
       className={cn(
-        "group relative overflow-hidden rounded-[1.65rem] transition-all duration-300 hover:-translate-y-1",
+        "group relative overflow-hidden rounded-[1.65rem] transition-all duration-300 hover:-translate-y-1 md:h-[430px]",
         isViewed
           ? "border-[rgba(116,141,122,0.3)] bg-[linear-gradient(150deg,rgba(244,249,243,0.98),rgba(231,240,232,0.92))] shadow-[0_10px_26px_rgba(106,128,112,0.14)] hover:border-[rgba(99,124,107,0.42)] hover:shadow-[0_18px_36px_rgba(106,128,112,0.2)]"
           : "border-[rgba(132,157,138,0.2)] bg-[linear-gradient(150deg,rgba(255,255,255,0.96),rgba(245,248,242,0.8))] shadow-[0_12px_30px_rgba(119,145,125,0.1)] hover:border-[rgba(116,141,122,0.34)] hover:shadow-[0_20px_40px_rgba(119,145,125,0.16)]",
@@ -67,7 +67,7 @@ export function JobCard({ job }: { job: Job }) {
             : "bg-[linear-gradient(180deg,rgba(160,183,164,0.14),transparent)]",
         )}
       />
-      <CardContent className="relative grid gap-4 p-5 pt-5">
+      <CardContent className="relative flex h-full flex-col gap-4 p-5 pt-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">{categoryLabelMap[job.category]}</Badge>
@@ -82,15 +82,15 @@ export function JobCard({ job }: { job: Job }) {
         </div>
 
         <div className="grid gap-2">
-          <h3 className="m-0 text-[1.2rem] font-semibold leading-[1.32] text-foreground">
+          <h3 className="m-0 line-clamp-3 text-[1.2rem] font-semibold leading-[1.32] text-foreground">
             {job.title}
           </h3>
           <div className="grid gap-1 text-sm text-[#4a5650]">
-            <p className="m-0 inline-flex items-center gap-1.5 leading-6">
+            <p className="m-0 inline-flex line-clamp-1 items-center gap-1.5 leading-6">
               <Building2 className="h-4 w-4 text-[#7a8d7f]" />
               {job.company}
             </p>
-            <p className="m-0 inline-flex items-center gap-1.5 leading-6">
+            <p className="m-0 inline-flex line-clamp-1 items-center gap-1.5 leading-6">
               <MapPin className="h-4 w-4 text-[#7a8d7f]" />
               {job.location}
             </p>

@@ -137,7 +137,7 @@ export default async function PublicJobsPage({
     <JobsParallaxScene fromHome={shouldPlayEntryScroll}>
       <main
         className={cn(
-          "jobs-page mx-auto max-w-6xl px-3 pb-16 pt-24 sm:px-4 sm:pb-20 sm:pt-32",
+          "jobs-page mx-auto max-w-[1380px] px-3 pb-16 pt-24 sm:px-4 sm:pb-20 sm:pt-32",
           shouldPlayEntryScroll ? "jobs-page-scroll-enter" : "",
         )}
       >

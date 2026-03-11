@@ -46,9 +46,9 @@ const FALLBACK_INLINE_AD: SponsoredAdLike = {
 
 function SponsoredJobLikeCard({ ad }: { ad: SponsoredAdLike }) {
   return (
-    <Card className="group relative overflow-hidden rounded-[1.65rem] border-[rgba(132,157,138,0.2)] bg-[linear-gradient(150deg,rgba(255,251,244,0.96),rgba(243,248,240,0.82))] shadow-[0_12px_30px_rgba(119,145,125,0.1)] transition-all duration-300 hover:-translate-y-1 hover:border-[rgba(116,141,122,0.34)] hover:shadow-[0_20px_40px_rgba(119,145,125,0.16)]">
+    <Card className="group relative overflow-hidden rounded-[1.65rem] border-[rgba(132,157,138,0.2)] bg-[linear-gradient(150deg,rgba(255,251,244,0.96),rgba(243,248,240,0.82))] shadow-[0_12px_30px_rgba(119,145,125,0.1)] transition-all duration-300 hover:-translate-y-1 hover:border-[rgba(116,141,122,0.34)] hover:shadow-[0_20px_40px_rgba(119,145,125,0.16)] md:h-[430px]">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-[linear-gradient(180deg,rgba(160,183,164,0.14),transparent)]" />
-      <CardContent className="relative grid gap-4 p-5 pt-5">
+      <CardContent className="relative flex h-full flex-col gap-4 p-5 pt-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">{ad.eyebrow || "Sponsored"}</Badge>
@@ -179,11 +179,11 @@ export function JobsInfiniteResults({
   return (
     <>
       <section className="mt-10 grid gap-5">
-        <div className="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {visibleJobs.flatMap((job) => {
             cardCount += 1;
             const items = [
-              <div key={job.id}>
+              <div key={job.id} className="h-full">
                 <JobCard job={job} />
               </div>,
             ];
@@ -195,7 +195,7 @@ export function JobsInfiniteResults({
               sponsoredAd?.href
             ) {
               items.push(
-                <div key={`inline-job-like-ad-${job.id}`}>
+                <div key={`inline-job-like-ad-${job.id}`} className="h-full">
                   <SponsoredJobLikeCard ad={sponsoredAd} />
                 </div>,
               );
