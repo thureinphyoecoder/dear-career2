@@ -137,7 +137,7 @@ export default async function PublicJobsPage({
     <JobsParallaxScene fromHome={shouldPlayEntryScroll}>
       <main
         className={cn(
-          "jobs-page mx-auto max-w-[1380px] px-3 pb-16 pt-24 sm:px-4 sm:pb-20 sm:pt-32",
+          "jobs-page mx-auto max-w-[1560px] px-3 pb-16 pt-24 sm:px-4 sm:pb-20 sm:pt-32",
           shouldPlayEntryScroll ? "jobs-page-scroll-enter" : "",
         )}
       >
@@ -169,7 +169,7 @@ export default async function PublicJobsPage({
           </div>
         ) : null}
 
-        <div className="mt-5 grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-6">
+        <div className="mt-5 grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-6">
           {hasAnyJobs ? (
             <aside className="lg:sticky lg:top-28 lg:self-start">
               <div className="rounded-2xl border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.56)] p-3 sm:p-4">

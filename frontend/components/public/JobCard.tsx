@@ -53,7 +53,7 @@ export function JobCard({ job }: { job: Job }) {
   return (
     <Card
       className={cn(
-        "group relative overflow-hidden rounded-[1.65rem] transition-all duration-300 hover:-translate-y-1 md:h-[430px]",
+        "group relative w-full overflow-hidden rounded-[1.65rem] transition-all duration-300 hover:-translate-y-1 md:h-[430px]",
         isViewed
           ? "border-[rgba(116,141,122,0.3)] bg-[linear-gradient(150deg,rgba(244,249,243,0.98),rgba(231,240,232,0.92))] shadow-[0_10px_26px_rgba(106,128,112,0.14)] hover:border-[rgba(99,124,107,0.42)] hover:shadow-[0_18px_36px_rgba(106,128,112,0.2)]"
           : "border-[rgba(132,157,138,0.2)] bg-[linear-gradient(150deg,rgba(255,255,255,0.96),rgba(245,248,242,0.8))] shadow-[0_12px_30px_rgba(119,145,125,0.1)] hover:border-[rgba(116,141,122,0.34)] hover:shadow-[0_20px_40px_rgba(119,145,125,0.16)]",
