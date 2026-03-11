@@ -128,6 +128,14 @@ export function PublicFooter() {
               >
                 Thurein Phyoe
               </a>
+              .{" "}
+              <Link href="/privacy" className="underline underline-offset-4 hover:text-foreground">
+                Privacy
+              </Link>{" "}
+              and{" "}
+              <Link href="/terms" className="underline underline-offset-4 hover:text-foreground">
+                Terms
+              </Link>
               .
             </span>
           </div>

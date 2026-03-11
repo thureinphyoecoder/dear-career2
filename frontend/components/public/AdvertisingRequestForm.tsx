@@ -189,6 +189,17 @@ export function AdvertisingRequestForm() {
           {status === "submitting" ? "Sending..." : "Start Advertising Request"}
         </Button>
       </div>
+      <p className="m-0 text-xs leading-6 text-[#727975]">
+        By submitting, you agree to our{" "}
+        <a href="/privacy" className="underline underline-offset-4 hover:text-foreground">
+          Privacy Policy
+        </a>{" "}
+        and{" "}
+        <a href="/terms" className="underline underline-offset-4 hover:text-foreground">
+          Terms of Service
+        </a>
+        .
+      </p>
     </form>
   );
 }
