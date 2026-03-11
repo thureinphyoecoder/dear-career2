@@ -12,12 +12,6 @@ const INITIAL_BATCH = 6;
 const BATCH_SIZE = 6;
 const LOAD_MORE_DELAY_MS = 520;
 
-const categorySections: Array<{ key: JobCategory; title: string }> = [
-  { key: "ngo", title: "NGO Jobs" },
-  { key: "white-collar", title: "White Collar Jobs" },
-  { key: "blue-collar", title: "Blue Collar Jobs" },
-];
-
 function JobCardLoadingSkeleton() {
   return (
     <div className="rounded-[1.45rem] border border-[rgba(160,183,164,0.16)] bg-white/70 p-4 sm:p-5">
@@ -99,31 +93,14 @@ export function JobsInfiniteResults({
     ? inlineAd
     : FALLBACK_INLINE_AD;
 
-  const scopedSections = useMemo(() => {
-    const grouped = categorySections.map((section) => ({
-      ...section,
-      jobs: jobs.filter((job) => job.category === section.key),
-    }));
-    return activeCategory ? grouped.filter((section) => section.key === activeCategory) : grouped;
-  }, [jobs, activeCategory]);
-
   const scopedJobs = useMemo(
-    () => scopedSections.flatMap((section) => section.jobs),
-    [scopedSections],
+    () => (activeCategory ? jobs.filter((job) => job.category === activeCategory) : jobs),
+    [jobs, activeCategory],
   );
 
   const visibleJobs = useMemo(
     () => scopedJobs.slice(0, visibleCount),
     [scopedJobs, visibleCount],
-  );
-
-  const visibleSections = useMemo(
-    () =>
-      scopedSections.map((section) => ({
-        ...section,
-        jobs: visibleJobs.filter((job) => job.category === section.key),
-      })),
-    [scopedSections, visibleJobs],
   );
 
   const hasMore = visibleCount < scopedJobs.length;
@@ -201,37 +178,33 @@ export function JobsInfiniteResults({
 
   return (
     <>
-      {visibleSections.map((section) =>
-        section.jobs.length > 0 ? (
-          <section key={section.key} className="mt-10 grid gap-5">
-            <div className="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {section.jobs.flatMap((job) => {
-                cardCount += 1;
-                const items = [
-                  <div key={job.id}>
-                    <JobCard job={job} />
-                  </div>,
-                ];
+      <section className="mt-10 grid gap-5">
+        <div className="grid items-start gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {visibleJobs.flatMap((job) => {
+            cardCount += 1;
+            const items = [
+              <div key={job.id}>
+                <JobCard job={job} />
+              </div>,
+            ];
 
-                if (
-                  cardCount % 3 === 0 &&
-                  sponsoredAd?.title &&
-                  sponsoredAd?.description &&
-                  sponsoredAd?.href
-                ) {
-                  items.push(
-                    <div key={`inline-job-like-ad-${section.key}-${job.id}`}>
-                      <SponsoredJobLikeCard ad={sponsoredAd} />
-                    </div>,
-                  );
-                }
+            if (
+              cardCount % 3 === 0 &&
+              sponsoredAd?.title &&
+              sponsoredAd?.description &&
+              sponsoredAd?.href
+            ) {
+              items.push(
+                <div key={`inline-job-like-ad-${job.id}`}>
+                  <SponsoredJobLikeCard ad={sponsoredAd} />
+                </div>,
+              );
+            }
 
-                return items;
-              })}
-            </div>
-          </section>
-        ) : null,
-      )}
+            return items;
+          })}
+        </div>
+      </section>
 
       <div ref={sentinelRef} className="mt-6 flex min-h-12 items-center justify-center">
         {isLoadingMore ? (

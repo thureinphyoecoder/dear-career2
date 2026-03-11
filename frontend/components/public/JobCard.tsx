@@ -17,22 +17,22 @@ const categoryLabelMap = {
 };
 
 function formatRelativeTime(value?: string) {
-  if (!value) return "Recently posted";
+  if (!value) return "Now";
 
   const timestamp = new Date(value).getTime();
-  if (Number.isNaN(timestamp)) return "Recently posted";
+  if (Number.isNaN(timestamp)) return "Now";
 
   const diff = Math.max(0, Date.now() - timestamp);
   const minutes = Math.floor(diff / 60000);
 
-  if (minutes < 1) return "Just now";
-  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  if (minutes < 1) return "Now";
+  if (minutes < 60) return `${minutes}m ago`;
 
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  if (hours < 24) return `${hours}h ago`;
 
   const days = Math.floor(hours / 24);
-  return `${days} day${days === 1 ? "" : "s"} ago`;
+  return `${days}d ago`;
 }
 
 export function JobCard({ job }: { job: Job }) {
@@ -74,7 +74,7 @@ export function JobCard({ job }: { job: Job }) {
             <Badge variant="secondary">{job.employment_type}</Badge>
           </div>
           <div className="text-right">
-            <span className="inline-flex items-center gap-1 rounded-full border border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.84)] px-2.5 py-1 text-[0.72rem] leading-none text-[#66726d]">
+            <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-[rgba(160,183,164,0.18)] bg-[rgba(255,255,255,0.84)] px-2.5 py-1 text-[0.72rem] leading-none text-[#66726d]">
               <Clock3 className="h-3.5 w-3.5" />
               {formatRelativeTime(job.created_at)}
             </span>
