@@ -229,23 +229,71 @@ export function PublicNav() {
         <div className="flex items-center justify-end gap-2">
           {showCompactJobsNav ? (
             <div className="motion-safe:animate-[navMorphIn_240ms_cubic-bezier(0.2,0.85,0.24,1)_both] hidden items-center gap-1 lg:flex">
-              <Link href="/" className="inline-flex rounded-full px-3 py-1.5 text-[0.95rem] font-medium text-[#4f5954] hover:bg-[rgba(141,166,147,0.08)] hover:text-[#2f3a34]">
+              <Link
+                href="/"
+                className={cn(
+                  "inline-flex rounded-full px-3 py-1.5 text-[0.95rem] font-medium transition-colors",
+                  homeActive
+                    ? "bg-[rgba(141,166,147,0.14)] text-[#2f3a34]"
+                    : "text-[#4f5954] hover:bg-[rgba(141,166,147,0.08)] hover:text-[#2f3a34]",
+                )}
+              >
                 Home
               </Link>
-              <Link href="/jobs" className="inline-flex rounded-full px-3 py-1.5 text-[0.95rem] font-semibold text-[#2f3a34]">
+              <Link
+                href="/jobs"
+                className={cn(
+                  "inline-flex rounded-full px-3 py-1.5 text-[0.95rem] font-medium transition-colors",
+                  jobsActive
+                    ? "bg-[rgba(141,166,147,0.14)] text-[#2f3a34]"
+                    : "text-[#4f5954] hover:bg-[rgba(141,166,147,0.08)] hover:text-[#2f3a34]",
+                )}
+              >
                 Jobs
               </Link>
-              <Link href="/about" className="inline-flex rounded-full px-3 py-1.5 text-[0.95rem] font-medium text-[#4f5954] hover:bg-[rgba(141,166,147,0.08)] hover:text-[#2f3a34]">
+              <Link
+                href="/about"
+                className={cn(
+                  "inline-flex rounded-full px-3 py-1.5 text-[0.95rem] font-medium transition-colors",
+                  pathname === "/about"
+                    ? "bg-[rgba(141,166,147,0.14)] text-[#2f3a34]"
+                    : "text-[#4f5954] hover:bg-[rgba(141,166,147,0.08)] hover:text-[#2f3a34]",
+                )}
+              >
                 About
               </Link>
-              <Link href="/cv-guide" className="inline-flex rounded-full px-3 py-1.5 text-[0.95rem] font-medium text-[#4f5954] hover:bg-[rgba(141,166,147,0.08)] hover:text-[#2f3a34]">
+              <Link
+                href="/cv-guide"
+                className={cn(
+                  "inline-flex rounded-full px-3 py-1.5 text-[0.95rem] font-medium transition-colors",
+                  cvGuideActive
+                    ? "bg-[rgba(141,166,147,0.14)] text-[#2f3a34]"
+                    : "text-[#4f5954] hover:bg-[rgba(141,166,147,0.08)] hover:text-[#2f3a34]",
+                )}
+              >
                 CV Guide
               </Link>
-              <Link href="/job-alert" className="inline-flex items-center rounded-full px-3 py-1.5 text-[0.95rem] font-medium text-[#4f5954] hover:bg-[rgba(141,166,147,0.08)] hover:text-[#2f3a34]">
+              <Link
+                href="/job-alert"
+                className={cn(
+                  "inline-flex items-center rounded-full px-3 py-1.5 text-[0.95rem] font-medium transition-colors",
+                  jobAlertActive
+                    ? "bg-[rgba(141,166,147,0.14)] text-[#2f3a34]"
+                    : "text-[#4f5954] hover:bg-[rgba(141,166,147,0.08)] hover:text-[#2f3a34]",
+                )}
+              >
                 <Bell className="nav-bell-attention mr-1 h-3.5 w-3.5" />
                 Job Alert
               </Link>
-              <Link href="/contact" className="inline-flex rounded-full px-3 py-1.5 text-[0.95rem] font-medium text-[#4f5954] hover:bg-[rgba(141,166,147,0.08)] hover:text-[#2f3a34]">
+              <Link
+                href="/contact"
+                className={cn(
+                  "inline-flex rounded-full px-3 py-1.5 text-[0.95rem] font-medium transition-colors",
+                  contactActive
+                    ? "bg-[rgba(141,166,147,0.14)] text-[#2f3a34]"
+                    : "text-[#4f5954] hover:bg-[rgba(141,166,147,0.08)] hover:text-[#2f3a34]",
+                )}
+              >
                 Contact
               </Link>
             </div>
