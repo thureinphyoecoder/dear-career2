@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell, Database, FileClock, Globe, ShieldCheck } from "lucide-react";
+import { Database, FileClock, Globe, ShieldCheck } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -76,7 +76,7 @@ export default async function AdminDashboardPage() {
         ))}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(340px,1fr)]">
+      <section className="grid gap-4">
         <Card className="rounded-2xl border-[#ccd9cf] bg-white shadow-none">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-[1rem] font-semibold text-foreground">Pending jobs</CardTitle>
@@ -109,32 +109,6 @@ export default async function AdminDashboardPage() {
                   </div>
                 ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-2xl border-[#ccd9cf] bg-white shadow-none">
-          <CardHeader className="pb-3">
-            <CardTitle className="inline-flex items-center gap-2 text-[1rem] font-semibold text-foreground">
-              <Bell className="h-4 w-4" />
-              Notifications
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid max-h-[560px] gap-2 overflow-auto pb-5">
-            {snapshot.notifications.length === 0 ? (
-              <div className="rounded-xl border border-[rgba(160,183,164,0.16)] bg-[rgba(247,249,247,0.8)] px-4 py-4 text-sm text-[#6d7771]">
-                No notifications.
-              </div>
-            ) : (
-              snapshot.notifications.slice(0, 6).map((notification) => (
-                <article
-                  key={notification.id}
-                  className="grid gap-1 rounded-xl border border-[#d6e1d9] bg-[rgba(250,252,250,0.92)] px-4 py-2.5"
-                >
-                  <strong className="line-clamp-1 text-sm text-[#334039]">{notification.title}</strong>
-                  <span className="text-[0.78rem] text-[#86918a]">{formatDateTime(notification.created_at)}</span>
-                </article>
-              ))
             )}
           </CardContent>
         </Card>
