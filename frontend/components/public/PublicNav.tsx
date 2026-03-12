@@ -178,15 +178,15 @@ export function PublicNav() {
               >
                 Jobs
               </Link>
-              <Link
-                href="/about"
-                className={cn(
-                  "relative inline-flex items-center px-3 pb-2.5 pt-2 text-[0.96rem] font-medium transition-colors after:absolute after:bottom-0 after:left-1/2 after:h-px after:w-0 after:-translate-x-1/2 after:bg-[rgba(141,166,147,0.7)] after:transition-all sm:px-4 sm:text-[1rem]",
-                  pathname === "/about"
-                    ? "text-[#2f3a34] after:w-[62%]"
-                    : "text-[#4f5954] hover:text-[#2f3a34]",
-                )}
-              >
+          <Link
+            href="/about"
+            className={cn(
+              linkClass,
+              pathname === "/about"
+                ? "text-[#2f3a34] after:w-[62%]"
+                : "text-[#4f5954] hover:text-[#2f3a34]",
+            )}
+          >
                 About
               </Link>
               <Link
@@ -254,7 +254,7 @@ export function PublicNav() {
               <Link
                 href="/about"
                 className={cn(
-                  "relative inline-flex items-center px-3 pb-2.5 pt-2 text-[0.96rem] font-medium transition-colors after:absolute after:bottom-0 after:left-1/2 after:h-px after:w-0 after:-translate-x-1/2 after:bg-[rgba(141,166,147,0.7)] after:transition-all sm:px-4 sm:text-[1rem]",
+                  linkClass,
                   pathname === "/about"
                     ? "text-[#2f3a34] after:w-[62%]"
                     : "text-[#4f5954] hover:text-[#2f3a34]",
