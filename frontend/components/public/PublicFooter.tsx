@@ -8,9 +8,9 @@ export function PublicFooter() {
     process.env.NEXT_PUBLIC_FACEBOOK_PAGE_URL ?? "https://facebook.com/dearcareer";
 
   return (
-    <footer className="mt-auto w-full border-t border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.82)] px-3 pb-4 pt-10 sm:px-4 sm:pb-5 sm:pt-12">
-      <div className="mx-auto w-full max-w-6xl">
-        <div className="grid w-full gap-4 sm:p-2 lg:p-3">
+    <footer className="mt-auto w-full border-t border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.82)] px-3 pb-4 pt-10 sm:px-4 sm:pb-5 sm:pt-12 lg:px-8 xl:px-10">
+      <div className="w-full">
+        <div className="grid w-full gap-4">
           <div className="grid grid-cols-1 items-start gap-2 md:grid-cols-2 lg:gap-3 xl:grid-cols-4">
             <section className="grid content-start gap-4 self-start p-2.5 sm:p-4 lg:p-5">
               <BrandLogo compact />
