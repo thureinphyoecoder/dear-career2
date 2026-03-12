@@ -18,7 +18,7 @@ const REASON_LABEL: Record<JobReport["reason"], string> = {
 const STATUS_LABEL: Record<JobReportStatus, string> = {
   open: "Open",
   reviewed: "Reviewed",
-  resolved: "Resolved",
+  resolved: "Handled",
 };
 const REPORTS_REFRESH_INTERVAL_MS = 12000;
 type ReportFilter = "all" | JobReportStatus;
@@ -45,11 +45,7 @@ export function ReportsQueue({ initialReports }: { initialReports: JobReport[] }
     () => reports.filter((report) => report.status === "open").length,
     [reports],
   );
-  const reviewedReportsCount = useMemo(
-    () => reports.filter((report) => report.status === "reviewed").length,
-    [reports],
-  );
-  const resolvedReportsCount = useMemo(
+  const handledReportsCount = useMemo(
     () => reports.filter((report) => report.status === "resolved").length,
     [reports],
   );
@@ -154,8 +150,7 @@ export function ReportsQueue({ initialReports }: { initialReports: JobReport[] }
       <div className="flex flex-wrap gap-2">
         {[
           { key: "open" as ReportFilter, label: `Open (${openReportsCount})` },
-          { key: "reviewed" as ReportFilter, label: `Reviewed (${reviewedReportsCount})` },
-          { key: "resolved" as ReportFilter, label: `Resolved (${resolvedReportsCount})` },
+          { key: "resolved" as ReportFilter, label: `Handled (${handledReportsCount})` },
           { key: "all" as ReportFilter, label: `All (${reports.length})` },
         ].map((item) => (
           <button
@@ -209,7 +204,7 @@ export function ReportsQueue({ initialReports }: { initialReports: JobReport[] }
                   {REASON_LABEL[report.reason]}
                 </span>
                 <span className="inline-flex rounded-full border border-[rgba(160,183,164,0.2)] px-2.5 py-1 uppercase tracking-[0.12em] text-[#55645b]">
-                  {report.status}
+                  {report.status === "resolved" ? "handled" : report.status}
                 </span>
                 {report.reporter_email ? (
                   <span className="text-[#6d7a72]">{report.reporter_email}</span>
@@ -226,20 +221,6 @@ export function ReportsQueue({ initialReports }: { initialReports: JobReport[] }
               ) : null}
 
               <div className="flex flex-wrap gap-2">
-                {report.status !== "reviewed" ? (
-                  <button
-                    type="button"
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-full border border-[rgba(116,141,122,0.28)] bg-[rgba(144,168,147,0.1)] px-3 py-1.5 text-xs text-[#3d5746]",
-                      workingId === report.id && "opacity-60",
-                    )}
-                    disabled={workingId === report.id}
-                    onClick={() => void updateReportStatus(report, "reviewed")}
-                  >
-                    <Clock3 className="h-3.5 w-3.5" />
-                    Mark reviewed
-                  </button>
-                ) : null}
                 {report.status !== "resolved" ? (
                   <button
                     type="button"
@@ -251,21 +232,9 @@ export function ReportsQueue({ initialReports }: { initialReports: JobReport[] }
                     onClick={() => void updateReportStatus(report, "resolved")}
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" />
-                    Resolve
+                    Mark as handled
                   </button>
-                ) : (
-                  <button
-                    type="button"
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-full border border-[rgba(169,97,111,0.28)] bg-[rgba(169,97,111,0.08)] px-3 py-1.5 text-xs text-[#7c4a4a]",
-                      workingId === report.id && "opacity-60",
-                    )}
-                    disabled={workingId === report.id}
-                    onClick={() => void updateReportStatus(report, "open")}
-                  >
-                    Reopen
-                  </button>
-                )}
+                ) : null}
                 {report.job_id ? (
                   <a
                     href={`/admin/jobs/${report.job_id}?returnTo=/admin/reports`}
