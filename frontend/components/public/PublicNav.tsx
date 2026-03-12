@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Menu, X } from "lucide-react";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Bell, Menu, Search, X } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, type FormEvent } from "react";
 
 import { BrandLogo } from "@/components/public/BrandLogo";
 import { buttonVariants } from "@/components/ui/button";
@@ -11,8 +11,12 @@ import { cn } from "@/lib/utils";
 
 export function PublicNav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [homeSection, setHomeSection] = useState<"home" | "jobs">("home");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [compactQuery, setCompactQuery] = useState("");
   const linkClass =
     "relative inline-flex items-center px-3 pb-2.5 pt-2 text-[0.88rem] font-medium transition-colors sm:px-4 sm:text-[0.92rem] after:absolute after:bottom-0 after:left-1/2 after:h-px after:w-0 after:-translate-x-1/2 after:bg-[rgba(141,166,147,0.7)] after:transition-all";
 
@@ -76,11 +80,38 @@ export function PublicNav() {
     setMobileOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    const syncScroll = () => setIsScrolled(window.scrollY > 20);
+    syncScroll();
+    window.addEventListener("scroll", syncScroll, { passive: true });
+    return () => window.removeEventListener("scroll", syncScroll);
+  }, []);
+
+  useEffect(() => {
+    setCompactQuery(searchParams.get("q") ?? "");
+  }, [searchParams]);
+
+  function handleCompactSearchSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const next = new URLSearchParams(searchParams.toString());
+    const trimmed = compactQuery.trim();
+    if (trimmed) {
+      next.set("q", trimmed);
+    } else {
+      next.delete("q");
+    }
+    next.delete("from");
+    const href = next.toString() ? `/jobs?${next.toString()}` : "/jobs";
+    router.push(href);
+  }
+
   const homeActive = pathname === "/" ? homeSection === "home" : pathname === "/";
   const jobsActive = pathname === "/" ? homeSection === "jobs" : pathname?.startsWith("/jobs");
   const contactActive = pathname === "/contact";
   const cvGuideActive = pathname === "/cv-guide";
   const jobAlertActive = pathname === "/job-alert";
+  const isJobsPage = pathname?.startsWith("/jobs");
+  const showCompactJobsNav = Boolean(isJobsPage && isScrolled);
   const showSolidNav = pathname !== "/";
 
   return (
@@ -95,75 +126,130 @@ export function PublicNav() {
       <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[auto_1fr_auto] sm:gap-8">
         <BrandLogo compact inline className="nav-brand-logo min-w-0" />
         <div className="hidden items-center justify-center gap-1 sm:flex">
-          <Link
-            href="/"
-            className={cn(
-              linkClass,
-              homeActive
-                ? "text-[#2f3a34] after:w-[62%]"
-                : "text-[#4f5954] hover:text-[#2f3a34]",
-            )}
-          >
-            Home
-          </Link>
-          <Link
-            href="/jobs"
-            className={cn(
-              linkClass,
-              jobsActive
-                ? "text-[#2f3a34] after:w-[62%]"
-                : "text-[#4f5954] hover:text-[#2f3a34]",
-            )}
-          >
-            Jobs
-          </Link>
-          <Link
-            href="/about"
-            className={cn(
-              "relative inline-flex items-center px-3 pb-2.5 pt-2 text-[0.96rem] font-medium transition-colors after:absolute after:bottom-0 after:left-1/2 after:h-px after:w-0 after:-translate-x-1/2 after:bg-[rgba(141,166,147,0.7)] after:transition-all sm:px-4 sm:text-[1rem]",
-              pathname === "/about"
-                ? "text-[#2f3a34] after:w-[62%]"
-                : "text-[#4f5954] hover:text-[#2f3a34]",
-            )}
-          >
-            About
-          </Link>
-          <Link
-            href="/cv-guide"
-            className={cn(
-              linkClass,
-              cvGuideActive
-                ? "text-[#2f3a34] after:w-[62%]"
-                : "text-[#4f5954] hover:text-[#2f3a34]",
-            )}
-          >
-            CV Guide
-          </Link>
-          <Link
-            href="/job-alert"
-            className={cn(
-              linkClass,
-              jobAlertActive
-                ? "text-[#2f3a34] after:w-[62%]"
-                : "text-[#4f5954] hover:text-[#2f3a34]",
-            )}
-          >
-            <Bell className="nav-bell-attention mr-1 h-3.5 w-3.5" />
-            Job Alert
-          </Link>
-          <Link
-            href="/contact"
-            className={cn(
-              linkClass,
-              contactActive
-                ? "text-[#2f3a34] after:w-[62%]"
-                : "text-[#4f5954] hover:text-[#2f3a34]",
-            )}
-          >
-            Contact
-          </Link>
+          {showCompactJobsNav ? (
+            <form
+              onSubmit={handleCompactSearchSubmit}
+              className="flex w-[min(56vw,700px)] items-center gap-2 rounded-full border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.7)] p-1.5"
+            >
+              <label className="relative block flex-1" htmlFor="nav-jobs-search-input">
+                <Search
+                  size={15}
+                  strokeWidth={1.9}
+                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#727975]"
+                  aria-hidden="true"
+                />
+                <input
+                  id="nav-jobs-search-input"
+                  type="search"
+                  value={compactQuery}
+                  onChange={(event) => setCompactQuery(event.target.value)}
+                  placeholder="Search jobs in Thailand"
+                  className="h-10 w-full rounded-full border-0 bg-transparent pl-9 pr-3 text-sm text-[#2f3a34] outline-none placeholder:text-[#7a847f]"
+                />
+              </label>
+              <button
+                type="submit"
+                className="inline-flex h-10 items-center justify-center rounded-full border border-[rgba(160,183,164,0.24)] bg-[rgba(247,243,236,0.72)] px-4 text-sm font-semibold text-[#3f4b45] transition-colors hover:bg-[rgba(160,183,164,0.16)]"
+              >
+                Search
+              </button>
+            </form>
+          ) : (
+            <>
+              <Link
+                href="/"
+                className={cn(
+                  linkClass,
+                  homeActive
+                    ? "text-[#2f3a34] after:w-[62%]"
+                    : "text-[#4f5954] hover:text-[#2f3a34]",
+                )}
+              >
+                Home
+              </Link>
+              <Link
+                href="/jobs"
+                className={cn(
+                  linkClass,
+                  jobsActive
+                    ? "text-[#2f3a34] after:w-[62%]"
+                    : "text-[#4f5954] hover:text-[#2f3a34]",
+                )}
+              >
+                Jobs
+              </Link>
+              <Link
+                href="/about"
+                className={cn(
+                  "relative inline-flex items-center px-3 pb-2.5 pt-2 text-[0.96rem] font-medium transition-colors after:absolute after:bottom-0 after:left-1/2 after:h-px after:w-0 after:-translate-x-1/2 after:bg-[rgba(141,166,147,0.7)] after:transition-all sm:px-4 sm:text-[1rem]",
+                  pathname === "/about"
+                    ? "text-[#2f3a34] after:w-[62%]"
+                    : "text-[#4f5954] hover:text-[#2f3a34]",
+                )}
+              >
+                About
+              </Link>
+              <Link
+                href="/cv-guide"
+                className={cn(
+                  linkClass,
+                  cvGuideActive
+                    ? "text-[#2f3a34] after:w-[62%]"
+                    : "text-[#4f5954] hover:text-[#2f3a34]",
+                )}
+              >
+                CV Guide
+              </Link>
+              <Link
+                href="/job-alert"
+                className={cn(
+                  linkClass,
+                  jobAlertActive
+                    ? "text-[#2f3a34] after:w-[62%]"
+                    : "text-[#4f5954] hover:text-[#2f3a34]",
+                )}
+              >
+                <Bell className="nav-bell-attention mr-1 h-3.5 w-3.5" />
+                Job Alert
+              </Link>
+              <Link
+                href="/contact"
+                className={cn(
+                  linkClass,
+                  contactActive
+                    ? "text-[#2f3a34] after:w-[62%]"
+                    : "text-[#4f5954] hover:text-[#2f3a34]",
+                )}
+              >
+                Contact
+              </Link>
+            </>
+          )}
         </div>
         <div className="flex items-center justify-end gap-2">
+          {showCompactJobsNav ? (
+            <div className="hidden items-center gap-1 xl:flex">
+              <Link href="/" className="px-2 py-1 text-[0.85rem] text-[#4f5954] hover:text-[#2f3a34]">
+                Home
+              </Link>
+              <Link href="/jobs" className="px-2 py-1 text-[0.85rem] text-[#2f3a34]">
+                Jobs
+              </Link>
+              <Link href="/about" className="px-2 py-1 text-[0.85rem] text-[#4f5954] hover:text-[#2f3a34]">
+                About
+              </Link>
+              <Link href="/cv-guide" className="px-2 py-1 text-[0.85rem] text-[#4f5954] hover:text-[#2f3a34]">
+                CV Guide
+              </Link>
+              <Link href="/job-alert" className="inline-flex items-center px-2 py-1 text-[0.85rem] text-[#4f5954] hover:text-[#2f3a34]">
+                <Bell className="nav-bell-attention mr-1 h-3.5 w-3.5" />
+                Job Alert
+              </Link>
+              <Link href="/contact" className="px-2 py-1 text-[0.85rem] text-[#4f5954] hover:text-[#2f3a34]">
+                Contact
+              </Link>
+            </div>
+          ) : null}
           <button
             type="button"
             className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(160,183,164,0.2)] bg-[rgba(255,255,255,0.48)] text-[#4f5954] backdrop-blur sm:hidden"
