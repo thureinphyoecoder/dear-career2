@@ -83,7 +83,6 @@ def admin_dashboard_snapshot(request: HttpRequest):
         Q(is_active=True)
         & Q(status=Job.WorkflowStatus.PUBLISHED)
         & Q(requires_website_approval=False)
-        & Q(requires_facebook_approval=False)
     )
     draft_filter = Q(status=Job.WorkflowStatus.DRAFT)
     pending_filter = ~published_filter & ~draft_filter

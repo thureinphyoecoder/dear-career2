@@ -288,8 +288,7 @@ const getAdminDashboardSnapshotRaw = async (): Promise<AdminDashboardSnapshot> =
     (job) =>
       (job.status ?? "published") === "published" &&
       job.is_active !== false &&
-      job.requires_website_approval !== true &&
-      job.requires_facebook_approval !== true,
+      job.requires_website_approval !== true,
   ).length;
   const draftJobs = jobs.filter((job) => (job.status ?? "published") === "draft").length;
   const pendingCount = Math.max(0, jobs.length - publishedJobs - draftJobs);
