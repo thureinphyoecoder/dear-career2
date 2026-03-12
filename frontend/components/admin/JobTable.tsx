@@ -107,12 +107,12 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
         <CardContent className="overflow-x-auto p-0">
           <table className="w-full min-w-[1080px] table-fixed border-collapse text-left">
             <colgroup>
-              <col className="w-[53%]" />
+              <col className="w-[48%]" />
               <col className="w-[9%]" />
-              <col className="w-[8%]" />
+              <col className="w-[9%]" />
               <col className="w-[11%]" />
-              <col className="w-[14%]" />
-              <col className="w-[5%]" />
+              <col className="w-[15%]" />
+              <col className="w-[8%]" />
             </colgroup>
             <thead className="bg-[#fafbfa]">
               <tr>
@@ -121,7 +121,9 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
                 <th className="border-b border-border/70 px-5 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Added from</th>
                 <th className="border-b border-border/70 px-5 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Job stage</th>
                 <th className="border-b border-border/70 px-5 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">Updated</th>
-                <th className="border-b border-border/70 px-5 py-3 text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]" />
+                <th className="border-b border-border/70 px-5 py-3 text-right text-[0.76rem] uppercase tracking-[0.12em] text-[#727975]">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -162,8 +164,8 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
                       {formatDate(job.updated_at ?? job.created_at)}
                     </span>
                   </td>
-                  <td className="border-b border-border/60 px-5 py-4 align-top">
-                    <div className="flex items-center justify-end gap-2">
+                  <td className="border-b border-border/60 px-4 py-4 align-top">
+                    <div className="flex items-center justify-end gap-1.5">
                       {(job.status ?? "published") === "draft" ? (
                         <button
                           className="group relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/70 bg-white text-[#4f6a57] transition-colors hover:border-[#8da693]/40 hover:bg-[#f3f7f4] hover:text-[#334039]"

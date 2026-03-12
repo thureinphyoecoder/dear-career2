@@ -342,7 +342,7 @@ export function AdminShell({
             </form>
           </div>
         </div>
-        <div className="mx-auto w-full max-w-[1340px]">
+        <div className="w-full">
           {children}
         </div>
       </main>
