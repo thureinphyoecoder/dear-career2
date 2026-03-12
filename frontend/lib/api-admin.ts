@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import type {
   AdminDashboardSnapshot,
   AdminNotification,
@@ -17,21 +19,22 @@ import { getAdminApiHeaders } from "@/lib/admin-api-auth";
 
 const ADMIN_API_BASE_URL =
   process.env.DJANGO_ADMIN_API_BASE_URL ?? "http://127.0.0.1:8000/api";
-const ADMIN_FETCH_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 35000 : 1200;
+const ADMIN_FETCH_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 10000 : 1200;
+const ADMIN_DASHBOARD_FETCH_TIMEOUT_MS = process.env.NODE_ENV === "production" ? 8000 : 1200;
 const ADMIN_REVALIDATE_SECONDS = process.env.NODE_ENV === "production" ? 15 : 5;
 
-function getAdminFetchOptions(): RequestInit {
+function getAdminFetchOptions(timeoutMs: number = ADMIN_FETCH_TIMEOUT_MS): RequestInit {
   return {
-    signal: AbortSignal.timeout(ADMIN_FETCH_TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs),
     headers: getAdminApiHeaders(),
     cache: "no-store",
     next: { revalidate: ADMIN_REVALIDATE_SECONDS },
   };
 }
 
-async function fetchAdmin(url: string) {
+async function fetchAdmin(url: string, timeoutMs?: number) {
   return fetch(url, {
-    ...getAdminFetchOptions(),
+    ...getAdminFetchOptions(timeoutMs),
   });
 }
 
@@ -118,7 +121,7 @@ async function getAdminSources(): Promise<FetchSource[]> {
   }
 }
 
-export async function getFacebookCredential(): Promise<FacebookPageCredential> {
+const getFacebookCredentialRaw = async (): Promise<FacebookPageCredential> => {
   try {
     const response = await fetchAdmin(`${ADMIN_API_BASE_URL}/jobs/admin/channels/facebook/`);
 
@@ -144,7 +147,9 @@ export async function getFacebookCredential(): Promise<FacebookPageCredential> {
       connected: false,
     };
   }
-}
+};
+
+export const getFacebookCredential = cache(getFacebookCredentialRaw);
 
 export async function getFacebookPagePosts(): Promise<FacebookPagePost[]> {
   try {
@@ -234,9 +239,12 @@ export async function getAdminNotifications(): Promise<AdminNotification[]> {
   }
 }
 
-export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapshot> {
+const getAdminDashboardSnapshotRaw = async (): Promise<AdminDashboardSnapshot> => {
   try {
-    const response = await fetchAdmin(`${ADMIN_API_BASE_URL}/jobs/admin/dashboard/`);
+    const response = await fetchAdmin(
+      `${ADMIN_API_BASE_URL}/jobs/admin/dashboard/`,
+      ADMIN_DASHBOARD_FETCH_TIMEOUT_MS,
+    );
 
     if (response.ok) {
       const snapshot = (await response.json()) as AdminDashboardSnapshot;
@@ -290,7 +298,9 @@ export async function getAdminDashboardSnapshot(): Promise<AdminDashboardSnapsho
     sources,
     visitor_summary: visitors,
   };
-}
+};
+
+export const getAdminDashboardSnapshot = cache(getAdminDashboardSnapshotRaw);
 
 export async function getFetchSettings(): Promise<FetchSettings> {
   const [sources, facebook] = await Promise.all([getAdminSources(), getFacebookCredential()]);
