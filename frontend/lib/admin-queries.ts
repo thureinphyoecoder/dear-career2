@@ -33,9 +33,9 @@ export function useAdminDashboardQuery(initialData?: AdminDashboardSnapshot) {
         "Unable to load dashboard snapshot.",
       ),
     initialData,
-    staleTime: 5_000,
-    refetchInterval: 15_000,
-    refetchOnWindowFocus: true,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -44,7 +44,7 @@ export function useAdminJobsQuery(initialData: Job[]) {
     queryKey: adminQueryKeys.jobs,
     queryFn: async () => {
       const data = await fetchAdminJson<JobsResponse>(
-        "/api/admin/proxy/jobs?include_inactive=1",
+        "/api/admin/proxy/jobs?include_inactive=1&compact=1",
         "Unable to load jobs.",
       );
       return data.results;

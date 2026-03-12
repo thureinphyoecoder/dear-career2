@@ -1,7 +1,6 @@
 import { AdminJobsFilterForm } from "@/components/admin/AdminJobsFilterForm";
 import Link from "next/link";
 
-import { AdminLiveRefresh } from "@/components/admin/AdminLiveRefresh";
 import { JobTable } from "@/components/admin/JobTable";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,7 +56,6 @@ export default async function AdminJobsPage({ searchParams }: AdminJobsPageProps
 
   return (
     <div className="grid max-w-none gap-5 xl:pr-6">
-      <AdminLiveRefresh />
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-[clamp(1.7rem,2.4vw,2.2rem)] font-semibold leading-none text-foreground">
           Job list
