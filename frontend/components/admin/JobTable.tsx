@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PencilLine, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,6 +33,10 @@ export function JobTable({ jobs }: { jobs: Job[] }) {
   const [publishingId, setPublishingId] = useState<number | null>(null);
   const [pendingDeleteJob, setPendingDeleteJob] = useState<Job | null>(null);
   const [actionError, setActionError] = useState("");
+
+  useEffect(() => {
+    setJobRows(jobs);
+  }, [jobs]);
 
   async function deleteJob() {
     if (!pendingDeleteJob) return;
