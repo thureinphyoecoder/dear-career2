@@ -232,10 +232,10 @@ export function PublicNav() {
               <Link
                 href="/"
                 className={cn(
-                  "inline-flex rounded-full px-3 py-1.5 text-[0.95rem] font-medium transition-colors",
+                  linkClass,
                   homeActive
-                    ? "bg-[rgba(141,166,147,0.14)] text-[#2f3a34]"
-                    : "text-[#4f5954] hover:bg-[rgba(141,166,147,0.08)] hover:text-[#2f3a34]",
+                    ? "text-[#2f3a34] after:w-[62%]"
+                    : "text-[#4f5954] hover:text-[#2f3a34]",
                 )}
               >
                 Home
@@ -243,10 +243,10 @@ export function PublicNav() {
               <Link
                 href="/jobs"
                 className={cn(
-                  "inline-flex rounded-full px-3 py-1.5 text-[0.95rem] font-medium transition-colors",
+                  linkClass,
                   jobsActive
-                    ? "bg-[rgba(141,166,147,0.14)] text-[#2f3a34]"
-                    : "text-[#4f5954] hover:bg-[rgba(141,166,147,0.08)] hover:text-[#2f3a34]",
+                    ? "text-[#2f3a34] after:w-[62%]"
+                    : "text-[#4f5954] hover:text-[#2f3a34]",
                 )}
               >
                 Jobs
@@ -254,10 +254,10 @@ export function PublicNav() {
               <Link
                 href="/about"
                 className={cn(
-                  "inline-flex rounded-full px-3 py-1.5 text-[0.95rem] font-medium transition-colors",
+                  "relative inline-flex items-center px-3 pb-2.5 pt-2 text-[0.96rem] font-medium transition-colors after:absolute after:bottom-0 after:left-1/2 after:h-px after:w-0 after:-translate-x-1/2 after:bg-[rgba(141,166,147,0.7)] after:transition-all sm:px-4 sm:text-[1rem]",
                   pathname === "/about"
-                    ? "bg-[rgba(141,166,147,0.14)] text-[#2f3a34]"
-                    : "text-[#4f5954] hover:bg-[rgba(141,166,147,0.08)] hover:text-[#2f3a34]",
+                    ? "text-[#2f3a34] after:w-[62%]"
+                    : "text-[#4f5954] hover:text-[#2f3a34]",
                 )}
               >
                 About
@@ -265,10 +265,10 @@ export function PublicNav() {
               <Link
                 href="/cv-guide"
                 className={cn(
-                  "inline-flex rounded-full px-3 py-1.5 text-[0.95rem] font-medium transition-colors",
+                  linkClass,
                   cvGuideActive
-                    ? "bg-[rgba(141,166,147,0.14)] text-[#2f3a34]"
-                    : "text-[#4f5954] hover:bg-[rgba(141,166,147,0.08)] hover:text-[#2f3a34]",
+                    ? "text-[#2f3a34] after:w-[62%]"
+                    : "text-[#4f5954] hover:text-[#2f3a34]",
                 )}
               >
                 CV Guide
@@ -276,10 +276,10 @@ export function PublicNav() {
               <Link
                 href="/job-alert"
                 className={cn(
-                  "inline-flex items-center rounded-full px-3 py-1.5 text-[0.95rem] font-medium transition-colors",
+                  linkClass,
                   jobAlertActive
-                    ? "bg-[rgba(141,166,147,0.14)] text-[#2f3a34]"
-                    : "text-[#4f5954] hover:bg-[rgba(141,166,147,0.08)] hover:text-[#2f3a34]",
+                    ? "text-[#2f3a34] after:w-[62%]"
+                    : "text-[#4f5954] hover:text-[#2f3a34]",
                 )}
               >
                 <Bell className="nav-bell-attention mr-1 h-3.5 w-3.5" />
@@ -288,10 +288,10 @@ export function PublicNav() {
               <Link
                 href="/contact"
                 className={cn(
-                  "inline-flex rounded-full px-3 py-1.5 text-[0.95rem] font-medium transition-colors",
+                  linkClass,
                   contactActive
-                    ? "bg-[rgba(141,166,147,0.14)] text-[#2f3a34]"
-                    : "text-[#4f5954] hover:bg-[rgba(141,166,147,0.08)] hover:text-[#2f3a34]",
+                    ? "text-[#2f3a34] after:w-[62%]"
+                    : "text-[#4f5954] hover:text-[#2f3a34]",
                 )}
               >
                 Contact
