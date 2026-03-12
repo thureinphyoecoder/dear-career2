@@ -290,11 +290,19 @@ export function AdminShell({
               className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#cdd9d0] bg-white text-[#5d6a63] transition-colors hover:bg-[#f2f6f3] hover:text-[#2f3b35]"
               onClick={() => setSidebarCollapsed((current) => !current)}
             >
-              {sidebarCollapsed ? (
-                <PanelLeftOpen size={17} strokeWidth={1.9} />
-              ) : (
-                <PanelLeftClose size={17} strokeWidth={1.9} />
+              {sidebarCollapsed ? <PanelLeftOpen size={17} strokeWidth={1.9} /> : <PanelLeftClose size={17} strokeWidth={1.9} />}
+            </button>
+            <button
+              type="button"
+              className={cn(
+                "hidden h-9 items-center rounded-xl border px-3 text-xs font-semibold uppercase tracking-[0.12em] transition-colors sm:inline-flex",
+                sidebarCollapsed
+                  ? "border-[#9bb2a3] bg-[#e9f1eb] text-[#3a5445] hover:bg-[#deebe2]"
+                  : "border-[#cdd9d0] bg-white text-[#5d6a63] hover:bg-[#f2f6f3] hover:text-[#2f3b35]",
               )}
+              onClick={() => setSidebarCollapsed((current) => !current)}
+            >
+              {sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             </button>
             <div className="flex min-w-0 items-center gap-2">
               <Link href="/admin" className="shrink-0 rounded-lg px-1 py-1 font-medium text-[#7a847e]">
