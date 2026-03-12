@@ -2,12 +2,16 @@ import Link from "next/link";
 import {
   ArrowRight,
   ChartNoAxesColumn,
+  CircleCheckBig,
   Database,
   FileClock,
+  Flag,
   Globe,
   Megaphone,
   MessageSquareWarning,
   ShieldCheck,
+  Settings2,
+  Share2,
 } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
@@ -97,6 +101,32 @@ export default async function AdminDashboardPage() {
       href: "/admin/reports",
     },
   ] as const;
+  const quickActions = [
+    {
+      href: "/admin/approvals",
+      title: "Review pending jobs",
+      detail: `${snapshot.pending_count} waiting for action`,
+      icon: CircleCheckBig,
+    },
+    {
+      href: "/admin/reports",
+      title: "Handle user reports",
+      detail: `${openReports} open, ${reviewedReports} reviewed, ${reports.length} total`,
+      icon: Flag,
+    },
+    {
+      href: "/admin/sources",
+      title: "Manage import sources",
+      detail: `${healthySources} healthy, ${warningSources} warning, ${pausedSources} paused`,
+      icon: Settings2,
+    },
+    {
+      href: "/admin/facebook",
+      title: "Check Facebook sync",
+      detail: "Verify page connection and posting flow",
+      icon: Share2,
+    },
+  ] as const;
 
   return (
     <div className="grid max-w-none gap-4 xl:pr-4">
@@ -106,16 +136,16 @@ export default async function AdminDashboardPage() {
           <h1 className="text-[1.9rem] font-semibold leading-none text-[#2d3a33]">Dashboard</h1>
           <p className="text-sm text-[#6e7b74]">Daily operations, approvals, and source health.</p>
         </div>
-        <Link href="/admin/jobs/new" className={cn(buttonVariants(), "h-11 rounded-xl px-5 text-[0.95rem]")}>
+        <Link href="/admin/jobs/new" className={cn(buttonVariants(), "h-11 rounded-xl px-5 text-[0.95rem] shadow-sm")}>
           New job
         </Link>
       </header>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {statItems.map((item) => (
           <Link key={item.label} href={item.href}>
-            <Card className="rounded-2xl border-[#ccd9cf] bg-white shadow-none transition-colors hover:border-[#afc2b4] hover:bg-[#fcfefd]">
-              <CardContent className="grid gap-2 p-4">
+            <Card className="rounded-2xl border-[#ccd9cf] bg-gradient-to-b from-white to-[#fbfdfb] shadow-[0_8px_24px_rgba(56,74,63,0.04)] transition-all hover:-translate-y-[1px] hover:border-[#afc2b4] hover:shadow-[0_12px_28px_rgba(56,74,63,0.08)]">
+              <CardContent className="grid min-h-[128px] gap-2 p-4">
                 <div className="inline-flex items-center justify-between gap-3 text-[#6a766f]">
                   <span className="text-[0.78rem] uppercase tracking-[0.12em]">{item.label}</span>
                   <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-[#edf4ef] text-[#5c7063]">
@@ -134,47 +164,31 @@ export default async function AdminDashboardPage() {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,1fr)]">
-        <Card className="rounded-2xl border-[#ccd9cf] bg-white shadow-none">
+        <Card className="rounded-2xl border-[#ccd9cf] bg-white shadow-[0_8px_24px_rgba(56,74,63,0.04)]">
           <CardHeader className="pb-2">
             <CardTitle className="text-[1rem] font-semibold text-foreground">Quick actions</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-2 sm:grid-cols-2">
-            <Link
-              href="/admin/approvals"
-              className="rounded-xl border border-[#d6e1d9] bg-[#f8fcf9] px-4 py-3 text-sm font-medium text-[#314138] transition-colors hover:bg-[#edf5ef]"
-            >
-              Review pending jobs
-              <div className="mt-1 text-xs text-[#6f7d76]">{snapshot.pending_count} waiting for action</div>
-            </Link>
-            <Link
-              href="/admin/reports"
-              className="rounded-xl border border-[#d6e1d9] bg-[#f8fcf9] px-4 py-3 text-sm font-medium text-[#314138] transition-colors hover:bg-[#edf5ef]"
-            >
-              Handle user reports
-              <div className="mt-1 text-xs text-[#6f7d76]">
-                {openReports} open, {reviewedReports} reviewed, {reports.length} total
-              </div>
-            </Link>
-            <Link
-              href="/admin/sources"
-              className="rounded-xl border border-[#d6e1d9] bg-[#f8fcf9] px-4 py-3 text-sm font-medium text-[#314138] transition-colors hover:bg-[#edf5ef]"
-            >
-              Manage import sources
-              <div className="mt-1 text-xs text-[#6f7d76]">
-                {healthySources} healthy, {warningSources} warning, {pausedSources} paused
-              </div>
-            </Link>
-            <Link
-              href="/admin/facebook"
-              className="rounded-xl border border-[#d6e1d9] bg-[#f8fcf9] px-4 py-3 text-sm font-medium text-[#314138] transition-colors hover:bg-[#edf5ef]"
-            >
-              Check Facebook sync
-              <div className="mt-1 text-xs text-[#6f7d76]">Verify page connection and posting flow</div>
-            </Link>
+            {quickActions.map((action) => (
+              <Link
+                key={action.href}
+                href={action.href}
+                className="group rounded-xl border border-[#d6e1d9] bg-[#f8fcf9] px-4 py-3 text-sm font-medium text-[#314138] transition-all hover:-translate-y-[1px] hover:border-[#b7cbbd] hover:bg-[#edf5ef]"
+              >
+                <div className="flex items-center justify-between">
+                  <span>{action.title}</span>
+                  <action.icon className="h-4 w-4 text-[#6a7a72]" />
+                </div>
+                <div className="mt-1 inline-flex items-center gap-1 text-xs text-[#6f7d76]">
+                  <span>{action.detail}</span>
+                  <ArrowRight className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100" />
+                </div>
+              </Link>
+            ))}
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl border-[#ccd9cf] bg-white shadow-none">
+        <Card className="rounded-2xl border-[#ccd9cf] bg-white shadow-[0_8px_24px_rgba(56,74,63,0.04)]">
           <CardHeader className="pb-2">
             <CardTitle className="text-[1rem] font-semibold text-foreground">Source health</CardTitle>
           </CardHeader>
@@ -182,7 +196,7 @@ export default async function AdminDashboardPage() {
             {snapshot.sources.slice(0, 5).map((source) => (
               <div
                 key={source.id}
-                className="flex items-center justify-between rounded-xl border border-[#d6e1d9] bg-[#fbfdfb] px-3 py-2.5 text-sm"
+                className="flex items-center justify-between rounded-xl border border-[#d6e1d9] bg-[#fbfdfb] px-3 py-2.5 text-sm transition-colors hover:bg-[#f5faf7]"
               >
                 <div className="min-w-0">
                   <div className="truncate font-medium text-[#34423b]">{source.label}</div>
@@ -210,7 +224,7 @@ export default async function AdminDashboardPage() {
       </section>
 
       <section className="grid gap-4">
-        <Card className="rounded-2xl border-[#ccd9cf] bg-white shadow-none">
+        <Card className="rounded-2xl border-[#ccd9cf] bg-white shadow-[0_8px_24px_rgba(56,74,63,0.04)]">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-[1rem] font-semibold text-foreground">Pending jobs queue</CardTitle>
             <Link href="/admin/approvals" className="text-sm text-[#6f876f] hover:underline">
