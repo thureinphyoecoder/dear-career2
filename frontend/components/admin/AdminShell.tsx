@@ -179,7 +179,7 @@ export function AdminShell({
     navGroups.flatMap((group) => group.items).find((item) => item.active) ??
     navGroups[0]?.items[0];
   const headerLabel = activeNavItem?.label ?? title;
-  const gridTemplateColumns = sidebarCollapsed ? "92px minmax(0, 1fr)" : "280px minmax(0, 1fr)";
+  const gridTemplateColumns = sidebarCollapsed ? "112px minmax(0, 1fr)" : "280px minmax(0, 1fr)";
 
   return (
     <div
@@ -196,8 +196,28 @@ export function AdminShell({
       >
         <div className="flex h-full flex-col gap-6 lg:overflow-y-auto">
           <div className={cn("flex items-center", sidebarCollapsed ? "justify-center" : "justify-start")}>
-            <BrandLogo compact inline className="admin-brand-logo" />
+            {sidebarCollapsed ? (
+              <Link
+                href="/admin"
+                className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-[#cfdbd2] bg-white"
+                title="Admin home"
+              >
+                <img src="/logoflat.svg" alt="" aria-hidden="true" className="h-8 w-8" />
+              </Link>
+            ) : (
+              <BrandLogo compact inline className="admin-brand-logo" />
+            )}
           </div>
+
+          {sidebarCollapsed ? (
+            <button
+              type="button"
+              className="inline-flex h-9 items-center justify-center rounded-xl border border-[#9bb2a3] bg-[#e9f1eb] px-3 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-[#3a5445] transition-colors hover:bg-[#deebe2]"
+              onClick={() => setSidebarCollapsed(false)}
+            >
+              Expand
+            </button>
+          ) : null}
 
           <div className="grid gap-4 border-t border-border/60 pt-3">
             {!sidebarCollapsed ? (
@@ -207,6 +227,21 @@ export function AdminShell({
             ) : null}
             {navGroups.map((group) => (
               <div key={group.label} className="grid gap-1">
+                {sidebarCollapsed ? (
+                  <Link
+                    href={group.items.find((item) => item.active)?.href ?? group.items[0]?.href ?? "/admin"}
+                    title={group.label}
+                    aria-label={group.label}
+                    className={cn(
+                      "relative inline-flex h-11 w-full items-center justify-center rounded-xl border transition-colors",
+                      group.items.some((item) => item.active)
+                        ? "border-[#9fb6a7] bg-[#e8f1eb] text-[#2f4236] before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-r-full before:bg-[#5f7f6c]"
+                        : "border-transparent text-[#5f6d66] hover:border-[#d4ddd6] hover:bg-[#edf3ef]",
+                    )}
+                  >
+                    <group.icon size={17} strokeWidth={1.9} />
+                  </Link>
+                ) : (
                 <div
                   className={cn(
                     "flex min-h-[38px] w-full items-center rounded-lg border border-transparent px-3 text-left text-[0.9rem] transition-colors",
@@ -245,6 +280,7 @@ export function AdminShell({
                     ) : null}
                   </button>
                 </div>
+                )}
                 {!sidebarCollapsed && expandedGroups[group.label] !== false ? (
                   <div className="ml-4 grid gap-1 border-l border-[#d8e2da] pb-1 pl-4 pt-1">
                     {group.items.map((item) => (
