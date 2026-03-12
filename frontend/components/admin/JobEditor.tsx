@@ -1282,8 +1282,8 @@ export function JobEditor({
           <div className="flex flex-wrap gap-2">
             <button
               className={cn(
-                buttonVariants(),
-                "rounded-md",
+                buttonVariants({ size: "default" }),
+                "h-12 min-w-[168px] rounded-xl px-6 text-[0.95rem] font-semibold",
                 (isSaving || isUploadingImage || !canSaveJob) && "cursor-not-allowed opacity-60",
               )}
               type="submit"
@@ -1297,7 +1297,10 @@ export function JobEditor({
             </button>
             {initialJob?.id ? (
               <button
-                className={cn(buttonVariants({ variant: "secondary" }), "rounded-md")}
+                className={cn(
+                  buttonVariants({ variant: "secondary", size: "default" }),
+                  "h-12 min-w-[132px] rounded-xl px-5 text-[0.95rem] font-semibold",
+                )}
                 type="button"
                 disabled={isDeleting}
                 onClick={() => setConfirmDeleteOpen(true)}
