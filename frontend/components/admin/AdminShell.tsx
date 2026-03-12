@@ -179,7 +179,7 @@ export function AdminShell({
     navGroups.flatMap((group) => group.items).find((item) => item.active) ??
     navGroups[0]?.items[0];
   const headerLabel = activeNavItem?.label ?? title;
-  const gridTemplateColumns = sidebarCollapsed ? "112px minmax(0, 1fr)" : "268px minmax(0, 1fr)";
+  const gridTemplateColumns = sidebarCollapsed ? "96px minmax(0, 1fr)" : "248px minmax(0, 1fr)";
 
   return (
     <div
@@ -199,10 +199,10 @@ export function AdminShell({
             {sidebarCollapsed ? (
               <Link
                 href="/admin"
-                className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-[#cfdbd2] bg-white"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#d6e0d9] bg-white/90"
                 title="Admin home"
               >
-                <img src="/logoflat.svg" alt="" aria-hidden="true" className="h-8 w-8" />
+                <img src="/logoflat.svg" alt="" aria-hidden="true" className="h-7 w-7" />
               </Link>
             ) : (
               <BrandLogo compact inline className="admin-brand-logo" />
@@ -211,10 +211,10 @@ export function AdminShell({
               <button
                 type="button"
                 aria-label="Collapse sidebar"
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#cdd9d0] bg-white text-[#5d6a63] transition-colors hover:bg-[#f2f6f3] hover:text-[#2f3b35]"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#d7e0d9] bg-white/90 text-[#607067] transition-colors hover:bg-[#eef4f0] hover:text-[#2f3b35]"
                 onClick={() => setSidebarCollapsed(true)}
               >
-                <PanelLeftClose size={17} strokeWidth={1.9} />
+                <PanelLeftClose size={16} strokeWidth={1.9} />
               </button>
             ) : null}
           </div>
@@ -222,14 +222,15 @@ export function AdminShell({
           {sidebarCollapsed ? (
             <button
               type="button"
-              className="inline-flex h-9 items-center justify-center rounded-xl border border-[#9bb2a3] bg-[#e9f1eb] px-3 text-[0.75rem] font-semibold text-[#3a5445] transition-colors hover:bg-[#deebe2]"
+              className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-[#d1ddd4] bg-white/90 px-2 text-[0.74rem] font-medium text-[#3f5548] transition-colors hover:bg-[#edf4ef]"
               onClick={() => setSidebarCollapsed(false)}
             >
-              Expand
+              <PanelLeftOpen size={14} strokeWidth={2} />
+              Open
             </button>
           ) : null}
 
-          <div className="grid gap-4 border-t border-border/60 pt-3">
+          <div className="grid gap-4 border-t border-[#d9e2db] pt-3">
             {!sidebarCollapsed ? (
               <div className="px-1 text-[0.68rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                 {title}
@@ -242,10 +243,10 @@ export function AdminShell({
                     href={group.items.find((item) => item.active)?.href ?? group.items[0]?.href ?? "/admin"}
                     title={group.label}
                     aria-label={group.label}
-                      className={cn(
-                        "relative inline-flex h-11 w-full items-center justify-center rounded-xl border transition-colors",
+                    className={cn(
+                      "relative inline-flex h-10 w-full items-center justify-center rounded-lg border transition-colors",
                       group.items.some((item) => item.active)
-                        ? "border-[#abc0b3] bg-[#edf4ef] text-[#2f4236] before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-r-full before:bg-[#6d8b79]"
+                        ? "border-[#a9beaf] bg-[#e9f1eb] text-[#2f4236]"
                         : "border-transparent text-[#5f6d66] hover:border-[#d4ddd6] hover:bg-[#edf3ef]",
                     )}
                   >
@@ -254,10 +255,10 @@ export function AdminShell({
                 ) : (
                 <div
                   className={cn(
-                    "flex min-h-[38px] w-full items-center rounded-lg border border-transparent px-3 text-left text-[0.9rem] transition-colors",
+                    "flex min-h-[34px] w-full items-center rounded-md border border-transparent px-1 text-left text-[0.82rem] transition-colors",
                     group.items.some((item) => item.active)
-                      ? "border-[#cfdbd2] bg-[#f2f7f3] text-[#2a3831]"
-                      : "text-[#4f5a54] hover:bg-[#eef3ef]",
+                      ? "text-[#2a3831]"
+                      : "text-[#5c6962]",
                     sidebarCollapsed ? "justify-center gap-0 px-2" : "gap-3",
                   )}
                 >
@@ -280,10 +281,10 @@ export function AdminShell({
                     {!sidebarCollapsed ? <span className="font-medium">{group.label}</span> : null}
                     {!sidebarCollapsed ? (
                       <ChevronDown
-                        size={16}
+                        size={15}
                         strokeWidth={1.9}
                         className={cn(
-                          "ml-auto text-[#6f7a73] transition-transform",
+                          "ml-auto text-[#7a857f] transition-transform",
                           expandedGroups[group.label] !== false ? "rotate-180" : "rotate-0",
                         )}
                       />
@@ -292,14 +293,14 @@ export function AdminShell({
                 </div>
                 )}
                 {!sidebarCollapsed && expandedGroups[group.label] !== false ? (
-                  <div className="ml-4 grid gap-1 border-l border-[#d8e2da] pb-1 pl-4 pt-1">
+                  <div className="ml-1 grid gap-1 border-l border-[#d8e2da] pb-1 pl-3 pt-1">
                     {group.items.map((item) => (
                       <Link
                         key={item.href}
                         className={cn(
-                          "relative flex min-h-[34px] items-center justify-between gap-3 rounded-md px-2.5 text-[0.86rem] transition-colors",
+                          "relative flex min-h-[34px] items-center justify-between gap-3 rounded-md px-2.5 text-[0.9rem] transition-colors",
                           item.active
-                            ? "bg-[#edf4ef] font-semibold text-[#24332b] before:absolute before:inset-y-1 before:left-0 before:w-[3px] before:rounded-r-full before:bg-[#6d8b79]"
+                            ? "bg-[#eaf2ec] font-semibold text-[#24332b] before:absolute before:inset-y-1 before:left-0 before:w-[2px] before:rounded-r-full before:bg-[#6d8b79]"
                             : "text-[#6d7871] hover:bg-[#edf2ee] hover:text-[#344039]",
                         )}
                         href={item.href}
@@ -310,7 +311,7 @@ export function AdminShell({
                             className={cn(
                               "inline-flex min-w-[1.7rem] items-center justify-center rounded-full border px-1.5 py-0.5 text-[0.72rem] font-semibold",
                               item.active
-                                ? "border-[#98b2a2] bg-[#f5faf6] text-[#3a5445]"
+                                ? "border-[#a9beaf] bg-[#f5faf6] text-[#3a5445]"
                                 : "border-[#d6e1d9] bg-[#edf3ef] text-[#5b6a62]",
                             )}
                           >
@@ -327,16 +328,16 @@ export function AdminShell({
         </div>
       </aside>
 
-      <main className="min-w-0 px-4 py-4 sm:px-6 sm:py-5 lg:px-10 lg:py-8">
-        <div className="mb-5 flex w-full flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#cfdbd2] bg-white px-3 py-3 shadow-[0_10px_30px_rgba(44,56,48,0.06)] sm:px-4">
+      <main className="min-w-0 px-4 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-7">
+        <div className="mb-5 flex w-full flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#d2ddd5] bg-white px-3 py-3 shadow-[0_8px_24px_rgba(44,56,48,0.05)] sm:px-4">
           <div className="flex min-w-0 items-center gap-2 text-sm text-[#4b5851]">
             <button
               type="button"
               aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#cdd9d0] bg-white text-[#5d6a63] transition-colors hover:bg-[#f2f6f3] hover:text-[#2f3b35]"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#d7e0d9] bg-white text-[#5d6a63] transition-colors hover:bg-[#f2f6f3] hover:text-[#2f3b35]"
               onClick={() => setSidebarCollapsed((current) => !current)}
             >
-              {sidebarCollapsed ? <PanelLeftOpen size={17} strokeWidth={1.9} /> : <PanelLeftClose size={17} strokeWidth={1.9} />}
+              {sidebarCollapsed ? <PanelLeftOpen size={16} strokeWidth={1.9} /> : <PanelLeftClose size={16} strokeWidth={1.9} />}
             </button>
             <div className="flex min-w-0 items-center gap-2">
               <Link href="/admin" className="shrink-0 rounded-lg px-1 py-1 font-medium text-[#7a847e]">
