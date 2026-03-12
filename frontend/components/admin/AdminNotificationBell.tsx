@@ -114,44 +114,11 @@ export function AdminNotificationBell({
   const items = allItems.filter((item) => !item.is_read);
   const unreadCount = items.length;
   const [isOpen, setIsOpen] = useState(false);
-  const [streamError, setStreamError] = useState("");
   const [hasFreshItem, setHasFreshItem] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const shellRef = useRef<HTMLDivElement | null>(null);
   const didInitUnreadRef = useRef(false);
   const previousUnreadIdsRef = useRef<string[]>([]);
-
-  useEffect(() => {
-    const eventSource = new EventSource("/api/admin/proxy/jobs/admin/notifications/stream");
-    eventSource.onopen = () => {
-      setStreamError("");
-    };
-    eventSource.addEventListener("notification", (event) => {
-      const message = event as MessageEvent<string>;
-      try {
-        const parsed = JSON.parse(message.data) as AdminNotification;
-        queryClient.setQueryData(
-          adminQueryKeys.notifications,
-          (current: AdminNotification[] | undefined) =>
-            [parsed, ...(current ?? []).filter((item) => item.id !== parsed.id)].slice(0, 12),
-        );
-        playNotificationSound();
-        setHasFreshItem(true);
-        setStreamError("");
-      } catch {
-        setStreamError("A notification update could not be read.");
-      }
-    });
-    eventSource.onerror = () => {
-      if (eventSource.readyState === EventSource.CONNECTING) {
-        setStreamError("Live updates paused. Reconnecting...");
-      }
-    };
-
-    return () => {
-      eventSource.close();
-    };
-  }, [queryClient]);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -285,12 +252,11 @@ export function AdminNotificationBell({
             </div>
           </div>
 
-          {streamError || notificationsQuery.error ? (
+          {notificationsQuery.error ? (
             <div className="rounded-xl border border-[rgba(169,97,111,0.2)] bg-[rgba(169,97,111,0.08)] px-3 py-2 text-sm text-[#8e4a4a]">
-              {streamError ||
-                (notificationsQuery.error instanceof Error
-                  ? notificationsQuery.error.message
-                  : "Notifications are temporarily unavailable.")}
+              {notificationsQuery.error instanceof Error
+                ? notificationsQuery.error.message
+                : "Notifications are temporarily unavailable."}
             </div>
           ) : null}
 
