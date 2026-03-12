@@ -15,7 +15,13 @@ const REASON_LABEL: Record<JobReport["reason"], string> = {
   duplicate: "Duplicate",
   other: "Other",
 };
+const STATUS_LABEL: Record<JobReportStatus, string> = {
+  open: "Open",
+  reviewed: "Reviewed",
+  resolved: "Resolved",
+};
 const REPORTS_REFRESH_INTERVAL_MS = 12000;
+type ReportFilter = "all" | JobReportStatus;
 
 function formatTime(value?: string) {
   if (!value) return "";
@@ -32,11 +38,24 @@ export function ReportsQueue({ initialReports }: { initialReports: JobReport[] }
   const [reports, setReports] = useState(initialReports);
   const [workingId, setWorkingId] = useState<number | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<ReportFilter>("open");
   const isMountedRef = useRef(true);
 
-  const openReports = useMemo(
-    () => reports.filter((report) => report.status === "open"),
+  const openReportsCount = useMemo(
+    () => reports.filter((report) => report.status === "open").length,
     [reports],
+  );
+  const reviewedReportsCount = useMemo(
+    () => reports.filter((report) => report.status === "reviewed").length,
+    [reports],
+  );
+  const resolvedReportsCount = useMemo(
+    () => reports.filter((report) => report.status === "resolved").length,
+    [reports],
+  );
+  const filteredReports = useMemo(
+    () => (activeFilter === "all" ? reports : reports.filter((report) => report.status === activeFilter)),
+    [activeFilter, reports],
   );
 
   useEffect(() => {
@@ -94,14 +113,17 @@ export function ReportsQueue({ initialReports }: { initialReports: JobReport[] }
     };
   }, [workingId]);
 
-  async function markHandled(report: JobReport) {
+  async function updateReportStatus(report: JobReport, status: JobReportStatus) {
+    if (report.status === status) {
+      return;
+    }
     setWorkingId(report.id);
     try {
       const updated = await requestAdmin<JobReport>(
         `/api/admin/proxy/jobs/admin/reports/${report.id}/`,
         {
           method: "PATCH",
-          json: { status: "resolved" as JobReportStatus },
+          json: { status },
           fallbackError: "Could not update this report.",
         },
       );
@@ -109,7 +131,7 @@ export function ReportsQueue({ initialReports }: { initialReports: JobReport[] }
       setReports((current) =>
         current.map((item) => (item.id === updated.id ? updated : item)),
       );
-      toast.success("Report updated.");
+      toast.success(`Report marked as ${STATUS_LABEL[status].toLowerCase()}.`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not update this report.");
     } finally {
@@ -122,20 +144,43 @@ export function ReportsQueue({ initialReports }: { initialReports: JobReport[] }
       <div className="flex items-center justify-between rounded-xl border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.88)] px-4 py-3">
         <div className="inline-flex items-center gap-2 text-[#4c6354]">
           <ShieldAlert className="h-4 w-4" />
-          <strong className="text-sm">Reports to check: {openReports.length}</strong>
+          <strong className="text-sm">Reports to check: {openReportsCount}</strong>
         </div>
         <span className="text-xs uppercase tracking-[0.14em] text-[#8da693]">
           {isRefreshing ? "Syncing..." : "Live updates"}
         </span>
       </div>
 
-      {reports.length === 0 ? (
+      <div className="flex flex-wrap gap-2">
+        {[
+          { key: "open" as ReportFilter, label: `Open (${openReportsCount})` },
+          { key: "reviewed" as ReportFilter, label: `Reviewed (${reviewedReportsCount})` },
+          { key: "resolved" as ReportFilter, label: `Resolved (${resolvedReportsCount})` },
+          { key: "all" as ReportFilter, label: `All (${reports.length})` },
+        ].map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            onClick={() => setActiveFilter(item.key)}
+            className={cn(
+              "inline-flex items-center rounded-full border px-3 py-1.5 text-xs uppercase tracking-[0.12em] transition-colors",
+              activeFilter === item.key
+                ? "border-[rgba(116,141,122,0.34)] bg-[rgba(144,168,147,0.14)] text-[#3b5645]"
+                : "border-[rgba(160,183,164,0.2)] bg-white text-[#617068] hover:bg-[rgba(144,168,147,0.08)]",
+            )}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {filteredReports.length === 0 ? (
         <div className="rounded-xl border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.88)] px-4 py-6 text-sm text-[#6b756f]">
-          No reports yet.
+          No reports in this filter.
         </div>
       ) : (
         <div className="grid gap-3">
-          {reports.map((report) => (
+          {filteredReports.map((report) => (
             <article
               key={report.id}
               className={cn(
@@ -174,20 +219,61 @@ export function ReportsQueue({ initialReports }: { initialReports: JobReport[] }
               {report.message ? (
                 <p className="m-0 text-sm leading-6 text-[#4b5a52]">{report.message}</p>
               ) : null}
+              {report.review_note ? (
+                <p className="m-0 rounded-md bg-[rgba(144,168,147,0.08)] px-3 py-2 text-sm text-[#3f4f47]">
+                  Note: {report.review_note}
+                </p>
+              ) : null}
 
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full border border-[rgba(116,141,122,0.28)] bg-[rgba(144,168,147,0.1)] px-3 py-1.5 text-xs text-[#3d5746]",
-                    (workingId === report.id || report.status === "resolved") && "opacity-60",
-                  )}
-                  disabled={workingId === report.id || report.status === "resolved"}
-                  onClick={() => void markHandled(report)}
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Mark as handled
-                </button>
+                {report.status !== "reviewed" ? (
+                  <button
+                    type="button"
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full border border-[rgba(116,141,122,0.28)] bg-[rgba(144,168,147,0.1)] px-3 py-1.5 text-xs text-[#3d5746]",
+                      workingId === report.id && "opacity-60",
+                    )}
+                    disabled={workingId === report.id}
+                    onClick={() => void updateReportStatus(report, "reviewed")}
+                  >
+                    <Clock3 className="h-3.5 w-3.5" />
+                    Mark reviewed
+                  </button>
+                ) : null}
+                {report.status !== "resolved" ? (
+                  <button
+                    type="button"
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full border border-[rgba(116,141,122,0.28)] bg-[rgba(144,168,147,0.1)] px-3 py-1.5 text-xs text-[#3d5746]",
+                      workingId === report.id && "opacity-60",
+                    )}
+                    disabled={workingId === report.id}
+                    onClick={() => void updateReportStatus(report, "resolved")}
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Resolve
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full border border-[rgba(169,97,111,0.28)] bg-[rgba(169,97,111,0.08)] px-3 py-1.5 text-xs text-[#7c4a4a]",
+                      workingId === report.id && "opacity-60",
+                    )}
+                    disabled={workingId === report.id}
+                    onClick={() => void updateReportStatus(report, "open")}
+                  >
+                    Reopen
+                  </button>
+                )}
+                {report.job_id ? (
+                  <a
+                    href={`/admin/jobs/${report.job_id}?returnTo=/admin/reports`}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(160,183,164,0.24)] bg-white px-3 py-1.5 text-xs text-[#4b5a52]"
+                  >
+                    Open job
+                  </a>
+                ) : null}
               </div>
             </article>
           ))}
