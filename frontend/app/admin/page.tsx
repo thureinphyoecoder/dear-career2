@@ -6,12 +6,13 @@ import {
   FileClock,
   Globe,
   Megaphone,
+  MessageSquareWarning,
   ShieldCheck,
 } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getAdminDashboardSnapshot } from "@/lib/api-admin";
+import { getAdminDashboardSnapshot, getAdminJobReports } from "@/lib/api-admin";
 import { cn } from "@/lib/utils";
 
 function formatDateTime(value?: string) {
@@ -37,11 +38,13 @@ function labelRequestedAction(value: "publish" | "facebook-upload" | "manual-rev
 }
 
 export default async function AdminDashboardPage() {
-  const snapshot = await getAdminDashboardSnapshot();
+  const [snapshot, reports] = await Promise.all([getAdminDashboardSnapshot(), getAdminJobReports()]);
   const visitorSummary = snapshot.visitor_summary;
   const healthySources = snapshot.sources.filter((source) => source.status === "healthy").length;
   const warningSources = snapshot.sources.filter((source) => source.status === "warning").length;
   const pausedSources = snapshot.sources.filter((source) => source.status === "paused").length;
+  const openReports = reports.filter((report) => report.status === "open").length;
+  const reviewedReports = reports.filter((report) => report.status === "reviewed").length;
 
   const statItems = [
     {
@@ -85,6 +88,13 @@ export default async function AdminDashboardPage() {
       meta: "campaigns running",
       icon: Megaphone,
       href: "/admin/ads",
+    },
+    {
+      label: "Open reports",
+      value: openReports,
+      meta: `${reviewedReports} reviewed`,
+      icon: MessageSquareWarning,
+      href: "/admin/reports",
     },
   ] as const;
 
@@ -141,7 +151,9 @@ export default async function AdminDashboardPage() {
               className="rounded-xl border border-[#d6e1d9] bg-[#f8fcf9] px-4 py-3 text-sm font-medium text-[#314138] transition-colors hover:bg-[#edf5ef]"
             >
               Handle user reports
-              <div className="mt-1 text-xs text-[#6f7d76]">Review and close report tickets</div>
+              <div className="mt-1 text-xs text-[#6f7d76]">
+                {openReports} open, {reviewedReports} reviewed, {reports.length} total
+              </div>
             </Link>
             <Link
               href="/admin/sources"
