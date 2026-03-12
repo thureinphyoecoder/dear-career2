@@ -209,10 +209,10 @@ export function AdminShell({
               <div key={group.label} className="grid gap-1">
                 <div
                   className={cn(
-                    "flex min-h-[38px] w-full items-center rounded-lg border border-transparent px-3 text-left text-[0.9rem]",
+                    "flex min-h-[38px] w-full items-center rounded-lg border border-transparent px-3 text-left text-[0.9rem] transition-colors",
                     group.items.some((item) => item.active)
-                      ? "border-[#c5d2c8] bg-[#e9efea] text-[#1f2b25]"
-                      : "text-[#4f5a54]",
+                      ? "border-[#cfdbd2] bg-[#f2f7f3] text-[#2a3831]"
+                      : "text-[#4f5a54] hover:bg-[#eef3ef]",
                     sidebarCollapsed ? "justify-center gap-0 px-2" : "gap-3",
                   )}
                 >
@@ -251,9 +251,9 @@ export function AdminShell({
                       <Link
                         key={item.href}
                         className={cn(
-                          "flex min-h-[34px] items-center justify-between gap-3 rounded-md px-2.5 text-[0.86rem] transition-colors",
+                          "relative flex min-h-[34px] items-center justify-between gap-3 rounded-md px-2.5 text-[0.86rem] transition-colors",
                           item.active
-                            ? "bg-[#e3ece5] font-semibold text-[#1f2b25] shadow-[inset_2px_0_0_#4e6758]"
+                            ? "bg-[#e7f0ea] font-semibold text-[#24332b] before:absolute before:inset-y-1 before:left-0 before:w-[3px] before:rounded-r-full before:bg-[#5f7f6c]"
                             : "text-[#6d7871] hover:bg-[#edf2ee] hover:text-[#344039]",
                         )}
                         href={item.href}
@@ -262,10 +262,10 @@ export function AdminShell({
                         {typeof item.badge === "number" ? (
                           <span
                             className={cn(
-                              "inline-flex min-w-[1.7rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[0.72rem] font-semibold",
+                              "inline-flex min-w-[1.7rem] items-center justify-center rounded-full border px-1.5 py-0.5 text-[0.72rem] font-semibold",
                               item.active
-                                ? "bg-[#607868] text-white"
-                                : "bg-[#e5ede7] text-[#5b6a62]",
+                                ? "border-[#98b2a2] bg-[#f5faf6] text-[#3a5445]"
+                                : "border-[#d6e1d9] bg-[#edf3ef] text-[#5b6a62]",
                             )}
                           >
                             {item.badge}
