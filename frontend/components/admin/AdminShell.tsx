@@ -195,7 +195,7 @@ export function AdminShell({
         )}
       >
         <div className="flex h-full flex-col gap-6 lg:overflow-y-auto">
-          <div className={cn("flex items-center", sidebarCollapsed ? "justify-center" : "justify-between gap-2")}>
+          <div className={cn("flex items-center", sidebarCollapsed ? "justify-center" : "justify-start")}>
             {sidebarCollapsed ? (
               <Link
                 href="/admin"
@@ -207,28 +207,7 @@ export function AdminShell({
             ) : (
               <BrandLogo compact inline className="admin-brand-logo" />
             )}
-            {!sidebarCollapsed ? (
-              <button
-                type="button"
-                aria-label="Collapse sidebar"
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#d7e0d9] bg-white/90 text-[#607067] transition-colors hover:bg-[#eef4f0] hover:text-[#2f3b35]"
-                onClick={() => setSidebarCollapsed(true)}
-              >
-                <ChevronLeft size={16} strokeWidth={2} />
-              </button>
-            ) : null}
           </div>
-
-          {sidebarCollapsed ? (
-            <button
-              type="button"
-              aria-label="Expand sidebar"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#d1ddd4] bg-white/90 text-[#3f5548] transition-colors hover:bg-[#edf4ef]"
-              onClick={() => setSidebarCollapsed(false)}
-            >
-              <ChevronRight size={16} strokeWidth={2} />
-            </button>
-          ) : null}
 
           <div className="grid gap-4 border-t border-[#d9e2db] pt-3">
             {!sidebarCollapsed ? (
