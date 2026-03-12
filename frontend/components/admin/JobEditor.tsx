@@ -289,6 +289,13 @@ export function JobEditor({
     "h-11 w-full rounded-md border border-[rgba(150,174,157,0.28)] bg-white px-3 text-sm text-[#2f3d35] outline-none transition focus:border-[rgba(116,141,122,0.45)]";
   const panelClass =
     "grid gap-4 rounded-md border border-[rgba(150,174,157,0.26)] bg-white px-4 py-4";
+  const isPendingFlow =
+    status === "pending-review" || requiresWebsiteApproval || requiresFacebookApproval;
+  const saveActionLabel = initialJob?.id
+    ? safeReturnTo === "/admin/approvals" || isPendingFlow
+      ? "Approve & Post"
+      : "Save changes"
+    : "Add job";
 
   const intakeStatusTone = useMemo(() => {
     if (isProcessingIntake) {
@@ -1286,11 +1293,7 @@ export function JobEditor({
                 ? selectedImageFile && !isSaving
                   ? "Uploading image..."
                   : "Saving..."
-                : initialJob?.id
-                  ? safeReturnTo === "/admin/approvals"
-                    ? "Post"
-                    : "Save changes"
-                  : "Add job"}
+                : saveActionLabel}
             </button>
             {initialJob?.id ? (
               <button
