@@ -40,7 +40,9 @@ def admin_notification_stream(request: HttpRequest):
         started = time.monotonic()
         yield b"retry: 3000\n\n"
 
-        while time.monotonic() - started < 55:
+        # Keep each SSE request shorter than the gunicorn worker timeout.
+        # The browser reconnects automatically using the retry directive.
+        while time.monotonic() - started < 20:
             notifications = list(
                 AdminNotification.objects.filter(id__gt=current_last_id).order_by("id")[:20]
             )
