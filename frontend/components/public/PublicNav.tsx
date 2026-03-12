@@ -129,7 +129,7 @@ export function PublicNav() {
           {showCompactJobsNav ? (
             <form
               onSubmit={handleCompactSearchSubmit}
-              className="flex w-[min(56vw,700px)] items-center gap-2 rounded-full border border-[rgba(160,183,164,0.16)] bg-[rgba(255,255,255,0.7)] p-1.5"
+              className="motion-safe:animate-[navMorphIn_240ms_cubic-bezier(0.2,0.85,0.24,1)_both] flex w-[min(62vw,780px)] items-center gap-2 rounded-full border border-[rgba(160,183,164,0.2)] bg-[rgba(255,255,255,0.78)] p-1.5 shadow-[0_8px_22px_rgba(138,156,142,0.12)]"
             >
               <label className="relative block flex-1" htmlFor="nav-jobs-search-input">
                 <Search
@@ -144,18 +144,18 @@ export function PublicNav() {
                   value={compactQuery}
                   onChange={(event) => setCompactQuery(event.target.value)}
                   placeholder="Search jobs in Thailand"
-                  className="h-10 w-full rounded-full border-0 bg-transparent pl-9 pr-3 text-sm text-[#2f3a34] outline-none placeholder:text-[#7a847f]"
+                  className="h-11 w-full rounded-full border-0 bg-transparent pl-10 pr-3 text-[0.95rem] text-[#2f3a34] outline-none placeholder:text-[#7a847f]"
                 />
               </label>
               <button
                 type="submit"
-                className="inline-flex h-10 items-center justify-center rounded-full border border-[rgba(160,183,164,0.24)] bg-[rgba(247,243,236,0.72)] px-4 text-sm font-semibold text-[#3f4b45] transition-colors hover:bg-[rgba(160,183,164,0.16)]"
+                className="inline-flex h-11 items-center justify-center rounded-full border border-[rgba(160,183,164,0.24)] bg-[rgba(247,243,236,0.78)] px-5 text-[0.95rem] font-semibold text-[#3f4b45] transition-colors hover:bg-[rgba(160,183,164,0.16)]"
               >
                 Search
               </button>
             </form>
           ) : (
-            <>
+            <div className="motion-safe:animate-[navMorphIn_240ms_cubic-bezier(0.2,0.85,0.24,1)_both] flex items-center justify-center gap-1">
               <Link
                 href="/"
                 className={cn(
@@ -223,29 +223,29 @@ export function PublicNav() {
               >
                 Contact
               </Link>
-            </>
+            </div>
           )}
         </div>
         <div className="flex items-center justify-end gap-2">
           {showCompactJobsNav ? (
-            <div className="hidden items-center gap-1 xl:flex">
-              <Link href="/" className="px-2 py-1 text-[0.85rem] text-[#4f5954] hover:text-[#2f3a34]">
+            <div className="motion-safe:animate-[navMorphIn_240ms_cubic-bezier(0.2,0.85,0.24,1)_both] hidden items-center gap-1 lg:flex">
+              <Link href="/" className="px-2 py-1.5 text-[0.9rem] text-[#4f5954] hover:text-[#2f3a34]">
                 Home
               </Link>
-              <Link href="/jobs" className="px-2 py-1 text-[0.85rem] text-[#2f3a34]">
+              <Link href="/jobs" className="px-2 py-1.5 text-[0.9rem] text-[#2f3a34]">
                 Jobs
               </Link>
-              <Link href="/about" className="px-2 py-1 text-[0.85rem] text-[#4f5954] hover:text-[#2f3a34]">
+              <Link href="/about" className="px-2 py-1.5 text-[0.9rem] text-[#4f5954] hover:text-[#2f3a34]">
                 About
               </Link>
-              <Link href="/cv-guide" className="px-2 py-1 text-[0.85rem] text-[#4f5954] hover:text-[#2f3a34]">
+              <Link href="/cv-guide" className="px-2 py-1.5 text-[0.9rem] text-[#4f5954] hover:text-[#2f3a34]">
                 CV Guide
               </Link>
-              <Link href="/job-alert" className="inline-flex items-center px-2 py-1 text-[0.85rem] text-[#4f5954] hover:text-[#2f3a34]">
+              <Link href="/job-alert" className="inline-flex items-center px-2 py-1.5 text-[0.9rem] text-[#4f5954] hover:text-[#2f3a34]">
                 <Bell className="nav-bell-attention mr-1 h-3.5 w-3.5" />
                 Job Alert
               </Link>
-              <Link href="/contact" className="px-2 py-1 text-[0.85rem] text-[#4f5954] hover:text-[#2f3a34]">
+              <Link href="/contact" className="px-2 py-1.5 text-[0.9rem] text-[#4f5954] hover:text-[#2f3a34]">
                 Contact
               </Link>
             </div>
