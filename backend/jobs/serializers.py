@@ -12,7 +12,7 @@ def _job_uploaded_image_url(job):
         return ""
 
 
-def serialize_job(job, *, include_source_url=True):
+def serialize_job(job, *, include_source_url=True, include_descriptions=True):
     uploaded_image_url = _job_uploaded_image_url(job)
     payload = {
         "id": job.id,
@@ -34,11 +34,12 @@ def serialize_job(job, *, include_source_url=True):
         "is_fb_posted": job.is_fb_posted,
         "requires_website_approval": job.requires_website_approval,
         "requires_facebook_approval": job.requires_facebook_approval,
-        "description_mm": job.description_mm,
-        "description_en": job.description_en,
         "created_at": job.created_at.isoformat() if job.created_at else None,
         "updated_at": job.updated_at.isoformat() if job.updated_at else None,
     }
+    if include_descriptions:
+        payload["description_mm"] = job.description_mm
+        payload["description_en"] = job.description_en
     if include_source_url:
         payload["source_url"] = job.source_url
     return payload

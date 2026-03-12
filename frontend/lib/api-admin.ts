@@ -78,10 +78,15 @@ function buildApprovalsFromJobs(jobs: Job[]): ApprovalItem[] {
     });
 }
 
-export async function getAdminJobs(): Promise<Job[]> {
+type GetAdminJobsOptions = {
+  compact?: boolean;
+};
+
+export async function getAdminJobs(options: GetAdminJobsOptions = {}): Promise<Job[]> {
   try {
+    const compact = options.compact ?? true;
     const response = await fetchAdmin(
-      `${ADMIN_API_BASE_URL}/jobs/?include_inactive=1`,
+      `${ADMIN_API_BASE_URL}/jobs/?include_inactive=1${compact ? "&compact=1" : ""}`,
       ADMIN_JOBS_FETCH_TIMEOUT_MS,
     );
 

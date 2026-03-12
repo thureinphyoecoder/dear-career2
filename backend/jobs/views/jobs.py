@@ -34,6 +34,7 @@ from .shared import (
 @require_GET
 def job_list(request: HttpRequest):
     include_inactive = request.GET.get("include_inactive") == "1" and has_valid_admin_api_key(request)
+    compact = request.GET.get("compact") == "1" and include_inactive
     jobs = (
         Job.objects.all()
         if include_inactive
@@ -43,7 +44,16 @@ def job_list(request: HttpRequest):
             requires_website_approval=False,
         )
     )
-    results = [serialize_job(job, include_source_url=include_inactive) for job in jobs]
+    if compact:
+        jobs = jobs.defer("description_mm", "description_en")
+    results = [
+        serialize_job(
+            job,
+            include_source_url=include_inactive,
+            include_descriptions=not compact,
+        )
+        for job in jobs
+    ]
     return JsonResponse({"count": len(results), "results": results})
 
 

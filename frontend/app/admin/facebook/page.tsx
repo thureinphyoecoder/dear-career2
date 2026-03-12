@@ -27,7 +27,7 @@ export default async function AdminFacebookPage({
   const [credential, postsState, jobs] = await Promise.all([
     getFacebookCredential(),
     getFacebookPagePostsState(),
-    getAdminJobs(),
+    getAdminJobs({ compact: false }),
   ]);
   const params = await searchParams;
   let pendingPages: FacebookConnectPageOption[] = [];
