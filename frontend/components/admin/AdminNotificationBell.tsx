@@ -118,6 +118,8 @@ export function AdminNotificationBell({
   const [hasFreshItem, setHasFreshItem] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const shellRef = useRef<HTMLDivElement | null>(null);
+  const didInitUnreadRef = useRef(false);
+  const previousUnreadIdsRef = useRef<string[]>([]);
 
   useEffect(() => {
     const eventSource = new EventSource("/api/admin/proxy/jobs/admin/notifications/stream");
@@ -167,6 +169,26 @@ export function AdminNotificationBell({
       setHasFreshItem(false);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    const unreadIds = items.map((item) => String(item.id));
+    if (!didInitUnreadRef.current) {
+      previousUnreadIdsRef.current = unreadIds;
+      didInitUnreadRef.current = true;
+      return;
+    }
+
+    const hasNewUnread = unreadIds.some(
+      (id) => !previousUnreadIdsRef.current.includes(id),
+    );
+
+    if (hasNewUnread) {
+      playNotificationSound();
+      setHasFreshItem(true);
+    }
+
+    previousUnreadIdsRef.current = unreadIds;
+  }, [items]);
 
   async function openNotification(item: AdminNotification) {
     const nextHref = resolveNotificationHref(item);
